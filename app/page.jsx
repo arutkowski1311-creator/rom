@@ -353,7 +353,7 @@ function HowItWorks() {
     { num:"03", title:"Go do the thing", body:"Your guide handles the details. You show up and have the best day. Leave a review so the next guest knows what they're getting into." },
   ];
   return (
-    <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:16}}>
+    <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, maxWidth:1000, margin:"0 auto"}}>
       {steps.map((s,i)=>(
         <div key={s.num} style={{padding:"40px 36px", background:T.steel, border:`1px solid ${T.wire}`, borderTop:`3px solid ${T.gold}`, borderRadius:10}}>
           <div style={{fontFamily:FONT_DISPLAY, fontSize:64, color:T.gold, fontWeight:300, lineHeight:1, marginBottom:20, opacity:0.6, userSelect:"none"}}>{s.num}</div>
