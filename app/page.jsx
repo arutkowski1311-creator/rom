@@ -388,24 +388,26 @@ function TrustBar() {
 
 // ─── GUIDE CTA ────────────────────────────────────────────────────────────────
 function GuideCTA() {
+  const isMobile = useIsMobile();
   return (
-    <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:0}}>
+    <div style={{maxWidth:1200, margin:"0 auto"}}>
+    <div style={{display:"grid", gridTemplateColumns:isMobile?"1fr":"1fr 1fr", gap:0, minHeight:500}}>
       {/* Left — visual */}
       <div style={{background:"linear-gradient(135deg, #152018 0%, #0b1a24 60%, #1a1206 100%)", position:"relative", overflow:"hidden"}}>
         <div style={{position:"absolute", inset:0, backgroundImage:`radial-gradient(ellipse at 30% 60%, ${T.gold}28 0%, transparent 50%)`}}/>
-        <div style={{position:"relative", padding:"56px 48px", height:"100%", display:"flex", flexDirection:"column", justifyContent:"center"}}>
-          <div style={{fontFamily:FONT_DISPLAY, fontSize:48, color:T.white, fontWeight:400, lineHeight:1.05, marginBottom:16}}>
+        <div style={{position:"relative", padding:"64px 56px", height:"100%", display:"flex", flexDirection:"column", justifyContent:"center"}}>
+          <div style={{fontFamily:FONT_DISPLAY, fontSize:56, color:T.white, fontWeight:400, lineHeight:1.05, marginBottom:20}}>
             Your territory.<br/>
             <span style={{color:T.gold, fontStyle:"italic"}}>Your business.</span>
           </div>
-          <div style={{fontFamily:FONT_BODY, fontSize:15, color:T.ash, lineHeight:1.7, maxWidth:380}}>
+          <div style={{fontFamily:FONT_BODY, fontSize:16, color:T.ash, lineHeight:1.75, maxWidth:420}}>
             Rōm was built around one idea: guides should keep everything they earn. We charge guests a 15% service fee — your listed price is your payout, every time.
           </div>
         </div>
       </div>
 
       {/* Right — reasons */}
-      <div style={{background:T.steel, padding:"56px 48px", display:"flex", flexDirection:"column", justifyContent:"center"}}>
+      <div style={{background:T.steel, padding:"64px 56px", display:"flex", flexDirection:"column", justifyContent:"center"}}>
         <div style={{fontFamily:FONT_BODY, fontSize:11, fontWeight:700, color:T.gold, textTransform:"uppercase", letterSpacing:"0.12em", marginBottom:16}}>Why guide with Rōm</div>
         <div style={{display:"flex", flexDirection:"column", gap:0}}>
           {[
@@ -430,6 +432,7 @@ function GuideCTA() {
           <span style={{fontFamily:FONT_BODY, fontSize:13, color:T.silver}}>48hr decision · personal review</span>
         </div>
       </div>
+    </div>
     </div>
   );
 }
