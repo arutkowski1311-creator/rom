@@ -105,7 +105,7 @@ function Nav({ scrolled, user, userRole }) {
             ) : (
               <>
                 <span onClick={()=>window.location.href="/login"} style={{fontFamily:FONT_BODY,fontSize:16,color:scrolled?T.ash:T.parchment,cursor:"pointer"}}>Sign in</span>
-                <button onClick={()=>window.location.href="/signup"} style={{background:T.gold,border:"none",borderRadius:6,padding:"10px 22px",fontFamily:FONT_BODY,fontSize:16,fontWeight:700,color:T.ink,cursor:"pointer"}}>Become a Guide</button>
+                <button onClick={()=>window.location.href="/become-a-guide"} style={{background:T.gold,border:"none",borderRadius:6,padding:"10px 22px",fontFamily:FONT_BODY,fontSize:16,fontWeight:700,color:T.ink,cursor:"pointer"}}>Become a Guide</button>
               </>
             )}
           </div>
@@ -132,7 +132,7 @@ function Nav({ scrolled, user, userRole }) {
         ) : (
           <>
             <span onClick={()=>window.location.href="/login"} style={{fontFamily:FONT_BODY,fontSize:16,color:T.ash,cursor:"pointer",padding:"10px 0"}}>Sign in</span>
-            <button onClick={()=>window.location.href="/signup"} style={{background:T.gold,border:"none",borderRadius:6,padding:"13px",fontFamily:FONT_BODY,fontSize:16,fontWeight:700,color:T.ink,cursor:"pointer",width:"100%"}}>Become a Guide</button>
+            <button onClick={()=>window.location.href="/become-a-guide"} style={{background:T.gold,border:"none",borderRadius:6,padding:"13px",fontFamily:FONT_BODY,fontSize:16,fontWeight:700,color:T.ink,cursor:"pointer",width:"100%"}}>Become a Guide</button>
           </>
         )}
       </div>
@@ -426,7 +426,7 @@ function GuideCTA() {
           ))}
         </div>
         <div style={{marginTop:32}}>
-          <button onClick={()=>window.location.href="/signup"} style={{background:T.gold, border:"none", borderRadius:6, padding:"13px 28px", fontFamily:FONT_BODY, fontSize:16, fontWeight:700, color:T.ink, cursor:"pointer", marginRight:12}}>
+          <button onClick={()=>window.location.href="/become-a-guide"} style={{background:T.gold, border:"none", borderRadius:6, padding:"13px 28px", fontFamily:FONT_BODY, fontSize:16, fontWeight:700, color:T.ink, cursor:"pointer", marginRight:12}}>
             Apply to Guide
           </button>
           <span style={{fontFamily:FONT_BODY, fontSize:17, color:T.silver}}>48hr decision · personal review</span>
