@@ -243,6 +243,7 @@ export default function SearchPage() {
   const [query, setQuery] = useState("");
   const [guides, setGuides] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [mobileView, setMobileView] = useState("list"); // "list" | "map"
 
   useEffect(() => { fetchGuides(); }, [filters, query]);
 
@@ -308,6 +309,18 @@ export default function SearchPage() {
         ::placeholder{color:${T.muted};}
         ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:${T.carbon};}::-webkit-scrollbar-thumb{background:${T.wire};border-radius:3px;}
         select option{background:${T.steel};color:${T.ash};}
+        .search-grid{display:grid;grid-template-columns:1fr 460px;height:100vh;padding-top:64px;}
+        .guides-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+        .mobile-toggle{display:none;}
+        .map-panel{display:block;}
+        @media(max-width:768px){
+          .search-grid{grid-template-columns:1fr!important;}
+          .guides-grid-2{grid-template-columns:1fr!important;}
+          .mobile-toggle{display:flex!important;}
+          .map-panel-hidden{display:none!important;}
+          .list-panel-hidden{display:none!important;}
+          body{overflow:auto!important;}
+        }
       `}</style>
 
       <div style={{position:"fixed",top:0,left:0,right:0,zIndex:100,height:64,background:T.void,borderBottom:`1px solid ${T.wire}`,display:"flex",alignItems:"center"}}>
@@ -324,8 +337,14 @@ export default function SearchPage() {
         </div>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"1fr 460px",height:"100vh",paddingTop:64}}>
-        <div style={{overflowY:"auto",background:T.gunmetal}}>
+      {/* Mobile map/list toggle */}
+      <div className="mobile-toggle" style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:200,background:T.steel,border:`1px solid ${T.wire}`,borderRadius:24,padding:4,display:"flex",gap:4,boxShadow:"0 4px 20px rgba(0,0,0,0.5)"}}>
+        <button onClick={()=>setMobileView("list")} style={{background:mobileView==="list"?T.gold:"none",border:"none",borderRadius:20,padding:"8px 20px",fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:mobileView==="list"?T.ink:T.silver,cursor:"pointer"}}>☰ List</button>
+        <button onClick={()=>setMobileView("map")} style={{background:mobileView==="map"?T.gold:"none",border:"none",borderRadius:20,padding:"8px 20px",fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:mobileView==="map"?T.ink:T.silver,cursor:"pointer"}}>⊕ Map</button>
+      </div>
+
+      <div className="search-grid">
+        <div className={mobileView==="map"?"list-panel-hidden":""} style={{overflowY:"auto",background:T.gunmetal}}>
           <div style={{background:T.carbon,borderBottom:`1px solid ${T.wire}`,padding:"14px 24px",position:"sticky",top:0,zIndex:10}}>
             <FilterBar filters={filters} setFilters={setFilters}/>
           </div>
@@ -338,7 +357,7 @@ export default function SearchPage() {
               {query&&<div style={{fontFamily:FONT_BODY,fontSize:13,color:T.silver}}>Searching "{query}"</div>}
             </div>
             {!loading&&filtered.length>0 ? (
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+              <div className="guides-grid-2">
                 {filtered.map(g=><GuideCard key={g.id} guide={g} active={activeGuide===g.id} onClick={()=>setActiveGuide(activeGuide===g.id?null:g.id)}/>)}
               </div>
             ) : !loading ? (
@@ -351,7 +370,7 @@ export default function SearchPage() {
             ) : null}
           </div>
         </div>
-        <MapPane guides={filtered} activeGuide={activeGuide} setActiveGuide={setActiveGuide}/>
+        <div className={mobileView==="list"?"map-panel-hidden":""}><MapPane guides={filtered} activeGuide={activeGuide} setActiveGuide={setActiveGuide}/></div>
       </div>
     </>
   );

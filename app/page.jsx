@@ -72,6 +72,7 @@ function Stars({ rating, size=12 }) {
 
 // ─── NAV ──────────────────────────────────────────────────────────────────────
 function Nav({ scrolled, user, userRole }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const signOut = async () => {
     const supabase = getSupabase();
     await supabase.auth.signOut();
@@ -81,16 +82,18 @@ function Nav({ scrolled, user, userRole }) {
   return (
     <div style={{
       position:"fixed", top:0, left:0, right:0, zIndex:100, height:64,
-      background: scrolled ? T.void : "transparent",
+      background: scrolled || menuOpen ? T.void : "transparent",
       borderBottom: `1px solid ${scrolled ? T.wire : "transparent"}`,
       transition:"all 0.35s",
       display:"flex", alignItems:"center",
     }}>
-      <div style={{maxWidth:1200, margin:"0 auto", padding:"0 40px", width:"100%", display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+      <div style={{maxWidth:1200, margin:"0 auto", padding:"0 20px", width:"100%", display:"flex", justifyContent:"space-between", alignItems:"center", boxSizing:"border-box"}}>
         <div style={{fontFamily:FONT_DISPLAY, fontSize:28, color:T.gold, letterSpacing:"0.16em", fontWeight:500, cursor:"pointer"}} onClick={()=>window.location.href="/"}>RŌM</div>
-        <div style={{display:"flex", gap:32, alignItems:"center"}}>
+
+        {/* Desktop nav */}
+        <div className="desktop-nav" style={{display:"flex", gap:32, alignItems:"center"}}>
           {[["Explore","/search"],["How It Works","#how-it-works"]].map(([item,href])=>(
-            <span key={item} onClick={()=>window.location.href=href} style={{fontFamily:FONT_BODY, fontSize:14, color:scrolled?T.ash:T.parchment, cursor:"pointer", transition:"color 0.2s"}}>{item}</span>
+            <span key={item} onClick={()=>window.location.href=href} style={{fontFamily:FONT_BODY, fontSize:14, color:scrolled?T.ash:T.parchment, cursor:"pointer"}}>{item}</span>
           ))}
           <div style={{width:1, height:18, background:T.wire}}/>
           {user ? (
@@ -107,7 +110,44 @@ function Nav({ scrolled, user, userRole }) {
             </>
           )}
         </div>
+
+        {/* Mobile hamburger */}
+        <button className="mobile-nav-btn" onClick={()=>setMenuOpen(o=>!o)} style={{background:"none", border:"none", cursor:"pointer", padding:8, display:"none", flexDirection:"column", gap:5}}>
+          <span style={{display:"block", width:24, height:2, background:T.parchment, transition:"all 0.2s", transform:menuOpen?"rotate(45deg) translate(5px,5px)":"none"}}/>
+          <span style={{display:"block", width:24, height:2, background:T.parchment, transition:"all 0.2s", opacity:menuOpen?0:1}}/>
+          <span style={{display:"block", width:24, height:2, background:T.parchment, transition:"all 0.2s", transform:menuOpen?"rotate(-45deg) translate(5px,-5px)":"none"}}/>
+        </button>
       </div>
+
+      {/* Mobile menu dropdown */}
+      {menuOpen && (
+        <div style={{position:"absolute", top:64, left:0, right:0, background:T.void, borderBottom:`1px solid ${T.wire}`, padding:"20px", display:"flex", flexDirection:"column", gap:20}}>
+          {[["Explore","/search"],["How It Works","#how-it-works"]].map(([item,href])=>(
+            <span key={item} onClick={()=>{window.location.href=href;setMenuOpen(false);}} style={{fontFamily:FONT_BODY, fontSize:16, color:T.parchment, cursor:"pointer"}}>{item}</span>
+          ))}
+          <div style={{height:1, background:T.wire}}/>
+          {user ? (
+            <>
+              <span onClick={()=>{window.location.href=dashboardPath;setMenuOpen(false);}} style={{fontFamily:FONT_BODY, fontSize:16, color:T.parchment, cursor:"pointer"}}>Dashboard</span>
+              <span onClick={signOut} style={{fontFamily:FONT_BODY, fontSize:16, color:T.silver, cursor:"pointer"}}>Sign out</span>
+            </>
+          ) : (
+            <>
+              <span onClick={()=>window.location.href="/login"} style={{fontFamily:FONT_BODY, fontSize:16, color:T.parchment, cursor:"pointer"}}>Sign in</span>
+              <button onClick={()=>window.location.href="/signup"} style={{background:T.gold, border:"none", borderRadius:8, padding:"14px", fontFamily:FONT_BODY, fontSize:16, fontWeight:700, color:T.ink, cursor:"pointer", width:"100%"}}>
+                Become a Guide
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      <style>{`
+        @media (max-width: 768px) {
+          .desktop-nav { display: none !important; }
+          .mobile-nav-btn { display: flex !important; }
+        }
+      `}</style>
     </div>
   );
 }
