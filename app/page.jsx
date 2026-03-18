@@ -167,9 +167,7 @@ function Hero() {
 
       {/* Content */}
       <div style={{position:"relative", width:"100%", display:"flex", justifyContent:"center"}}>
-      <div style={{width:"100%", maxWidth:900, padding:"0 40px", boxSizing:"border-box", textAlign:"center"}}>
-        {/* Eyebrow */}
-        <div style={{display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center"}}>
+        <div style={{width:"100%", maxWidth:900, padding:"0 40px", boxSizing:"border-box", textAlign:"center"}}>
         <div style={{display:"inline-flex", alignItems:"center", gap:10, background:"rgba(0,0,0,0.4)", backdropFilter:"blur(12px)", border:`1px solid ${T.wire}`, borderRadius:20, padding:"7px 16px", marginBottom:32}}>
           <span style={{fontFamily:FONT_BODY, fontSize:11, fontWeight:700, color:T.gold, textTransform:"uppercase", letterSpacing:"0.1em"}}>340+ verified guides</span>
           <div style={{width:3, height:3, borderRadius:"50%", background:T.wire}}/>
@@ -221,7 +219,7 @@ function Hero() {
             ))}
           </div>
         </div>
-      </div>
+        </div>
       </div>
 
       {/* Scroll indicator */}
