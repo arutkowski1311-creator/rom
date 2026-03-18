@@ -547,7 +547,7 @@ export default function HomePage() {
       // Real active guides
       const { data: guides } = await supabase
         .from("guides").select("id, slug, location, categories, tagline, rating, review_count, verified, profile_id")
-        .eq("status","active").limit(4);
+        .eq("status","active").limit(5);
       if (guides?.length > 0) {
         // Get guide names from profiles
         const profileIds = guides.map(g => g.profile_id).filter(Boolean);
@@ -587,6 +587,7 @@ export default function HomePage() {
         ::placeholder{color:${T.muted};}
         ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:${T.carbon};}::-webkit-scrollbar-thumb{background:${T.wire};border-radius:3px;}
         @media(max-width:768px){.hide-mobile{display:none!important;}}
+        .carousel-scroll::-webkit-scrollbar{display:none!important;}
       `}</style>
 
       <Nav scrolled={scrolled} user={user} userRole={userRole}/>
@@ -601,9 +602,9 @@ export default function HomePage() {
           sub="Every guide on Rōm is manually reviewed and approved. These are some of the best."
         />
         {isMobile ? (
-          <div style={{display:"flex", gap:16, overflowX:"auto", paddingBottom:16, marginBottom:20, scrollSnapType:"x mandatory", WebkitOverflowScrolling:"touch"}}>
+          <div className="carousel-scroll" style={{display:"flex", gap:12, overflowX:"auto", paddingBottom:16, paddingLeft:4, paddingRight:20, marginBottom:20, scrollSnapType:"x mandatory", WebkitOverflowScrolling:"touch", msOverflowStyle:"none", scrollbarWidth:"none"}}>
             {featuredGuides.map(g=>(
-              <div key={g.id} style={{minWidth:"85vw", scrollSnapAlign:"start", flexShrink:0}}>
+              <div key={g.id} style={{minWidth:"72vw", maxWidth:280, scrollSnapAlign:"start", flexShrink:0}}>
                 <GuideCard guide={g}/>
               </div>
             ))}
