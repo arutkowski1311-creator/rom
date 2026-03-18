@@ -156,7 +156,7 @@ function Hero() {
   return (
     <div style={{position:"relative", height:"100vh", minHeight:640, overflow:"hidden", display:"flex", alignItems:"center"}}>
       {/* Background */}
-      <div style={{position:"absolute", inset:0, background:"linear-gradient(160deg, #101e12 0%, #0a1824 40%, #1a1206 100%)"}}>
+      <div style={{position:"absolute", inset:0, background:"linear-gradient(160deg, #101e12 0%, #0a1824 40%, #1a1206 100%)", backgroundImage:"url(https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=1600&q=80)", backgroundSize:"cover", backgroundPosition:"center", backgroundBlendMode:"overlay"}}>
         <div style={{position:"absolute", inset:0, backgroundImage:`radial-gradient(ellipse at 20% 60%, ${T.gold}30 0%, transparent 45%), radial-gradient(ellipse at 75% 25%, #1a3a5038 0%, transparent 40%), radial-gradient(ellipse at 55% 85%, #0a2a1828 0%, transparent 35%)`}}/>
         {/* Grain texture */}
         <div style={{position:"absolute", inset:0, opacity:0.025, backgroundImage:`url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`, backgroundSize:"200px 200px"}}/>
@@ -202,7 +202,7 @@ function Hero() {
               placeholder={suggestions[activeSug]}
               style={{flex:1, background:"transparent", border:"none", outline:"none", fontFamily:FONT_BODY, fontSize:15, color:T.parchment, padding:"18px 0"}}
             />
-            <button style={{margin:"8px", padding:"10px 24px", background:T.gold, border:"none", borderRadius:7, fontFamily:FONT_BODY, fontSize:14, fontWeight:700, color:T.ink, cursor:"pointer", flexShrink:0, whiteSpace:"nowrap"}}>
+            <button onClick={()=>window.location.href=`/search${query?`?q=${encodeURIComponent(query)}`:""}`} style={{margin:"8px", padding:"10px 24px", background:T.gold, border:"none", borderRadius:7, fontFamily:FONT_BODY, fontSize:14, fontWeight:700, color:T.ink, cursor:"pointer", flexShrink:0, whiteSpace:"nowrap"}}>
               Find a Guide
             </button>
           </div>
@@ -210,7 +210,7 @@ function Hero() {
           {/* Quick category chips */}
           <div style={{display:"flex", gap:8, marginTop:16, flexWrap:"wrap"}}>
             {["Fly Fishing","Hunting","Rock Climbing","Surfing","Kayaking"].map(cat=>(
-              <button key={cat} style={{background:"rgba(0,0,0,0.45)", backdropFilter:"blur(8px)", border:`1px solid ${T.wire}`, borderRadius:20, padding:"6px 14px", fontFamily:FONT_BODY, fontSize:12, color:T.ash, cursor:"pointer", transition:"all 0.15s"}}
+              <button key={cat} onClick={()=>window.location.href=`/search?category=${encodeURIComponent(cat)}`} style={{background:"rgba(0,0,0,0.45)", backdropFilter:"blur(8px)", border:`1px solid ${T.wire}`, borderRadius:20, padding:"6px 14px", fontFamily:FONT_BODY, fontSize:12, color:T.ash, cursor:"pointer", transition:"all 0.15s"}}
                 onMouseEnter={e=>{e.target.style.borderColor=T.gold;e.target.style.color=T.gold;}}
                 onMouseLeave={e=>{e.target.style.borderColor=T.wire;e.target.style.color=T.ash;}}>
                 {cat}
@@ -311,23 +311,15 @@ function GuideCard({ guide }) {
 function CategoryGrid() {
   return (
     <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))", gap:12}}>
-      {CATEGORIES.map(cat=>{
-        const [hov, setHov] = useState(false);
-        return (
-          <div key={cat.label} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
-            style={{
-              background:hov?T.lifted:T.steel, border:`1px solid ${hov?T.wire:T.rim}`,
-              borderRadius:8, padding:"24px 20px", cursor:"pointer",
-              transition:"all 0.16s", transform:hov?"translateY(-2px)":"none",
-              display:"flex", flexDirection:"column", gap:10,
-            }}>
-            <div style={{fontSize:28}}>{cat.icon}</div>
-            <div style={{fontFamily:FONT_BODY, fontSize:14, fontWeight:700, color:T.parchment}}>{cat.label}</div>
-            <div style={{fontFamily:FONT_BODY, fontSize:12, color:T.silver}}>{cat.count} guides available</div>
-            {hov && <div style={{fontFamily:FONT_BODY, fontSize:12, color:T.gold, fontWeight:600}}>Explore →</div>}
-          </div>
-        );
-      })}
+      {CATEGORIES.map(cat=>(
+        <div key={cat.label} onClick={()=>window.location.href=`/search?category=${encodeURIComponent(cat.label)}`}
+          style={{background:T.steel, border:`1px solid ${T.rim}`, borderRadius:8, padding:"24px 20px", cursor:"pointer", display:"flex", flexDirection:"column", gap:10}}>
+          <div style={{fontSize:28}}>{cat.icon}</div>
+          <div style={{fontFamily:FONT_BODY, fontSize:14, fontWeight:700, color:T.parchment}}>{cat.label}</div>
+          <div style={{fontFamily:FONT_BODY, fontSize:12, color:T.silver}}>{cat.count} guides available</div>
+          <div style={{fontFamily:FONT_BODY, fontSize:12, color:T.gold, fontWeight:600}}>Explore →</div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -336,29 +328,17 @@ function CategoryGrid() {
 function DestinationGrid() {
   return (
     <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:14}}>
-      {DESTINATIONS.map((dest,i)=>{
-        const [hov,setHov]=useState(false);
-        const tall = i===0 || i===3;
-        return (
-          <div key={dest.name} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
-            style={{
-              background:dest.gradient, border:`1px solid ${hov?T.wire:T.rim}`,
-              borderRadius:10, padding:"32px 28px",
-              gridRow:tall?"span 1":"span 1",
-              cursor:"pointer", position:"relative", overflow:"hidden",
-              transition:"all 0.18s", minHeight:180,
-              boxShadow:hov?"0 8px 32px rgba(0,0,0,0.5)":"none",
-              transform:hov?"translateY(-2px)":"none",
-            }}>
-            <div style={{position:"absolute", inset:0, backgroundImage:`radial-gradient(ellipse at 80% 20%, ${T.gold}15 0%, transparent 50%)`}}/>
-            <div style={{position:"relative"}}>
-              <div style={{fontFamily:FONT_DISPLAY, fontSize:28, color:T.white, fontWeight:400, marginBottom:6, lineHeight:1.1}}>{dest.name}</div>
-              <div style={{fontFamily:FONT_BODY, fontSize:12, color:T.silver, marginBottom:hov?16:0, transition:"all 0.18s"}}>{dest.sub}</div>
-              {hov && <div style={{fontFamily:FONT_BODY, fontSize:12, color:T.gold, fontWeight:700}}>Browse guides →</div>}
-            </div>
+      {DESTINATIONS.map((dest,i)=>(
+        <div key={dest.name} onClick={()=>window.location.href=`/search?destination=${encodeURIComponent(dest.name)}`}
+          style={{background:dest.gradient, border:`1px solid ${T.rim}`, borderRadius:10, padding:"32px 28px", cursor:"pointer", position:"relative", overflow:"hidden", minHeight:180}}>
+          <div style={{position:"absolute", inset:0, backgroundImage:`radial-gradient(ellipse at 80% 20%, ${T.gold}15 0%, transparent 50%)`}}/>
+          <div style={{position:"relative"}}>
+            <div style={{fontFamily:FONT_DISPLAY, fontSize:28, color:T.white, fontWeight:400, marginBottom:6, lineHeight:1.1}}>{dest.name}</div>
+            <div style={{fontFamily:FONT_BODY, fontSize:12, color:T.silver, marginBottom:12}}>{dest.sub}</div>
+            <div style={{fontFamily:FONT_BODY, fontSize:12, color:T.gold, fontWeight:700}}>Browse guides →</div>
           </div>
-        );
-      })}
+        </div>
+      ))}
     </div>
   );
 }
@@ -371,15 +351,12 @@ function HowItWorks() {
     { num:"03", title:"Go do the thing", body:"Your guide handles the details. You show up and have the best day. Leave a review so the next guest knows what they're getting into." },
   ];
   return (
-    <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:2}}>
+    <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:16}}>
       {steps.map((s,i)=>(
-        <div key={s.num} style={{padding:"40px 36px", background:T.steel, borderRight: i<2?`1px solid ${T.wire}`:"none", position:"relative"}}>
-          <div style={{fontFamily:FONT_DISPLAY, fontSize:64, color:T.rim, fontWeight:300, lineHeight:1, marginBottom:20, userSelect:"none"}}>{s.num}</div>
-          <div style={{fontFamily:FONT_DISPLAY, fontSize:24, color:T.white, fontWeight:400, marginBottom:14, lineHeight:1.2}}>{s.title}</div>
-          <div style={{fontFamily:FONT_BODY, fontSize:14, color:T.ash, lineHeight:1.75}}>{s.body}</div>
-          {i<2 && <div style={{position:"absolute", right:-14, top:"50%", transform:"translateY(-50%)", width:28, height:28, borderRadius:"50%", background:T.gunmetal, border:`1px solid ${T.wire}`, display:"flex", alignItems:"center", justifyContent:"center", zIndex:1}}>
-            <span style={{color:T.silver, fontSize:14}}>→</span>
-          </div>}
+        <div key={s.num} style={{padding:"40px 36px", background:"rgba(255,255,255,0.04)", border:`2px solid ${T.wire}`, borderTop:`2px solid ${T.gold}`, borderRadius:10}}>
+          <div style={{fontFamily:FONT_DISPLAY, fontSize:64, color:T.gold, fontWeight:300, lineHeight:1, marginBottom:20, opacity:0.35, userSelect:"none"}}>{s.num}</div>
+          <div style={{fontFamily:FONT_DISPLAY, fontSize:28, color:T.white, fontWeight:400, marginBottom:16, lineHeight:1.2}}>{s.title}</div>
+          <div style={{fontFamily:FONT_BODY, fontSize:15, color:T.parchment, lineHeight:1.8}}>{s.body}</div>
         </div>
       ))}
     </div>
@@ -397,10 +374,10 @@ function TrustBar() {
   return (
     <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:0}}>
       {items.map(([icon,title,body],i)=>(
-        <div key={title} style={{padding:"36px 28px", borderRight:i<3?`1px solid ${T.wire}`:"none"}}>
-          <div style={{fontSize:22, color:T.gold, marginBottom:14}}>{icon}</div>
-          <div style={{fontFamily:FONT_BODY, fontSize:14, fontWeight:700, color:T.parchment, marginBottom:8}}>{title}</div>
-          <div style={{fontFamily:FONT_BODY, fontSize:13, color:T.silver, lineHeight:1.65}}>{body}</div>
+        <div key={title} style={{padding:"40px 32px", borderRight:i<3?`1px solid ${T.wire}`:"none", textAlign:"center"}}>
+          <div style={{fontSize:32, color:T.gold, marginBottom:16}}>{icon}</div>
+          <div style={{fontFamily:FONT_BODY, fontSize:16, fontWeight:700, color:T.white, marginBottom:10}}>{title}</div>
+          <div style={{fontFamily:FONT_BODY, fontSize:14, color:T.ash, lineHeight:1.7}}>{body}</div>
         </div>
       ))}
     </div>
@@ -410,7 +387,7 @@ function TrustBar() {
 // ─── GUIDE CTA ────────────────────────────────────────────────────────────────
 function GuideCTA() {
   return (
-    <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:0, minHeight:400}}>
+    <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:0}}>
       {/* Left — visual */}
       <div style={{background:"linear-gradient(135deg, #152018 0%, #0b1a24 60%, #1a1206 100%)", position:"relative", overflow:"hidden"}}>
         <div style={{position:"absolute", inset:0, backgroundImage:`radial-gradient(ellipse at 30% 60%, ${T.gold}28 0%, transparent 50%)`}}/>
@@ -445,7 +422,7 @@ function GuideCTA() {
           ))}
         </div>
         <div style={{marginTop:32}}>
-          <button style={{background:T.gold, border:"none", borderRadius:6, padding:"13px 28px", fontFamily:FONT_BODY, fontSize:14, fontWeight:700, color:T.ink, cursor:"pointer", marginRight:12}}>
+          <button onClick={()=>window.location.href="/signup"} style={{background:T.gold, border:"none", borderRadius:6, padding:"13px 28px", fontFamily:FONT_BODY, fontSize:14, fontWeight:700, color:T.ink, cursor:"pointer", marginRight:12}}>
             Apply to Guide
           </button>
           <span style={{fontFamily:FONT_BODY, fontSize:13, color:T.silver}}>48hr decision · personal review</span>
