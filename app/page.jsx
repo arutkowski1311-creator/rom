@@ -166,9 +166,10 @@ function Hero() {
       </div>
 
       {/* Content */}
-      <div style={{position:"relative", width:"100%", display:"flex", justifyContent:"flex-start"}}>
-      <div style={{width:"100%", maxWidth:1200, margin:"0 auto", padding:"0 40px", boxSizing:"border-box"}}>
+      <div style={{position:"relative", width:"100%"}}>
+      <div style={{width:"100%", maxWidth:900, margin:"0 auto", padding:"0 40px", boxSizing:"border-box", textAlign:"center"}}>
         {/* Eyebrow */}
+        <div style={{display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center"}}>
         <div style={{display:"inline-flex", alignItems:"center", gap:10, background:"rgba(0,0,0,0.4)", backdropFilter:"blur(12px)", border:`1px solid ${T.wire}`, borderRadius:20, padding:"7px 16px", marginBottom:32}}>
           <span style={{fontFamily:FONT_BODY, fontSize:11, fontWeight:700, color:T.gold, textTransform:"uppercase", letterSpacing:"0.1em"}}>340+ verified guides</span>
           <div style={{width:3, height:3, borderRadius:"50%", background:T.wire}}/>
@@ -176,18 +177,18 @@ function Hero() {
         </div>
 
         {/* Headline */}
-        <h1 style={{fontFamily:FONT_DISPLAY, fontSize:"clamp(52px, 7vw, 88px)", fontWeight:400, color:T.white, lineHeight:1.0, margin:"0 0 20px", maxWidth:760, textShadow:"0 4px 40px rgba(0,0,0,0.6)"}}>
+        <h1 style={{fontFamily:FONT_DISPLAY, fontSize:"clamp(52px, 7vw, 88px)", fontWeight:400, color:T.white, lineHeight:1.0, margin:"0 0 20px", textShadow:"0 4px 40px rgba(0,0,0,0.6)"}}>
           The world's best<br/>
           <span style={{color:T.gold, fontStyle:"italic"}}>adventure guides,</span><br/>
           in one place.
         </h1>
 
-        <p style={{fontFamily:FONT_BODY, fontSize:18, color:T.parchment, marginBottom:40, maxWidth:520, lineHeight:1.65, textShadow:"0 1px 12px rgba(0,0,0,0.7)"}}>
+        <p style={{fontFamily:FONT_BODY, fontSize:18, color:T.parchment, marginBottom:40, lineHeight:1.65, textShadow:"0 1px 12px rgba(0,0,0,0.7)"}}>
           Book directly with verified local guides — fly fishing, hunting, climbing, diving, and more. No middlemen. No markups. Just the real thing.
         </p>
 
         {/* Search bar */}
-        <div style={{maxWidth:620, position:"relative"}}>
+        <div style={{maxWidth:620, position:"relative", margin:"0 auto", textAlign:"left"}}>
           <div style={{
             display:"flex", alignItems:"center",
             background: focused ? T.steel : "rgba(15,18,20,0.85)",
@@ -356,8 +357,8 @@ function HowItWorks() {
   return (
     <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:16}}>
       {steps.map((s,i)=>(
-        <div key={s.num} style={{padding:"40px 36px", background:"rgba(255,255,255,0.04)", border:`2px solid ${T.wire}`, borderTop:`2px solid ${T.gold}`, borderRadius:10}}>
-          <div style={{fontFamily:FONT_DISPLAY, fontSize:64, color:T.gold, fontWeight:300, lineHeight:1, marginBottom:20, opacity:0.35, userSelect:"none"}}>{s.num}</div>
+        <div key={s.num} style={{padding:"40px 36px", background:T.steel, border:`1px solid ${T.wire}`, borderTop:`3px solid ${T.gold}`, borderRadius:10}}>
+          <div style={{fontFamily:FONT_DISPLAY, fontSize:64, color:T.gold, fontWeight:300, lineHeight:1, marginBottom:20, opacity:0.6, userSelect:"none"}}>{s.num}</div>
           <div style={{fontFamily:FONT_DISPLAY, fontSize:28, color:T.white, fontWeight:400, marginBottom:16, lineHeight:1.2}}>{s.title}</div>
           <div style={{fontFamily:FONT_BODY, fontSize:15, color:T.parchment, lineHeight:1.8}}>{s.body}</div>
         </div>
