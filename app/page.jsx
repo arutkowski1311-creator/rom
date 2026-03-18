@@ -154,7 +154,7 @@ function Hero() {
   },[]);
 
   return (
-    <div style={{position:"relative", height:"100vh", minHeight:640, overflow:"hidden", display:"flex", alignItems:"center"}}>
+    <div style={{position:"relative", height:"100vh", minHeight:640, overflow:"hidden", display:"flex", alignItems:"center", width:"100%"}}>
       {/* Background */}
       <div style={{position:"absolute", inset:0, background:"linear-gradient(160deg, #0b1812f0 0%, #081018f0 40%, #120e04f0 100%)"}}>
         <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600&q=80&fit=crop" alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:0.15,zIndex:0}}/>
@@ -166,7 +166,7 @@ function Hero() {
       </div>
 
       {/* Content */}
-      <div style={{position:"relative", maxWidth:1200, margin:"0 auto", padding:"0 20px", width:"100%"}}>
+      <div style={{position:"relative", maxWidth:1200, margin:"0 auto", padding:"0 40px", width:"100%", boxSizing:"border-box"}}>
         {/* Eyebrow */}
         <div style={{display:"inline-flex", alignItems:"center", gap:10, background:"rgba(0,0,0,0.4)", backdropFilter:"blur(12px)", border:`1px solid ${T.wire}`, borderRadius:20, padding:"7px 16px", marginBottom:32}}>
           <span style={{fontFamily:FONT_BODY, fontSize:11, fontWeight:700, color:T.gold, textTransform:"uppercase", letterSpacing:"0.1em"}}>340+ verified guides</span>
@@ -248,9 +248,9 @@ function StatsBar() {
 }
 
 // ─── SECTION WRAPPER ──────────────────────────────────────────────────────────
-function Section({ children, bg=T.gunmetal, style={} }) {
+function Section({ children, bg=T.gunmetal, style={}, id }) {
   return (
-    <div style={{background:bg, borderBottom:`1px solid ${T.wire}`, ...style}}>
+    <div id={id} style={{background:bg, borderBottom:`1px solid ${T.wire}`, ...style}}>
       <div style={{maxWidth:1200, margin:"0 auto", padding:"60px 20px"}}>
         {children}
       </div>
@@ -605,7 +605,7 @@ export default function HomePage() {
       </Section>
 
       {/* How It Works */}
-      <Section bg={T.gunmetal}>
+      <Section bg={T.gunmetal} id="how-it-works">
         <SectionHeader eyebrow="Simple by design" title="How Rōm works" center/>
         <HowItWorks/>
       </Section>
