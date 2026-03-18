@@ -176,7 +176,7 @@ function Hero() {
       </div>
 
       {/* Content */}
-      <div style={{position:"relative", maxWidth:1200, margin:"0 auto", padding:"0 40px", width:"100%"}}>
+      <div style={{position:"relative", maxWidth:1200, margin:"0 auto", padding:"0 20px", width:"100%"}}>
         {/* Eyebrow */}
         <div style={{display:"inline-flex", alignItems:"center", gap:10, background:"rgba(0,0,0,0.4)", backdropFilter:"blur(12px)", border:`1px solid ${T.wire}`, borderRadius:20, padding:"7px 16px", marginBottom:32}}>
           <span style={{fontFamily:FONT_BODY, fontSize:11, fontWeight:700, color:T.gold, textTransform:"uppercase", letterSpacing:"0.1em"}}>340+ verified guides</span>
@@ -232,7 +232,7 @@ function Hero() {
       </div>
 
       {/* Scroll indicator */}
-      <div style={{position:"absolute", bottom:36, left:"50%", transform:"translateX(-50%)", display:"flex", flexDirection:"column", alignItems:"center", gap:8}}>
+      <div className="scroll-indicator" style={{position:"absolute", bottom:36, left:"50%", transform:"translateX(-50%)", display:"flex", flexDirection:"column", alignItems:"center", gap:8}}>
         <div style={{fontFamily:FONT_BODY, fontSize:10, color:T.muted, letterSpacing:"0.12em", textTransform:"uppercase"}}>Scroll to explore</div>
         <div style={{width:1, height:32, background:`linear-gradient(to bottom, ${T.wire}, transparent)`}}/>
       </div>
@@ -244,7 +244,7 @@ function Hero() {
 function StatsBar() {
   return (
     <div style={{background:T.carbon, borderTop:`1px solid ${T.wire}`, borderBottom:`1px solid ${T.wire}`}}>
-      <div style={{maxWidth:1200, margin:"0 auto", padding:"0 40px", display:"flex"}}>
+      <div className="rom-stats-bar" style={{maxWidth:1200, margin:"0 auto", padding:"0 20px", display:"flex"}}>
         {STATS.map((s,i)=>(
           <div key={s.label} style={{flex:1, padding:"28px 0", textAlign:"center", borderRight: i<STATS.length-1 ? `1px solid ${T.wire}` : "none"}}>
             <div style={{fontFamily:FONT_DISPLAY, fontSize:38, color:T.white, fontWeight:300, lineHeight:1, marginBottom:6}}>{s.value}</div>
@@ -260,7 +260,7 @@ function StatsBar() {
 function Section({ children, bg=T.gunmetal, style={} }) {
   return (
     <div style={{background:bg, borderBottom:`1px solid ${T.wire}`, ...style}}>
-      <div style={{maxWidth:1200, margin:"0 auto", padding:"80px 40px"}}>
+      <div className="rom-section-pad" style={{maxWidth:1200, margin:"0 auto"}}>
         {children}
       </div>
     </div>
@@ -381,7 +381,7 @@ function HowItWorks() {
     { num:"03", title:"Go do the thing", body:"Your guide handles the details. You show up and have the best day. Leave a review so the next guest knows what they're getting into." },
   ];
   return (
-    <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:2}}>
+    <div style={{className:"rom-grid-steps", style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:2}}>
       {steps.map((s,i)=>(
         <div key={s.num} style={{padding:"40px 36px", background:T.steel, borderRight: i<2?`1px solid ${T.wire}`:"none", position:"relative"}}>
           <div style={{fontFamily:FONT_DISPLAY, fontSize:64, color:T.rim, fontWeight:300, lineHeight:1, marginBottom:20, userSelect:"none"}}>{s.num}</div>
@@ -405,7 +405,7 @@ function TrustBar() {
     ["✦","Protected booking","25% deposit holds your date. We mediate any disputes — guests and guides both."],
   ];
   return (
-    <div style={{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:0}}>
+    <div className="rom-grid-verticals" style={{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:0}}>
       {items.map(([icon,title,body],i)=>(
         <div key={title} style={{padding:"36px 28px", borderRight:i<3?`1px solid ${T.wire}`:"none"}}>
           <div style={{fontSize:22, color:T.gold, marginBottom:14}}>{icon}</div>
@@ -420,7 +420,7 @@ function TrustBar() {
 // ─── GUIDE CTA ────────────────────────────────────────────────────────────────
 function GuideCTA() {
   return (
-    <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:0, minHeight:400}}>
+    <div className="rom-grid-2" style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:0, minHeight:400}}>
       {/* Left — visual */}
       <div style={{background:"linear-gradient(135deg, #152018 0%, #0b1a24 60%, #1a1206 100%)", position:"relative", overflow:"hidden"}}>
         <div style={{position:"absolute", inset:0, backgroundImage:`radial-gradient(ellipse at 30% 60%, ${T.gold}28 0%, transparent 50%)`}}/>
@@ -498,9 +498,9 @@ function Footer() {
   ];
   return (
     <div style={{background:T.void, borderTop:`1px solid ${T.wire}`}}>
-      <div style={{maxWidth:1200, margin:"0 auto", padding:"64px 40px 40px"}}>
+      <div style={{maxWidth:1200, margin:"0 auto", padding:"64px 20px 40px"}}>
         {/* Top row */}
-        <div style={{display:"grid", gridTemplateColumns:"1.5fr 1fr 1fr 1fr 1fr", gap:48, marginBottom:56}}>
+        <div style={{display:"grid", gridTemplateColumns:"1.5fr 1fr 1fr 1fr 1fr", gap:48, marginBottom:56}} className="rom-footer-grid" style={{}}>
           {/* Brand */}
           <div>
             <div style={{fontFamily:FONT_DISPLAY, fontSize:30, color:T.gold, letterSpacing:"0.14em", marginBottom:16}}>RŌM</div>
@@ -601,6 +601,33 @@ export default function HomePage() {
         body{background:${T.void};}
         ::placeholder{color:${T.muted};}
         ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:${T.carbon};}::-webkit-scrollbar-thumb{background:${T.wire};border-radius:3px;}
+        .rom-section-pad { padding: 80px 40px; }
+        .rom-grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+        .rom-grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+        .rom-grid-2 { display: grid; grid-template-columns: 1fr 1fr; }
+        .rom-grid-steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 2px; }
+        .rom-grid-verticals { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; }
+        .rom-footer-grid { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 56px; }
+        .rom-stats-bar { display: flex; }
+        .rom-nav-hamburger { display: none; }
+        .rom-nav-links { display: flex; gap: 32px; align-items: center; }
+        .scroll-indicator { display: flex; }
+        @media (max-width: 768px) {
+          .rom-section-pad { padding: 48px 20px; }
+          .rom-grid-4 { grid-template-columns: repeat(2,1fr); gap: 10px; }
+          .rom-grid-3 { grid-template-columns: 1fr; }
+          .rom-grid-2 { grid-template-columns: 1fr; }
+          .rom-grid-steps { grid-template-columns: 1fr; }
+          .rom-grid-verticals { grid-template-columns: repeat(2,1fr); }
+          .rom-footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+          .rom-stats-bar { flex-wrap: wrap; }
+          .rom-stats-bar > div { flex: 0 0 50% !important; border-right: none !important; border-bottom: 1px solid #323840 !important; }
+          .rom-hide-mobile { display: none !important; }
+          .scroll-indicator { display: none !important; }
+          .rom-nav-hamburger { display: flex !important; }
+          .rom-nav-links { display: none !important; }
+          .rom-guide-cards { grid-template-columns: 1fr !important; }
+        }
       `}</style>
 
       <Nav scrolled={scrolled} user={user} userRole={userRole}/>
@@ -614,7 +641,7 @@ export default function HomePage() {
           title="Featured guides"
           sub="Every guide on Rōm is manually reviewed and approved. These are some of the best."
         />
-        <div style={{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16, marginBottom:36}}>
+        <div className="rom-guide-cards" style={{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16, marginBottom:36}}>
           {featuredGuides.map(g=><GuideCard key={g.id} guide={g}/>)}
         </div>
         <div style={{textAlign:"center"}}>
