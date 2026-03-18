@@ -192,34 +192,32 @@ function Hero() {
         </p>
 
         {/* Search bar */}
-        <div style={{maxWidth:620, position:"relative", margin:"0 auto", textAlign:"left"}}>
+        <div style={{maxWidth:620, position:"relative", margin:"0 auto", textAlign:"left", width:"100%"}}>
           <div style={{
             display:"flex", alignItems:"center",
             background: focused ? T.steel : "rgba(15,18,20,0.85)",
             backdropFilter:"blur(20px)",
             border:`1.5px solid ${focused ? T.gold : T.wire}`,
-            borderRadius:10, overflow:"visible",
+            borderRadius:10, overflow:"hidden",
             transition:"all 0.2s",
             boxShadow: focused ? `0 0 0 4px ${T.goldGlow}` : "0 8px 40px rgba(0,0,0,0.5)",
           }}>
-            <span style={{padding:"0 16px 0 20px", fontSize:18, color:T.muted, flexShrink:0}}>⌕</span>
+            <span style={{padding:"0 12px 0 16px", fontSize:18, color:T.muted, flexShrink:0}}>⌕</span>
             <input
               value={query} onChange={e=>setQuery(e.target.value)}
               onFocus={()=>setFocused(true)} onBlur={()=>setTimeout(()=>setFocused(false),150)}
               placeholder={suggestions[activeSug]}
-              style={{flex:1, background:"transparent", border:"none", outline:"none", fontFamily:FONT_BODY, fontSize:17, color:T.parchment, padding:"18px 0"}}
+              style={{flex:1, minWidth:0, background:"transparent", border:"none", outline:"none", fontFamily:FONT_BODY, fontSize:15, color:T.parchment, padding:"16px 0"}}
             />
-            <button onClick={()=>window.location.href=`/search${query?`?q=${encodeURIComponent(query)}`:""}`} style={{margin:"8px", padding:"10px 24px", background:T.gold, border:"none", borderRadius:7, fontFamily:FONT_BODY, fontSize:16, fontWeight:700, color:T.ink, cursor:"pointer", flexShrink:0, whiteSpace:"nowrap"}}>
+            <button onClick={()=>window.location.href=`/search${query?`?q=${encodeURIComponent(query)}`:""}`} style={{margin:"6px", padding:"10px 18px", background:T.gold, border:"none", borderRadius:7, fontFamily:FONT_BODY, fontSize:14, fontWeight:700, color:T.ink, cursor:"pointer", flexShrink:0, whiteSpace:"nowrap"}}>
               Find a Guide
             </button>
           </div>
 
-          {/* Quick category chips */}
-          <div style={{display:"flex", gap:8, marginTop:16, flexWrap:"wrap"}}>
+          {/* Quick category chips - horizontal scroll on mobile */}
+          <div style={{display:"flex", gap:8, marginTop:14, overflowX:"auto", paddingBottom:4, msOverflowStyle:"none", scrollbarWidth:"none", WebkitOverflowScrolling:"touch"}}>
             {["Fly Fishing","Hunting","Rock Climbing","Surfing","Kayaking"].map(cat=>(
-              <button key={cat} onClick={()=>window.location.href=`/search?category=${encodeURIComponent(cat)}`} style={{background:"rgba(0,0,0,0.45)", backdropFilter:"blur(8px)", border:`1px solid ${T.wire}`, borderRadius:20, padding:"6px 14px", fontFamily:FONT_BODY, fontSize:16, color:T.ash, cursor:"pointer", transition:"all 0.15s"}}
-                onMouseEnter={e=>{e.target.style.borderColor=T.gold;e.target.style.color=T.gold;}}
-                onMouseLeave={e=>{e.target.style.borderColor=T.wire;e.target.style.color=T.ash;}}>
+              <button key={cat} onClick={()=>window.location.href=`/search?category=${encodeURIComponent(cat)}`} style={{background:"rgba(0,0,0,0.45)", backdropFilter:"blur(8px)", border:`1px solid ${T.wire}`, borderRadius:20, padding:"7px 16px", fontFamily:FONT_BODY, fontSize:13, color:T.ash, cursor:"pointer", whiteSpace:"nowrap", flexShrink:0}}>
                 {cat}
               </button>
             ))}
@@ -561,7 +559,7 @@ export default function HomePage() {
         (pkgs||[]).forEach(p => {
           if (!priceMap[p.guide_id] || p.price < priceMap[p.guide_id]) priceMap[p.guide_id] = p.price;
         });
-        setFeaturedGuides(guides.map(g => ({
+        const realGuides = guides.map(g => ({
           id: g.id,
           slug: g.slug,
           name: profMap[g.profile_id] || "Guide",
@@ -572,7 +570,12 @@ export default function HomePage() {
           reviewCount: g.review_count || 0,
           price: priceMap[g.id] || 0,
           verified: g.verified,
-        })));
+        }));
+        // Pad with mock guides if fewer than 5 real ones
+        const combined = [...realGuides];
+        const mocks = FEATURED_GUIDES.filter(m => !realGuides.find(r => r.slug === m.slug));
+        while (combined.length < 5 && mocks.length > 0) combined.push(mocks.shift());
+        setFeaturedGuides(combined);
       }
     } catch(e) { console.error("Homepage load error:", e); }
   };
@@ -602,9 +605,9 @@ export default function HomePage() {
           sub="Every guide on Rōm is manually reviewed and approved. These are some of the best."
         />
         {isMobile ? (
-          <div className="carousel-scroll" style={{display:"flex", gap:12, overflowX:"auto", paddingBottom:16, paddingLeft:4, paddingRight:20, marginBottom:20, scrollSnapType:"x mandatory", WebkitOverflowScrolling:"touch", msOverflowStyle:"none", scrollbarWidth:"none"}}>
+          <div className="carousel-scroll" style={{display:"flex", gap:12, overflowX:"auto", paddingBottom:16, paddingLeft:16, paddingRight:16, marginLeft:-20, marginRight:-20, marginBottom:20, scrollSnapType:"x mandatory", WebkitOverflowScrolling:"touch", msOverflowStyle:"none", scrollbarWidth:"none"}}>
             {featuredGuides.map(g=>(
-              <div key={g.id} style={{minWidth:"72vw", maxWidth:280, scrollSnapAlign:"start", flexShrink:0}}>
+              <div key={g.id} style={{minWidth:"78vw", scrollSnapAlign:"center", flexShrink:0}}>
                 <GuideCard guide={g}/>
               </div>
             ))}
