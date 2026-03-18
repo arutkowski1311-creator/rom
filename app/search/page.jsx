@@ -245,6 +245,17 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(true);
   const [mobileView, setMobileView] = useState("list"); // "list" | "map"
 
+  // Read URL params on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const cat = params.get("category");
+    const q = params.get("q");
+    const dest = params.get("destination");
+    if (cat) setFilters(f => ({...f, category: cat}));
+    if (q) setQuery(q);
+    if (dest) setQuery(dest);
+  }, []);
+
   useEffect(() => { fetchGuides(); }, [filters, query]);
 
   const fetchGuides = async () => {
@@ -332,8 +343,8 @@ export default function SearchPage() {
               style={{width:"100%",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:"9px 14px 9px 38px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none"}}/>
           </div>
           <div style={{flex:1}}/>
-          <span onClick={()=>window.location.href="/login"} style={{fontFamily:FONT_BODY,fontSize:14,color:T.ash,cursor:"pointer"}}>Sign in</span>
-          <button onClick={()=>window.location.href="/signup"} style={{background:T.gold,border:"none",borderRadius:6,padding:"9px 20px",fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:T.ink,cursor:"pointer"}}>Become a Guide</button>
+          <span onClick={()=>window.location.href="/login"} style={{fontFamily:FONT_BODY,fontSize:14,color:T.ash,cursor:"pointer",whiteSpace:"nowrap"}}>Sign in</span>
+          <button onClick={()=>window.location.href="/signup"} style={{background:T.gold,border:"none",borderRadius:6,padding:"9px 20px",fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:T.ink,cursor:"pointer",whiteSpace:"nowrap"}}>Become a Guide</button>
         </div>
       </div>
 

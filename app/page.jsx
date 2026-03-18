@@ -156,7 +156,8 @@ function Hero() {
   return (
     <div style={{position:"relative", height:"100vh", minHeight:640, overflow:"hidden", display:"flex", alignItems:"center"}}>
       {/* Background */}
-      <div style={{position:"absolute", inset:0, background:"linear-gradient(160deg, #101e12 0%, #0a1824 40%, #1a1206 100%)", backgroundImage:"url(https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=1600&q=80)", backgroundSize:"cover", backgroundPosition:"center", backgroundBlendMode:"overlay"}}>
+      <div style={{position:"absolute", inset:0, background:"linear-gradient(160deg, #0b1812f0 0%, #081018f0 40%, #120e04f0 100%)"}}>
+        <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600&q=80&fit=crop" alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:0.15,zIndex:0}}/>
         <div style={{position:"absolute", inset:0, backgroundImage:`radial-gradient(ellipse at 20% 60%, ${T.gold}30 0%, transparent 45%), radial-gradient(ellipse at 75% 25%, #1a3a5038 0%, transparent 40%), radial-gradient(ellipse at 55% 85%, #0a2a1828 0%, transparent 35%)`}}/>
         {/* Grain texture */}
         <div style={{position:"absolute", inset:0, opacity:0.025, backgroundImage:`url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`, backgroundSize:"200px 200px"}}/>
