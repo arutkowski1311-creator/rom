@@ -94,18 +94,18 @@ function Nav({ scrolled, user, userRole }) {
         {!isMobile && (
           <div style={{display:"flex",gap:32,alignItems:"center"}}>
             {[["Explore","/search"],["How It Works","#how-it-works"]].map(([item,href])=>(
-              <span key={item} onClick={()=>window.location.href=href} style={{fontFamily:FONT_BODY,fontSize:14,color:scrolled?T.ash:T.parchment,cursor:"pointer"}}>{item}</span>
+              <span key={item} onClick={()=>window.location.href=href} style={{fontFamily:FONT_BODY,fontSize:16,color:scrolled?T.ash:T.parchment,cursor:"pointer"}}>{item}</span>
             ))}
             <div style={{width:1,height:18,background:T.wire}}/>
             {user ? (
               <div style={{display:"flex",gap:16,alignItems:"center"}}>
-                <span onClick={()=>window.location.href=dashboardPath} style={{fontFamily:FONT_BODY,fontSize:14,color:T.ash,cursor:"pointer"}}>Dashboard</span>
-                <span onClick={signOut} style={{fontFamily:FONT_BODY,fontSize:14,color:T.silver,cursor:"pointer"}}>Sign out</span>
+                <span onClick={()=>window.location.href=dashboardPath} style={{fontFamily:FONT_BODY,fontSize:16,color:T.ash,cursor:"pointer"}}>Dashboard</span>
+                <span onClick={signOut} style={{fontFamily:FONT_BODY,fontSize:16,color:T.silver,cursor:"pointer"}}>Sign out</span>
               </div>
             ) : (
               <>
-                <span onClick={()=>window.location.href="/login"} style={{fontFamily:FONT_BODY,fontSize:14,color:scrolled?T.ash:T.parchment,cursor:"pointer"}}>Sign in</span>
-                <button onClick={()=>window.location.href="/signup"} style={{background:T.gold,border:"none",borderRadius:6,padding:"10px 22px",fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:T.ink,cursor:"pointer"}}>Become a Guide</button>
+                <span onClick={()=>window.location.href="/login"} style={{fontFamily:FONT_BODY,fontSize:16,color:scrolled?T.ash:T.parchment,cursor:"pointer"}}>Sign in</span>
+                <button onClick={()=>window.location.href="/signup"} style={{background:T.gold,border:"none",borderRadius:6,padding:"10px 22px",fontFamily:FONT_BODY,fontSize:16,fontWeight:700,color:T.ink,cursor:"pointer"}}>Become a Guide</button>
               </>
             )}
           </div>
@@ -132,7 +132,7 @@ function Nav({ scrolled, user, userRole }) {
         ) : (
           <>
             <span onClick={()=>window.location.href="/login"} style={{fontFamily:FONT_BODY,fontSize:16,color:T.ash,cursor:"pointer",padding:"10px 0"}}>Sign in</span>
-            <button onClick={()=>window.location.href="/signup"} style={{background:T.gold,border:"none",borderRadius:6,padding:"13px",fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:T.ink,cursor:"pointer",width:"100%"}}>Become a Guide</button>
+            <button onClick={()=>window.location.href="/signup"} style={{background:T.gold,border:"none",borderRadius:6,padding:"13px",fontFamily:FONT_BODY,fontSize:16,fontWeight:700,color:T.ink,cursor:"pointer",width:"100%"}}>Become a Guide</button>
           </>
         )}
       </div>
@@ -169,9 +169,9 @@ function Hero() {
       <div style={{position:"relative", width:"100%", display:"flex", justifyContent:"center"}}>
         <div style={{width:"100%", maxWidth:900, padding:"0 40px", boxSizing:"border-box", textAlign:"center"}}>
         <div style={{display:"inline-flex", alignItems:"center", gap:10, background:"rgba(0,0,0,0.4)", backdropFilter:"blur(12px)", border:`1px solid ${T.wire}`, borderRadius:20, padding:"7px 16px", marginBottom:32}}>
-          <span style={{fontFamily:FONT_BODY, fontSize:11, fontWeight:700, color:T.gold, textTransform:"uppercase", letterSpacing:"0.1em"}}>340+ verified guides</span>
+          <span style={{fontFamily:FONT_BODY, fontSize:17, fontWeight:700, color:T.gold, textTransform:"uppercase", letterSpacing:"0.1em"}}>340+ verified guides</span>
           <div style={{width:3, height:3, borderRadius:"50%", background:T.wire}}/>
-          <span style={{fontFamily:FONT_BODY, fontSize:11, color:T.silver}}>62 destinations worldwide</span>
+          <span style={{fontFamily:FONT_BODY, fontSize:17, color:T.silver}}>62 destinations worldwide</span>
         </div>
 
         {/* Headline */}
@@ -201,9 +201,9 @@ function Hero() {
               value={query} onChange={e=>setQuery(e.target.value)}
               onFocus={()=>setFocused(true)} onBlur={()=>setTimeout(()=>setFocused(false),150)}
               placeholder={suggestions[activeSug]}
-              style={{flex:1, background:"transparent", border:"none", outline:"none", fontFamily:FONT_BODY, fontSize:15, color:T.parchment, padding:"18px 0"}}
+              style={{flex:1, background:"transparent", border:"none", outline:"none", fontFamily:FONT_BODY, fontSize:17, color:T.parchment, padding:"18px 0"}}
             />
-            <button onClick={()=>window.location.href=`/search${query?`?q=${encodeURIComponent(query)}`:""}`} style={{margin:"8px", padding:"10px 24px", background:T.gold, border:"none", borderRadius:7, fontFamily:FONT_BODY, fontSize:14, fontWeight:700, color:T.ink, cursor:"pointer", flexShrink:0, whiteSpace:"nowrap"}}>
+            <button onClick={()=>window.location.href=`/search${query?`?q=${encodeURIComponent(query)}`:""}`} style={{margin:"8px", padding:"10px 24px", background:T.gold, border:"none", borderRadius:7, fontFamily:FONT_BODY, fontSize:16, fontWeight:700, color:T.ink, cursor:"pointer", flexShrink:0, whiteSpace:"nowrap"}}>
               Find a Guide
             </button>
           </div>
@@ -211,7 +211,7 @@ function Hero() {
           {/* Quick category chips */}
           <div style={{display:"flex", gap:8, marginTop:16, flexWrap:"wrap"}}>
             {["Fly Fishing","Hunting","Rock Climbing","Surfing","Kayaking"].map(cat=>(
-              <button key={cat} onClick={()=>window.location.href=`/search?category=${encodeURIComponent(cat)}`} style={{background:"rgba(0,0,0,0.45)", backdropFilter:"blur(8px)", border:`1px solid ${T.wire}`, borderRadius:20, padding:"6px 14px", fontFamily:FONT_BODY, fontSize:12, color:T.ash, cursor:"pointer", transition:"all 0.15s"}}
+              <button key={cat} onClick={()=>window.location.href=`/search?category=${encodeURIComponent(cat)}`} style={{background:"rgba(0,0,0,0.45)", backdropFilter:"blur(8px)", border:`1px solid ${T.wire}`, borderRadius:20, padding:"6px 14px", fontFamily:FONT_BODY, fontSize:16, color:T.ash, cursor:"pointer", transition:"all 0.15s"}}
                 onMouseEnter={e=>{e.target.style.borderColor=T.gold;e.target.style.color=T.gold;}}
                 onMouseLeave={e=>{e.target.style.borderColor=T.wire;e.target.style.color=T.ash;}}>
                 {cat}
@@ -224,7 +224,7 @@ function Hero() {
 
       {/* Scroll indicator */}
       <div className="hide-mobile" style={{position:"absolute", bottom:36, left:"50%", transform:"translateX(-50%)", display:"flex", flexDirection:"column", alignItems:"center", gap:8}}>
-        <div style={{fontFamily:FONT_BODY, fontSize:10, color:T.muted, letterSpacing:"0.12em", textTransform:"uppercase"}}>Scroll to explore</div>
+        <div style={{fontFamily:FONT_BODY, fontSize:16, color:T.muted, letterSpacing:"0.12em", textTransform:"uppercase"}}>Scroll to explore</div>
         <div style={{width:1, height:32, background:`linear-gradient(to bottom, ${T.wire}, transparent)`}}/>
       </div>
     </div>
@@ -240,7 +240,7 @@ function StatsBar() {
         {STATS.map((s,i)=>(
           <div key={s.label} style={{padding:"24px 0", textAlign:"center", borderRight:!isMobile&&i<3?`1px solid ${T.wire}`:"none", borderBottom:isMobile&&i<2?`1px solid ${T.wire}`:"none"}}>
             <div style={{fontFamily:FONT_DISPLAY, fontSize:isMobile?26:38, color:T.white, fontWeight:300, lineHeight:1, marginBottom:4}}>{s.value}</div>
-            <div style={{fontFamily:FONT_BODY, fontSize:10, color:T.silver, textTransform:"uppercase", letterSpacing:"0.06em"}}>{s.label}</div>
+            <div style={{fontFamily:FONT_BODY, fontSize:16, color:T.silver, textTransform:"uppercase", letterSpacing:"0.06em"}}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -262,7 +262,7 @@ function Section({ children, bg=T.gunmetal, style={}, id }) {
 function SectionHeader({ eyebrow, title, sub, center }) {
   return (
     <div style={{marginBottom:48, textAlign:center?"center":"left", maxWidth:center?640:"none", margin:center?"0 auto 48px":"0 0 48px"}}>
-      {eyebrow && <div style={{fontFamily:FONT_BODY, fontSize:11, fontWeight:700, color:T.gold, textTransform:"uppercase", letterSpacing:"0.12em", marginBottom:12}}>{eyebrow}</div>}
+      {eyebrow && <div style={{fontFamily:FONT_BODY, fontSize:17, fontWeight:700, color:T.gold, textTransform:"uppercase", letterSpacing:"0.12em", marginBottom:12}}>{eyebrow}</div>}
       <h2 style={{fontFamily:FONT_DISPLAY, fontSize:"clamp(32px,4vw,52px)", color:T.white, fontWeight:400, lineHeight:1.1, margin:"0 0 16px"}}>{title}</h2>
       {sub && <p style={{fontFamily:FONT_BODY, fontSize:16, color:T.ash, lineHeight:1.65, margin:0}}>{sub}</p>}
     </div>
@@ -285,24 +285,24 @@ function GuideCard({ guide }) {
       <div style={{height:180, background:`linear-gradient(135deg, #152018 0%, #0b1a24 100%)`, position:"relative"}}>
         <div style={{position:"absolute", inset:0, backgroundImage:`radial-gradient(ellipse at 30% 70%, ${T.gold}22 0%, transparent 55%)`}}/>
         <div style={{position:"absolute", top:14, left:14, display:"flex", gap:6}}>
-          <span style={{fontFamily:FONT_BODY, fontSize:10, fontWeight:700, color:T.gold, background:T.goldGlow, border:`1px solid ${T.gold}`, borderRadius:3, padding:"3px 9px"}}>{guide.category}</span>
-          {guide.verified && <span style={{fontFamily:FONT_BODY, fontSize:10, fontWeight:700, color:T.ash, background:"rgba(0,0,0,0.5)", border:`1px solid ${T.wire}`, borderRadius:3, padding:"3px 9px"}}>✓ VERIFIED</span>}
+          <span style={{fontFamily:FONT_BODY, fontSize:16, fontWeight:700, color:T.gold, background:T.goldGlow, border:`1px solid ${T.gold}`, borderRadius:3, padding:"3px 9px"}}>{guide.category}</span>
+          {guide.verified && <span style={{fontFamily:FONT_BODY, fontSize:16, fontWeight:700, color:T.ash, background:"rgba(0,0,0,0.5)", border:`1px solid ${T.wire}`, borderRadius:3, padding:"3px 9px"}}>✓ VERIFIED</span>}
         </div>
         <div style={{position:"absolute", bottom:14, right:14}}>
           <div style={{fontFamily:FONT_DISPLAY, fontSize:24, color:T.gold, fontWeight:500, textAlign:"right", lineHeight:1}}>${guide.price}</div>
-          <div style={{fontFamily:FONT_BODY, fontSize:10, color:T.silver, textAlign:"right"}}>from / person</div>
+          <div style={{fontFamily:FONT_BODY, fontSize:16, color:T.silver, textAlign:"right"}}>from / person</div>
         </div>
       </div>
       <div style={{padding:"18px 20px 22px"}}>
         <div style={{fontFamily:FONT_DISPLAY, fontSize:22, color:T.white, fontWeight:400, marginBottom:4, lineHeight:1.1}}>{guide.name}</div>
-        <div style={{fontFamily:FONT_BODY, fontSize:11, color:T.silver, marginBottom:10}}>📍 {guide.location}</div>
-        <div style={{fontFamily:FONT_BODY, fontSize:13, color:T.ash, lineHeight:1.55, marginBottom:14}}>{guide.tagline}</div>
+        <div style={{fontFamily:FONT_BODY, fontSize:17, color:T.silver, marginBottom:10}}>📍 {guide.location}</div>
+        <div style={{fontFamily:FONT_BODY, fontSize:17, color:T.ash, lineHeight:1.55, marginBottom:14}}>{guide.tagline}</div>
         <div style={{display:"flex", alignItems:"center", gap:7, paddingTop:14, borderTop:`1px solid ${T.rim}`}}>
           <Stars rating={guide.rating} size={12}/>
-          <span style={{fontFamily:FONT_BODY, fontSize:13, fontWeight:700, color:T.parchment}}>{guide.rating}</span>
-          <span style={{fontFamily:FONT_BODY, fontSize:12, color:T.silver}}>({guide.reviewCount} reviews)</span>
+          <span style={{fontFamily:FONT_BODY, fontSize:17, fontWeight:700, color:T.parchment}}>{guide.rating}</span>
+          <span style={{fontFamily:FONT_BODY, fontSize:16, color:T.silver}}>({guide.reviewCount} reviews)</span>
           <div style={{flex:1}}/>
-          <span style={{fontFamily:FONT_BODY, fontSize:12, color:T.gold, fontWeight:600}}>View profile →</span>
+          <span style={{fontFamily:FONT_BODY, fontSize:16, color:T.gold, fontWeight:600}}>View profile →</span>
         </div>
       </div>
     </div>
@@ -317,9 +317,9 @@ function CategoryGrid() {
         <div key={cat.label} onClick={()=>window.location.href=`/search?category=${encodeURIComponent(cat.label)}`}
           style={{background:T.steel, border:`1px solid ${T.rim}`, borderRadius:8, padding:"24px 20px", cursor:"pointer", display:"flex", flexDirection:"column", gap:10}}>
           <div style={{fontSize:28}}>{cat.icon}</div>
-          <div style={{fontFamily:FONT_BODY, fontSize:14, fontWeight:700, color:T.parchment}}>{cat.label}</div>
-          <div style={{fontFamily:FONT_BODY, fontSize:12, color:T.silver}}>{cat.count} guides available</div>
-          <div style={{fontFamily:FONT_BODY, fontSize:12, color:T.gold, fontWeight:600}}>Explore →</div>
+          <div style={{fontFamily:FONT_BODY, fontSize:16, fontWeight:700, color:T.parchment}}>{cat.label}</div>
+          <div style={{fontFamily:FONT_BODY, fontSize:16, color:T.silver}}>{cat.count} guides available</div>
+          <div style={{fontFamily:FONT_BODY, fontSize:16, color:T.gold, fontWeight:600}}>Explore →</div>
         </div>
       ))}
     </div>
@@ -336,8 +336,8 @@ function DestinationGrid() {
           <div style={{position:"absolute", inset:0, backgroundImage:`radial-gradient(ellipse at 80% 20%, ${T.gold}15 0%, transparent 50%)`}}/>
           <div style={{position:"relative"}}>
             <div style={{fontFamily:FONT_DISPLAY, fontSize:28, color:T.white, fontWeight:400, marginBottom:6, lineHeight:1.1}}>{dest.name}</div>
-            <div style={{fontFamily:FONT_BODY, fontSize:12, color:T.silver, marginBottom:12}}>{dest.sub}</div>
-            <div style={{fontFamily:FONT_BODY, fontSize:12, color:T.gold, fontWeight:700}}>Browse guides →</div>
+            <div style={{fontFamily:FONT_BODY, fontSize:16, color:T.silver, marginBottom:12}}>{dest.sub}</div>
+            <div style={{fontFamily:FONT_BODY, fontSize:16, color:T.gold, fontWeight:700}}>Browse guides →</div>
           </div>
         </div>
       ))}
@@ -358,7 +358,7 @@ function HowItWorks() {
         <div key={s.num} style={{padding:"40px 36px", background:T.steel, border:`1px solid ${T.wire}`, borderTop:`3px solid ${T.gold}`, borderRadius:10}}>
           <div style={{fontFamily:FONT_DISPLAY, fontSize:64, color:T.gold, fontWeight:300, lineHeight:1, marginBottom:20, opacity:0.6, userSelect:"none"}}>{s.num}</div>
           <div style={{fontFamily:FONT_DISPLAY, fontSize:28, color:T.white, fontWeight:400, marginBottom:16, lineHeight:1.2}}>{s.title}</div>
-          <div style={{fontFamily:FONT_BODY, fontSize:15, color:T.parchment, lineHeight:1.8}}>{s.body}</div>
+          <div style={{fontFamily:FONT_BODY, fontSize:17, color:T.parchment, lineHeight:1.8}}>{s.body}</div>
         </div>
       ))}
     </div>
@@ -379,7 +379,7 @@ function TrustBar() {
         <div key={title} style={{padding:"40px 32px", borderRight:i<3?`1px solid ${T.wire}`:"none", textAlign:"center"}}>
           <div style={{fontSize:32, color:T.gold, marginBottom:16}}>{icon}</div>
           <div style={{fontFamily:FONT_BODY, fontSize:16, fontWeight:700, color:T.white, marginBottom:10}}>{title}</div>
-          <div style={{fontFamily:FONT_BODY, fontSize:14, color:T.ash, lineHeight:1.7}}>{body}</div>
+          <div style={{fontFamily:FONT_BODY, fontSize:16, color:T.ash, lineHeight:1.7}}>{body}</div>
         </div>
       ))}
     </div>
@@ -408,7 +408,7 @@ function GuideCTA() {
 
       {/* Right — reasons */}
       <div style={{background:T.steel, padding:"64px 56px", display:"flex", flexDirection:"column", justifyContent:"center"}}>
-        <div style={{fontFamily:FONT_BODY, fontSize:11, fontWeight:700, color:T.gold, textTransform:"uppercase", letterSpacing:"0.12em", marginBottom:16}}>Why guide with Rōm</div>
+        <div style={{fontFamily:FONT_BODY, fontSize:17, fontWeight:700, color:T.gold, textTransform:"uppercase", letterSpacing:"0.12em", marginBottom:16}}>Why guide with Rōm</div>
         <div style={{display:"flex", flexDirection:"column", gap:0}}>
           {[
             ["100% of your listed price","We never touch your earnings. The guest pays the fee — you keep every dollar you charge."],
@@ -417,19 +417,19 @@ function GuideCTA() {
             ["No long-term contracts","List today, adjust anytime. Your packages, your calendar, your rules."],
           ].map(([title,body],i)=>(
             <div key={title} style={{padding:"20px 0", borderBottom: i<3?`1px solid ${T.rim}`:"none", display:"flex", gap:16}}>
-              <span style={{color:T.gold, fontSize:14, flexShrink:0, marginTop:2}}>✦</span>
+              <span style={{color:T.gold, fontSize:16, flexShrink:0, marginTop:2}}>✦</span>
               <div>
-                <div style={{fontFamily:FONT_BODY, fontSize:14, fontWeight:700, color:T.parchment, marginBottom:4}}>{title}</div>
-                <div style={{fontFamily:FONT_BODY, fontSize:13, color:T.silver, lineHeight:1.6}}>{body}</div>
+                <div style={{fontFamily:FONT_BODY, fontSize:16, fontWeight:700, color:T.parchment, marginBottom:4}}>{title}</div>
+                <div style={{fontFamily:FONT_BODY, fontSize:17, color:T.silver, lineHeight:1.6}}>{body}</div>
               </div>
             </div>
           ))}
         </div>
         <div style={{marginTop:32}}>
-          <button onClick={()=>window.location.href="/signup"} style={{background:T.gold, border:"none", borderRadius:6, padding:"13px 28px", fontFamily:FONT_BODY, fontSize:14, fontWeight:700, color:T.ink, cursor:"pointer", marginRight:12}}>
+          <button onClick={()=>window.location.href="/signup"} style={{background:T.gold, border:"none", borderRadius:6, padding:"13px 28px", fontFamily:FONT_BODY, fontSize:16, fontWeight:700, color:T.ink, cursor:"pointer", marginRight:12}}>
             Apply to Guide
           </button>
-          <span style={{fontFamily:FONT_BODY, fontSize:13, color:T.silver}}>48hr decision · personal review</span>
+          <span style={{fontFamily:FONT_BODY, fontSize:17, color:T.silver}}>48hr decision · personal review</span>
         </div>
       </div>
     </div>
@@ -451,8 +451,8 @@ function Testimonials() {
           <div style={{marginBottom:16}}><Stars rating={r.rating} size={15}/></div>
           <p style={{fontFamily:FONT_DISPLAY, fontSize:19, color:T.parchment, lineHeight:1.6, fontStyle:"italic", marginBottom:20}}>"{r.text}"</p>
           <div style={{paddingTop:16, borderTop:`1px solid ${T.rim}`}}>
-            <div style={{fontFamily:FONT_BODY, fontSize:13, fontWeight:700, color:T.ash}}>{r.guest}</div>
-            <div style={{fontFamily:FONT_BODY, fontSize:12, color:T.silver, marginTop:2}}>{r.trip}</div>
+            <div style={{fontFamily:FONT_BODY, fontSize:17, fontWeight:700, color:T.ash}}>{r.guest}</div>
+            <div style={{fontFamily:FONT_BODY, fontSize:16, color:T.silver, marginTop:2}}>{r.trip}</div>
           </div>
         </div>
       ))}
@@ -476,11 +476,11 @@ function Footer() {
           {/* Brand */}
           <div>
             <div style={{fontFamily:FONT_DISPLAY, fontSize:30, color:T.gold, letterSpacing:"0.14em", marginBottom:16}}>RŌM</div>
-            <p style={{fontFamily:FONT_BODY, fontSize:13, color:T.silver, lineHeight:1.7, marginBottom:20, maxWidth:240}}>The world's best adventure guides, in one place. Book directly. No middlemen.</p>
+            <p style={{fontFamily:FONT_BODY, fontSize:17, color:T.silver, lineHeight:1.7, marginBottom:20, maxWidth:240}}>The world's best adventure guides, in one place. Book directly. No middlemen.</p>
             <div style={{display:"flex", gap:10}}>
               {["Instagram","TikTok","YouTube"].map(s=>(
                 <div key={s} style={{width:34, height:34, borderRadius:6, background:T.steel, border:`1px solid ${T.wire}`, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer"}}>
-                  <span style={{fontFamily:FONT_BODY, fontSize:10, color:T.silver}}>{s[0]}</span>
+                  <span style={{fontFamily:FONT_BODY, fontSize:16, color:T.silver}}>{s[0]}</span>
                 </div>
               ))}
             </div>
@@ -488,10 +488,10 @@ function Footer() {
           {/* Link cols */}
           {cols.map(col=>(
             <div key={col.title}>
-              <div style={{fontFamily:FONT_BODY, fontSize:11, fontWeight:700, color:T.parchment, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:16}}>{col.title}</div>
+              <div style={{fontFamily:FONT_BODY, fontSize:17, fontWeight:700, color:T.parchment, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:16}}>{col.title}</div>
               <div style={{display:"flex", flexDirection:"column", gap:10}}>
                 {col.links.map(link=>(
-                  <span key={link} style={{fontFamily:FONT_BODY, fontSize:13, color:T.silver, cursor:"pointer"}}>{link}</span>
+                  <span key={link} style={{fontFamily:FONT_BODY, fontSize:17, color:T.silver, cursor:"pointer"}}>{link}</span>
                 ))}
               </div>
             </div>
@@ -499,8 +499,8 @@ function Footer() {
         </div>
         {/* Bottom row */}
         <div style={{paddingTop:24, borderTop:`1px solid ${T.rim}`, display:"flex", justifyContent:"space-between", alignItems:"center"}}>
-          <span style={{fontFamily:FONT_BODY, fontSize:12, color:T.muted}}>© 2026 Rōm, Inc. All rights reserved.</span>
-          <span style={{fontFamily:FONT_BODY, fontSize:12, color:T.muted}}>Built for guides. Trusted by guests.</span>
+          <span style={{fontFamily:FONT_BODY, fontSize:16, color:T.muted}}>© 2026 Rōm, Inc. All rights reserved.</span>
+          <span style={{fontFamily:FONT_BODY, fontSize:16, color:T.muted}}>Built for guides. Trusted by guests.</span>
         </div>
       </div>
     </div>
@@ -592,7 +592,7 @@ export default function HomePage() {
           {featuredGuides.map(g=><GuideCard key={g.id} guide={g}/>)}
         </div>
         <div style={{textAlign:"center"}}>
-          <button onClick={()=>window.location.href="/search"} style={{background:"none", border:`1px solid ${T.wire}`, borderRadius:6, padding:"12px 28px", fontFamily:FONT_BODY, fontSize:14, color:T.ash, cursor:"pointer"}}>
+          <button onClick={()=>window.location.href="/search"} style={{background:"none", border:`1px solid ${T.wire}`, borderRadius:6, padding:"12px 28px", fontFamily:FONT_BODY, fontSize:16, color:T.ash, cursor:"pointer"}}>
             Browse all guides →
           </button>
         </div>
