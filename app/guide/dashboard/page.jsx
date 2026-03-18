@@ -272,6 +272,9 @@ export default function GuideDashboard() {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [stripeLoading, setStripeLoading] = useState(false);
   const [stripeStatus, setStripeStatus] = useState(null); // null | 'complete' | 'incomplete'
+  const [uploadingPhoto, setUploadingPhoto] = useState(null); // 'profile' | 'cover' | 'gallery' | null
+  const [photoUrls, setPhotoUrls] = useState({ profile: null, cover: null, gallery: [] });
+  const [uploadError, setUploadError] = useState("");
 
   // Check for Stripe redirect return
   useEffect(() => {
@@ -305,6 +308,46 @@ export default function GuideDashboard() {
     setStripeLoading(false);
   };
 
+  const handlePhotoUpload = async (file, type, galleryIndex=null) => {
+    if (!file || !guideId) return;
+    if (file.size > 5 * 1024 * 1024) { setUploadError("File must be under 5MB."); return; }
+    if (!file.type.startsWith("image/")) { setUploadError("Only image files allowed."); return; }
+    setUploadError("");
+    setUploadingPhoto(type);
+    try {
+      const supabase = getSupabase();
+      const { data: { user } } = await supabase.auth.getUser();
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/${type}${galleryIndex!==null?`-${galleryIndex}`:""}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("guide-photos").upload(path, file, { upsert: true });
+      if (upErr) { setUploadError(upErr.message); setUploadingPhoto(null); return; }
+      const { data: { publicUrl } } = supabase.storage.from("guide-photos").getPublicUrl(path);
+      // Update guides table
+      if (type === "profile") {
+        await supabase.from("guides").update({ profile_photo_url: publicUrl }).eq("id", guideId);
+        setPhotoUrls(p => ({...p, profile: publicUrl}));
+      } else if (type === "cover") {
+        await supabase.from("guides").update({ cover_photo_url: publicUrl }).eq("id", guideId);
+        setPhotoUrls(p => ({...p, cover: publicUrl}));
+      } else if (type === "gallery") {
+        const newGallery = [...photoUrls.gallery];
+        if (galleryIndex !== null) newGallery[galleryIndex] = publicUrl;
+        else newGallery.push(publicUrl);
+        await supabase.from("guides").update({ gallery_photos: newGallery }).eq("id", guideId);
+        setPhotoUrls(p => ({...p, gallery: newGallery}));
+      }
+    } catch(e) { setUploadError("Upload failed. Please try again."); }
+    setUploadingPhoto(null);
+  };
+
+  const triggerUpload = (type, galleryIndex=null) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = (e) => { if (e.target.files[0]) handlePhotoUpload(e.target.files[0], type, galleryIndex); };
+    input.click();
+  };
+
   useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
@@ -329,6 +372,7 @@ export default function GuideDashboard() {
       const now2 = new Date();
 
       setGuideId(g.id);
+      setPhotoUrls({ profile: g.profile_photo_url||null, cover: g.cover_photo_url||null, gallery: g.gallery_photos||[] });
       setCurrentUserId(user.id);
       setGuide({
         name: prof?.full_name || user.email?.split("@")[0] || "Guide",
@@ -341,6 +385,9 @@ export default function GuideDashboard() {
         verified: g.verified,
         memberSince: new Date(g.created_at).toLocaleDateString("en-US", {month:"long", year:"numeric"}),
         stripeConnected: g.stripe_onboarding_complete || false,
+        profilePhoto: g.profile_photo_url || null,
+        coverPhoto: g.cover_photo_url || null,
+        galleryPhotos: g.gallery_photos || [],
       });
 
       // Fetch bookings for this guide
@@ -903,7 +950,17 @@ export default function GuideDashboard() {
               <div style={{display:"flex",flexDirection:"column",gap:14}}>
                 <SectionCard title="Public Profile">
                   <div style={{display:"flex",gap:20,alignItems:"center",marginBottom:18}}>
-                    <div style={{width:60,height:60,borderRadius:"50%",background:T.lifted,border:`2px solid ${T.gold}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FONT_DISPLAY,fontSize:26,color:T.gold}}>{guide.avatar}</div>
+                    {/* Profile photo */}
+                    <div style={{position:"relative",flexShrink:0}}>
+                      {photoUrls.profile ? (
+                        <img src={photoUrls.profile} alt="Profile" style={{width:72,height:72,borderRadius:"50%",objectFit:"cover",border:`2px solid ${T.gold}`}}/>
+                      ) : (
+                        <div style={{width:72,height:72,borderRadius:"50%",background:T.lifted,border:`2px solid ${T.gold}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FONT_DISPLAY,fontSize:28,color:T.gold}}>{guide.avatar}</div>
+                      )}
+                      <div onClick={()=>triggerUpload("profile")} style={{position:"absolute",bottom:0,right:0,width:24,height:24,borderRadius:"50%",background:T.gold,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:12}}>
+                        {uploadingPhoto==="profile" ? "…" : "✎"}
+                      </div>
+                    </div>
                     <div>
                       <div style={{fontFamily:FONT_DISPLAY,fontSize:24,color:T.white}}>{guide.name}</div>
                       <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.silver}}>📍 {guide.location} · {guide.category || ""}</div>
@@ -913,12 +970,60 @@ export default function GuideDashboard() {
                       </div>
                     </div>
                   </div>
-                  {[["Rating",`${guide.rating} (${guide.reviewCount} reviews)`],["Response rate",`${guide.responseRate}%`],["Member since",guide.memberSince],["Profile URL",`rom.com/guides/${guide.slug}`]].map(([l,v])=>(
+                  {[["Rating",`${guide.rating} (${guide.reviewCount} reviews)`],["Response rate",`${guide.responseRate}%`],["Member since",guide.memberSince],["Profile URL",`www.romlife.co/guides/${guide.slug}`]].map(([l,v])=>(
                     <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:`1px solid ${T.rim}`}}>
                       <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.silver}}>{l}</span>
                       <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment,fontWeight:500}}>{v}</span>
                     </div>
                   ))}
+                </SectionCard>
+
+                {/* Cover Photo */}
+                <SectionCard title="Cover Photo">
+                  <div style={{position:"relative",height:180,borderRadius:8,overflow:"hidden",background:T.lifted,marginBottom:16}}>
+                    {photoUrls.cover ? (
+                      <img src={photoUrls.cover} alt="Cover" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                    ) : (
+                      <div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:8}}>
+                        <div style={{fontSize:32,opacity:0.3}}>🏔</div>
+                        <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.muted}}>No cover photo yet</div>
+                      </div>
+                    )}
+                    <div onClick={()=>triggerUpload("cover")} style={{position:"absolute",top:12,right:12,background:"rgba(0,0,0,0.7)",border:`1px solid ${T.wire}`,borderRadius:6,padding:"6px 14px",cursor:"pointer",fontFamily:FONT_BODY,fontSize:12,color:T.ash}}>
+                      {uploadingPhoto==="cover" ? "Uploading…" : "Change Cover"}
+                    </div>
+                  </div>
+                  <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.muted}}>Shown at the top of your guide profile. Best size: 1600×600px.</div>
+                </SectionCard>
+
+                {/* Gallery */}
+                <SectionCard title="Trip Gallery">
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:12}}>
+                    {[0,1,2,3,4,5].map(i=>(
+                      <div key={i} onClick={()=>triggerUpload("gallery",i)} style={{aspectRatio:"1",borderRadius:8,overflow:"hidden",background:T.lifted,border:`1px dashed ${T.wire}`,cursor:"pointer",position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                        {photoUrls.gallery[i] ? (
+                          <>
+                            <img src={photoUrls.gallery[i]} alt={`Gallery ${i+1}`} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                            <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0)",display:"flex",alignItems:"center",justifyContent:"center",opacity:0,transition:"all 0.15s"}}
+                              onMouseEnter={e=>{e.currentTarget.style.background="rgba(0,0,0,0.5)";e.currentTarget.style.opacity=1;}}
+                              onMouseLeave={e=>{e.currentTarget.style.background="rgba(0,0,0,0)";e.currentTarget.style.opacity=0;}}>
+                              <span style={{color:T.white,fontSize:20}}>✎</span>
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{textAlign:"center"}}>
+                            <div style={{fontSize:24,color:T.wire,marginBottom:4}}>+</div>
+                            <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.muted}}>Photo {i+1}</div>
+                          </div>
+                        )}
+                        {uploadingPhoto===`gallery-${i}` && (
+                          <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FONT_BODY,fontSize:12,color:T.ash}}>Uploading…</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.muted}}>Add up to 6 photos from your trips. Click any slot to upload or replace.</div>
+                  {uploadError && <div style={{fontFamily:FONT_BODY,fontSize:13,color:"#f08080",marginTop:8}}>{uploadError}</div>}
                 </SectionCard>
                 <SectionCard title="Stripe Payout Account">
                   {(guide.stripeConnected || stripeStatus === "complete") ? (
