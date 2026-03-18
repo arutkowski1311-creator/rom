@@ -154,7 +154,7 @@ function Hero() {
   },[]);
 
   return (
-    <div style={{position:"relative", height:"100vh", minHeight:640, overflow:"hidden", display:"flex", alignItems:"center", width:"100%"}}>
+    <div style={{position:"relative", height:"100vh", minHeight:640, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"stretch", width:"100vw", maxWidth:"100%"}}>
       {/* Background */}
       <div style={{position:"absolute", inset:0, background:"linear-gradient(160deg, #0b1812f0 0%, #081018f0 40%, #120e04f0 100%)"}}>
         <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600&q=80&fit=crop" alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:0.15,zIndex:0}}/>
@@ -166,7 +166,8 @@ function Hero() {
       </div>
 
       {/* Content */}
-      <div style={{position:"relative", maxWidth:1200, margin:"0 auto", padding:"0 40px", width:"100%", boxSizing:"border-box"}}>
+      <div style={{position:"relative", width:"100%", display:"flex", justifyContent:"flex-start"}}>
+      <div style={{width:"100%", maxWidth:1200, margin:"0 auto", padding:"0 40px", boxSizing:"border-box"}}>
         {/* Eyebrow */}
         <div style={{display:"inline-flex", alignItems:"center", gap:10, background:"rgba(0,0,0,0.4)", backdropFilter:"blur(12px)", border:`1px solid ${T.wire}`, borderRadius:20, padding:"7px 16px", marginBottom:32}}>
           <span style={{fontFamily:FONT_BODY, fontSize:11, fontWeight:700, color:T.gold, textTransform:"uppercase", letterSpacing:"0.1em"}}>340+ verified guides</span>
@@ -219,6 +220,7 @@ function Hero() {
             ))}
           </div>
         </div>
+      </div>
       </div>
 
       {/* Scroll indicator */}
@@ -530,7 +532,7 @@ export default function HomePage() {
       }
       // Real active guides
       const { data: guides } = await supabase
-        .from("guides").select("id, slug, location, category, tagline, rating, review_count, verified, profile_id")
+        .from("guides").select("id, slug, location, categories, tagline, rating, review_count, verified, profile_id")
         .eq("status","active").limit(4);
       if (guides?.length > 0) {
         // Get guide names from profiles
@@ -550,7 +552,7 @@ export default function HomePage() {
           slug: g.slug,
           name: profMap[g.profile_id] || "Guide",
           location: g.location || "",
-          category: g.category || "Adventure",
+          category: (g.categories && g.categories[0]) || "Adventure",
           tagline: g.tagline || "",
           rating: parseFloat(g.rating) || 0,
           reviewCount: g.review_count || 0,
@@ -566,6 +568,7 @@ export default function HomePage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Barlow:wght@300;400;500;600;700&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
+        html,body{width:100%;overflow-x:hidden;}
         body{background:${T.void};}
         ::placeholder{color:${T.muted};}
         ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:${T.carbon};}::-webkit-scrollbar-thumb{background:${T.wire};border-radius:3px;}
