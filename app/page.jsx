@@ -3,7 +3,12 @@ import { useState, useEffect, useRef } from "react";
 
 function useIsMobile() {
   const [m, setM] = useState(false);
-  useEffect(() => { const c=()=>setM(window.innerWidth<768); c(); window.addEventListener("resize",c); return()=>window.removeEventListener("resize",c); },[]);
+  useEffect(() => {
+    const c = () => setM(typeof window !== "undefined" && window.innerWidth < 768);
+    c();
+    window.addEventListener("resize", c);
+    return () => window.removeEventListener("resize", c);
+  }, []);
   return m;
 }
 import { createBrowserClient } from "@supabase/ssr";
@@ -311,8 +316,9 @@ function GuideCard({ guide }) {
 
 // ─── CATEGORIES ───────────────────────────────────────────────────────────────
 function CategoryGrid() {
+  const isMobile = useIsMobile();
   return (
-    <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))", gap:12}}>
+    <div style={{display:"grid", gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)", gap:12}}>
       {CATEGORIES.map(cat=>(
         <div key={cat.label} onClick={()=>window.location.href=`/search?category=${encodeURIComponent(cat.label)}`}
           style={{background:T.steel, border:`1px solid ${T.rim}`, borderRadius:8, padding:"24px 20px", cursor:"pointer", display:"flex", flexDirection:"column", gap:10}}>
@@ -328,8 +334,9 @@ function CategoryGrid() {
 
 // ─── DESTINATIONS ─────────────────────────────────────────────────────────────
 function DestinationGrid() {
+  const isMobile = useIsMobile();
   return (
-    <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14, maxWidth:1000, margin:"0 auto"}}>
+    <div style={{display:"grid", gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)", gap:14, maxWidth:1000, margin:"0 auto"}}>
       {DESTINATIONS.map((dest,i)=>(
         <div key={dest.name} onClick={()=>window.location.href=`/search?destination=${encodeURIComponent(dest.name)}`}
           style={{background:dest.gradient, border:`1px solid ${T.rim}`, borderRadius:10, padding:"32px 28px", cursor:"pointer", position:"relative", overflow:"hidden", minHeight:180}}>
@@ -347,13 +354,14 @@ function DestinationGrid() {
 
 // ─── HOW IT WORKS ─────────────────────────────────────────────────────────────
 function HowItWorks() {
+  const isMobile = useIsMobile();
   const steps = [
     { num:"01", title:"Search your adventure", body:"Browse by destination, activity, or guide name. Filter by price, dates, and group size. Every guide is verified and reviewed." },
     { num:"02", title:"Book directly", body:"Message the guide before booking. When you're ready, secure your date with a 25% deposit. No hidden fees — you see the full price upfront." },
     { num:"03", title:"Go do the thing", body:"Your guide handles the details. You show up and have the best day. Leave a review so the next guest knows what they're getting into." },
   ];
   return (
-    <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, maxWidth:1000, margin:"0 auto"}}>
+    <div style={{display:"grid", gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)", gap:16, maxWidth:1000, margin:"0 auto"}}>
       {steps.map((s,i)=>(
         <div key={s.num} style={{padding:"40px 36px", background:T.steel, border:`1px solid ${T.wire}`, borderTop:`3px solid ${T.gold}`, borderRadius:10}}>
           <div style={{fontFamily:FONT_DISPLAY, fontSize:64, color:T.gold, fontWeight:300, lineHeight:1, marginBottom:20, opacity:0.6, userSelect:"none"}}>{s.num}</div>
@@ -367,6 +375,7 @@ function HowItWorks() {
 
 // ─── TRUST BAR ────────────────────────────────────────────────────────────────
 function TrustBar() {
+  const isMobile = useIsMobile();
   const items = [
     ["◬","Every guide is verified","We review insurance, licensing, and credentials before any guide goes live."],
     ["◉","Transparent pricing","The price you see is what you pay. No booking surprises, no inflated platform fees."],
@@ -374,9 +383,9 @@ function TrustBar() {
     ["✦","Protected booking","25% deposit holds your date. We mediate any disputes — guests and guides both."],
   ];
   return (
-    <div style={{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:0, maxWidth:1000, margin:"0 auto"}}>
+    <div style={{display:"grid", gridTemplateColumns:isMobile?"1fr":"repeat(4,1fr)", gap:0, maxWidth:1000, margin:"0 auto"}}>
       {items.map(([icon,title,body],i)=>(
-        <div key={title} style={{padding:"40px 32px", borderRight:i<3?`1px solid ${T.wire}`:"none", textAlign:"center"}}>
+        <div key={title} style={{padding:"40px 32px", borderRight:!isMobile&&i<3?`1px solid ${T.wire}`:"none", textAlign:"center"}}>
           <div style={{fontSize:32, color:T.gold, marginBottom:16}}>{icon}</div>
           <div style={{fontFamily:FONT_BODY, fontSize:16, fontWeight:700, color:T.white, marginBottom:10}}>{title}</div>
           <div style={{fontFamily:FONT_BODY, fontSize:16, color:T.ash, lineHeight:1.7}}>{body}</div>
@@ -439,13 +448,14 @@ function GuideCTA() {
 
 // ─── TESTIMONIALS ─────────────────────────────────────────────────────────────
 function Testimonials() {
+  const isMobile = useIsMobile();
   const reviews = [
     { text:"James put me on fish I had no business catching. Best guide day I've ever had, anywhere.", guest:"Mark T.", trip:"Full Day Trophy Hunt · Bozeman, MT", rating:5 },
     { text:"Sasha called the climb perfectly — knew exactly which routes matched our group's skill level. The desert towers at sunset were something I'll never forget.", guest:"Rachel M.", trip:"Sunset Multipitch · Moab, UT", rating:5 },
     { text:"Three days in Yellowstone's backcountry. No crowds. Wild cutthroat trout in streams that didn't appear on any map. Worth every dollar.", guest:"Derek & Amy P.", trip:"3-Day Backcountry · Yellowstone", rating:5 },
   ];
   return (
-    <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14, maxWidth:1000, margin:"0 auto"}}>
+    <div style={{display:"grid", gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)", gap:14, maxWidth:1000, margin:"0 auto"}}>
       {reviews.map((r,i)=>(
         <div key={i} style={{background:T.steel, border:`1px solid ${T.wire}`, borderRadius:10, padding:28}}>
           <div style={{marginBottom:16}}><Stars rating={r.rating} size={15}/></div>
@@ -509,6 +519,7 @@ function Footer() {
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 export default function HomePage() {
+  const isMobile = useIsMobile();
   const [scrolled, setScrolled] = useState(false);
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
@@ -588,7 +599,7 @@ export default function HomePage() {
           title="Featured guides"
           sub="Every guide on Rōm is manually reviewed and approved. These are some of the best."
         />
-        <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:16, marginBottom:36}}>
+        <div style={{display:"grid", gridTemplateColumns:isMobile?"1fr":"repeat(auto-fill,minmax(280px,1fr))", gap:16, marginBottom:36}}>
           {featuredGuides.map(g=><GuideCard key={g.id} guide={g}/>)}
         </div>
         <div style={{textAlign:"center"}}>
