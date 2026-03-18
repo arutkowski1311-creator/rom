@@ -154,7 +154,7 @@ function Hero() {
   },[]);
 
   return (
-    <div style={{position:"relative", height:"100vh", minHeight:640, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"stretch", width:"100vw", maxWidth:"100%"}}>
+    <div style={{position:"relative", height:"100vh", minHeight:640, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center", width:"100%"}}>
       {/* Background */}
       <div style={{position:"absolute", inset:0, background:"linear-gradient(160deg, #0b1812f0 0%, #081018f0 40%, #120e04f0 100%)"}}>
         <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600&q=80&fit=crop" alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:0.15,zIndex:0}}/>
@@ -166,8 +166,8 @@ function Hero() {
       </div>
 
       {/* Content */}
-      <div style={{position:"relative", width:"100%"}}>
-      <div style={{width:"100%", maxWidth:900, margin:"0 auto", padding:"0 40px", boxSizing:"border-box", textAlign:"center"}}>
+      <div style={{position:"relative", width:"100%", display:"flex", justifyContent:"center"}}>
+      <div style={{width:"100%", maxWidth:900, padding:"0 40px", boxSizing:"border-box", textAlign:"center"}}>
         {/* Eyebrow */}
         <div style={{display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center"}}>
         <div style={{display:"inline-flex", alignItems:"center", gap:10, background:"rgba(0,0,0,0.4)", backdropFilter:"blur(12px)", border:`1px solid ${T.wire}`, borderRadius:20, padding:"7px 16px", marginBottom:32}}>
