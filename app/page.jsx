@@ -138,6 +138,7 @@ function Nav({ scrolled, user, userRole }) {
           <>
             <span onClick={()=>window.location.href="/login"} style={{fontFamily:FONT_BODY,fontSize:16,color:T.ash,cursor:"pointer",padding:"10px 0"}}>Sign in</span>
             <button onClick={()=>window.location.href="/become-a-guide"} style={{background:T.gold,border:"none",borderRadius:6,padding:"13px",fontFamily:FONT_BODY,fontSize:16,fontWeight:700,color:T.ink,cursor:"pointer",width:"100%"}}>Become a Guide</button>
+          <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.muted,textAlign:"center",marginTop:8}}>48hr decision · personal review</div>
           </>
         )}
       </div>
@@ -226,11 +227,6 @@ function Hero() {
         </div>
       </div>
 
-      {/* Scroll indicator */}
-      <div className="hide-mobile" style={{position:"absolute", bottom:36, left:"50%", transform:"translateX(-50%)", display:"flex", flexDirection:"column", alignItems:"center", gap:8}}>
-        <div style={{fontFamily:FONT_BODY, fontSize:16, color:T.muted, letterSpacing:"0.12em", textTransform:"uppercase"}}>Scroll to explore</div>
-        <div style={{width:1, height:32, background:`linear-gradient(to bottom, ${T.wire}, transparent)`}}/>
-      </div>
     </div>
   );
 }
@@ -449,14 +445,14 @@ function GuideCTA() {
 function Testimonials() {
   const isMobile = useIsMobile();
   const reviews = [
-    { text:"James put me on fish I had no business catching. Best guide day I've ever had, anywhere.", guest:"Mark T.", trip:"Full Day Trophy Hunt · Bozeman, MT", rating:5 },
-    { text:"Sasha called the climb perfectly — knew exactly which routes matched our group's skill level. The desert towers at sunset were something I'll never forget.", guest:"Rachel M.", trip:"Sunset Multipitch · Moab, UT", rating:5 },
-    { text:"Three days in Yellowstone's backcountry. No crowds. Wild cutthroat trout in streams that didn't appear on any map. Worth every dollar.", guest:"Derek & Amy P.", trip:"3-Day Backcountry · Yellowstone", rating:5 },
+    { text:"James put me on fish I had no business catching. Best guide day I've ever had, anywhere.", guest:"Mark T.", trip:"Full Day Trophy Hunt · Bozeman, MT", rating:5, slug:"adam-rutkowski" },
+    { text:"Sasha called the climb perfectly — knew exactly which routes matched our group's skill level. The desert towers at sunset were something I'll never forget.", guest:"Rachel M.", trip:"Sunset Multipitch · Moab, UT", rating:5, slug:"rich-garfield" },
+    { text:"Three days in Yellowstone's backcountry. No crowds. Wild cutthroat trout in streams that didn't appear on any map. Worth every dollar.", guest:"Derek & Amy P.", trip:"3-Day Backcountry · Yellowstone", rating:5, slug:"adam-rutkowski" },
   ];
   return (
     <div style={{display:"grid", gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)", gap:14, maxWidth:1000, margin:"0 auto"}}>
       {reviews.map((r,i)=>(
-        <div key={i} style={{background:T.steel, border:`1px solid ${T.wire}`, borderRadius:10, padding:28}}>
+        <div key={i} onClick={()=>window.location.href=`/guides/${r.slug}`} style={{background:T.steel, border:`1px solid ${T.wire}`, borderRadius:10, padding:28, cursor:"pointer"}}>
           <div style={{marginBottom:16}}><Stars rating={r.rating} size={15}/></div>
           <p style={{fontFamily:FONT_DISPLAY, fontSize:19, color:T.parchment, lineHeight:1.6, fontStyle:"italic", marginBottom:20}}>"{r.text}"</p>
           <div style={{paddingTop:16, borderTop:`1px solid ${T.rim}`}}>
@@ -522,7 +518,7 @@ export default function HomePage() {
   const [scrolled, setScrolled] = useState(false);
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
-  const [featuredGuides, setFeaturedGuides] = useState(FEATURED_GUIDES);
+  const [featuredGuides, setFeaturedGuides] = useState(FEATURED_GUIDES.slice(0,3));
 
   useEffect(()=>{
     const h=()=>setScrolled(window.scrollY>60);
@@ -545,7 +541,7 @@ export default function HomePage() {
       // Real active guides
       const { data: guides } = await supabase
         .from("guides").select("id, slug, location, categories, tagline, rating, review_count, verified, profile_id")
-        .eq("status","active").limit(5);
+        .eq("status","active").limit(3);
       if (guides?.length > 0) {
         // Get guide names from profiles
         const profileIds = guides.map(g => g.profile_id).filter(Boolean);
@@ -647,6 +643,7 @@ export default function HomePage() {
           eyebrow="Where guides take you"
           title="Top destinations"
           sub="The best guides live where the best experiences happen."
+          center
         />
         <DestinationGrid/>
       </Section>
