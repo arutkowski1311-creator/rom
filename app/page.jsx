@@ -1,5 +1,11 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+
+function useIsMobile() {
+  const [m, setM] = useState(false);
+  useEffect(() => { const c=()=>setM(window.innerWidth<768); c(); window.addEventListener("resize",c); return()=>window.removeEventListener("resize",c); },[]);
+  return m;
+}
 import { createBrowserClient } from "@supabase/ssr";
 
 function getSupabase() {
@@ -72,6 +78,7 @@ function Stars({ rating, size=12 }) {
 
 // ─── NAV ──────────────────────────────────────────────────────────────────────
 function Nav({ scrolled, user, userRole }) {
+  const isMobile = useIsMobile();
   const [menuOpen, setMenuOpen] = useState(false);
   const signOut = async () => {
     const supabase = getSupabase();
@@ -80,75 +87,57 @@ function Nav({ scrolled, user, userRole }) {
   };
   const dashboardPath = userRole === "guide" ? "/guide/dashboard" : "/dashboard";
   return (
-    <div style={{
-      position:"fixed", top:0, left:0, right:0, zIndex:100, height:64,
-      background: scrolled || menuOpen ? T.void : "transparent",
-      borderBottom: `1px solid ${scrolled ? T.wire : "transparent"}`,
-      transition:"all 0.35s",
-      display:"flex", alignItems:"center",
-    }}>
-      <div style={{maxWidth:1200, margin:"0 auto", padding:"0 20px", width:"100%", display:"flex", justifyContent:"space-between", alignItems:"center", boxSizing:"border-box"}}>
-        <div style={{fontFamily:FONT_DISPLAY, fontSize:28, color:T.gold, letterSpacing:"0.16em", fontWeight:500, cursor:"pointer"}} onClick={()=>window.location.href="/"}>RŌM</div>
-
-        {/* Desktop nav */}
-        <div className="desktop-nav" style={{display:"flex", gap:32, alignItems:"center"}}>
-          {[["Explore","/search"],["How It Works","#how-it-works"]].map(([item,href])=>(
-            <span key={item} onClick={()=>window.location.href=href} style={{fontFamily:FONT_BODY, fontSize:14, color:scrolled?T.ash:T.parchment, cursor:"pointer"}}>{item}</span>
-          ))}
-          <div style={{width:1, height:18, background:T.wire}}/>
-          {user ? (
-            <div style={{display:"flex", gap:16, alignItems:"center"}}>
-              <span onClick={()=>window.location.href=dashboardPath} style={{fontFamily:FONT_BODY, fontSize:14, color:scrolled?T.ash:T.parchment, cursor:"pointer"}}>Dashboard</span>
-              <span onClick={signOut} style={{fontFamily:FONT_BODY, fontSize:14, color:T.silver, cursor:"pointer"}}>Sign out</span>
-            </div>
-          ) : (
-            <>
-              <span onClick={()=>window.location.href="/login"} style={{fontFamily:FONT_BODY, fontSize:14, color:scrolled?T.ash:T.parchment, cursor:"pointer"}}>Sign in</span>
-              <button onClick={()=>window.location.href="/signup"} style={{background:T.gold, border:"none", borderRadius:6, padding:"10px 22px", fontFamily:FONT_BODY, fontSize:14, fontWeight:700, color:T.ink, cursor:"pointer"}}>
-                Become a Guide
-              </button>
-            </>
-          )}
-        </div>
-
-        {/* Mobile hamburger */}
-        <button className="mobile-nav-btn" onClick={()=>setMenuOpen(o=>!o)} style={{background:"none", border:"none", cursor:"pointer", padding:8, display:"none", flexDirection:"column", gap:5}}>
-          <span style={{display:"block", width:24, height:2, background:T.parchment, transition:"all 0.2s", transform:menuOpen?"rotate(45deg) translate(5px,5px)":"none"}}/>
-          <span style={{display:"block", width:24, height:2, background:T.parchment, transition:"all 0.2s", opacity:menuOpen?0:1}}/>
-          <span style={{display:"block", width:24, height:2, background:T.parchment, transition:"all 0.2s", transform:menuOpen?"rotate(-45deg) translate(5px,-5px)":"none"}}/>
-        </button>
+    <>
+    <div style={{position:"fixed",top:0,left:0,right:0,zIndex:100,height:64,background:scrolled||menuOpen?T.void:"transparent",borderBottom:`1px solid ${scrolled?T.wire:"transparent"}`,transition:"all 0.35s",display:"flex",alignItems:"center"}}>
+      <div style={{maxWidth:1200,margin:"0 auto",padding:"0 20px",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{fontFamily:FONT_DISPLAY,fontSize:28,color:T.gold,letterSpacing:"0.16em",fontWeight:500,cursor:"pointer"}} onClick={()=>window.location.href="/"}>RŌM</div>
+        {!isMobile && (
+          <div style={{display:"flex",gap:32,alignItems:"center"}}>
+            {[["Explore","/search"],["How It Works","#how-it-works"]].map(([item,href])=>(
+              <span key={item} onClick={()=>window.location.href=href} style={{fontFamily:FONT_BODY,fontSize:14,color:scrolled?T.ash:T.parchment,cursor:"pointer"}}>{item}</span>
+            ))}
+            <div style={{width:1,height:18,background:T.wire}}/>
+            {user ? (
+              <div style={{display:"flex",gap:16,alignItems:"center"}}>
+                <span onClick={()=>window.location.href=dashboardPath} style={{fontFamily:FONT_BODY,fontSize:14,color:T.ash,cursor:"pointer"}}>Dashboard</span>
+                <span onClick={signOut} style={{fontFamily:FONT_BODY,fontSize:14,color:T.silver,cursor:"pointer"}}>Sign out</span>
+              </div>
+            ) : (
+              <>
+                <span onClick={()=>window.location.href="/login"} style={{fontFamily:FONT_BODY,fontSize:14,color:scrolled?T.ash:T.parchment,cursor:"pointer"}}>Sign in</span>
+                <button onClick={()=>window.location.href="/signup"} style={{background:T.gold,border:"none",borderRadius:6,padding:"10px 22px",fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:T.ink,cursor:"pointer"}}>Become a Guide</button>
+              </>
+            )}
+          </div>
+        )}
+        {isMobile && (
+          <button onClick={()=>setMenuOpen(o=>!o)} style={{background:"none",border:"none",cursor:"pointer",padding:8,display:"flex",flexDirection:"column",gap:5}}>
+            <div style={{width:22,height:2,background:T.parchment,borderRadius:2}}/>
+            <div style={{width:22,height:2,background:T.parchment,borderRadius:2}}/>
+            <div style={{width:22,height:2,background:T.parchment,borderRadius:2}}/>
+          </button>
+        )}
       </div>
-
-      {/* Mobile menu dropdown */}
-      {menuOpen && (
-        <div style={{position:"absolute", top:64, left:0, right:0, background:T.void, borderBottom:`1px solid ${T.wire}`, padding:"20px", display:"flex", flexDirection:"column", gap:20}}>
-          {[["Explore","/search"],["How It Works","#how-it-works"]].map(([item,href])=>(
-            <span key={item} onClick={()=>{window.location.href=href;setMenuOpen(false);}} style={{fontFamily:FONT_BODY, fontSize:16, color:T.parchment, cursor:"pointer"}}>{item}</span>
-          ))}
-          <div style={{height:1, background:T.wire}}/>
-          {user ? (
-            <>
-              <span onClick={()=>{window.location.href=dashboardPath;setMenuOpen(false);}} style={{fontFamily:FONT_BODY, fontSize:16, color:T.parchment, cursor:"pointer"}}>Dashboard</span>
-              <span onClick={signOut} style={{fontFamily:FONT_BODY, fontSize:16, color:T.silver, cursor:"pointer"}}>Sign out</span>
-            </>
-          ) : (
-            <>
-              <span onClick={()=>window.location.href="/login"} style={{fontFamily:FONT_BODY, fontSize:16, color:T.parchment, cursor:"pointer"}}>Sign in</span>
-              <button onClick={()=>window.location.href="/signup"} style={{background:T.gold, border:"none", borderRadius:8, padding:"14px", fontFamily:FONT_BODY, fontSize:16, fontWeight:700, color:T.ink, cursor:"pointer", width:"100%"}}>
-                Become a Guide
-              </button>
-            </>
-          )}
-        </div>
-      )}
-
-      <style>{`
-        @media (max-width: 768px) {
-          .desktop-nav { display: none !important; }
-          .mobile-nav-btn { display: flex !important; }
-        }
-      `}</style>
     </div>
+    {isMobile && menuOpen && (
+      <div style={{position:"fixed",top:64,left:0,right:0,background:T.void,borderBottom:`1px solid ${T.wire}`,padding:20,display:"flex",flexDirection:"column",gap:16,zIndex:99}}>
+        {[["Explore","/search"],["How It Works","#how-it-works"]].map(([item,href])=>(
+          <span key={item} onClick={()=>{window.location.href=href;setMenuOpen(false);}} style={{fontFamily:FONT_BODY,fontSize:16,color:T.ash,cursor:"pointer",padding:"10px 0",borderBottom:`1px solid ${T.rim}`}}>{item}</span>
+        ))}
+        {user ? (
+          <>
+            <span onClick={()=>window.location.href=dashboardPath} style={{fontFamily:FONT_BODY,fontSize:16,color:T.ash,cursor:"pointer",padding:"10px 0"}}>Dashboard</span>
+            <span onClick={signOut} style={{fontFamily:FONT_BODY,fontSize:16,color:T.silver,cursor:"pointer",padding:"10px 0"}}>Sign out</span>
+          </>
+        ) : (
+          <>
+            <span onClick={()=>window.location.href="/login"} style={{fontFamily:FONT_BODY,fontSize:16,color:T.ash,cursor:"pointer",padding:"10px 0"}}>Sign in</span>
+            <button onClick={()=>window.location.href="/signup"} style={{background:T.gold,border:"none",borderRadius:6,padding:"13px",fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:T.ink,cursor:"pointer",width:"100%"}}>Become a Guide</button>
+          </>
+        )}
+      </div>
+    )}
+    </>
   );
 }
 
@@ -232,7 +221,7 @@ function Hero() {
       </div>
 
       {/* Scroll indicator */}
-      <div className="scroll-indicator" style={{position:"absolute", bottom:36, left:"50%", transform:"translateX(-50%)", display:"flex", flexDirection:"column", alignItems:"center", gap:8}}>
+      <div className="hide-mobile" style={{position:"absolute", bottom:36, left:"50%", transform:"translateX(-50%)", display:"flex", flexDirection:"column", alignItems:"center", gap:8}}>
         <div style={{fontFamily:FONT_BODY, fontSize:10, color:T.muted, letterSpacing:"0.12em", textTransform:"uppercase"}}>Scroll to explore</div>
         <div style={{width:1, height:32, background:`linear-gradient(to bottom, ${T.wire}, transparent)`}}/>
       </div>
@@ -242,13 +231,14 @@ function Hero() {
 
 // ─── STATS BAR ────────────────────────────────────────────────────────────────
 function StatsBar() {
+  const isMobile = useIsMobile();
   return (
     <div style={{background:T.carbon, borderTop:`1px solid ${T.wire}`, borderBottom:`1px solid ${T.wire}`}}>
-      <div className="rom-stats-bar" style={{maxWidth:1200, margin:"0 auto", padding:"0 20px", display:"flex"}}>
+      <div style={{maxWidth:1200, margin:"0 auto", padding:"0 20px", display:"grid", gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)"}}>
         {STATS.map((s,i)=>(
-          <div key={s.label} style={{flex:1, padding:"28px 0", textAlign:"center", borderRight: i<STATS.length-1 ? `1px solid ${T.wire}` : "none"}}>
-            <div style={{fontFamily:FONT_DISPLAY, fontSize:38, color:T.white, fontWeight:300, lineHeight:1, marginBottom:6}}>{s.value}</div>
-            <div style={{fontFamily:FONT_BODY, fontSize:12, color:T.silver, textTransform:"uppercase", letterSpacing:"0.08em"}}>{s.label}</div>
+          <div key={s.label} style={{padding:"24px 0", textAlign:"center", borderRight:!isMobile&&i<3?`1px solid ${T.wire}`:"none", borderBottom:isMobile&&i<2?`1px solid ${T.wire}`:"none"}}>
+            <div style={{fontFamily:FONT_DISPLAY, fontSize:isMobile?26:38, color:T.white, fontWeight:300, lineHeight:1, marginBottom:4}}>{s.value}</div>
+            <div style={{fontFamily:FONT_BODY, fontSize:10, color:T.silver, textTransform:"uppercase", letterSpacing:"0.06em"}}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -260,7 +250,7 @@ function StatsBar() {
 function Section({ children, bg=T.gunmetal, style={} }) {
   return (
     <div style={{background:bg, borderBottom:`1px solid ${T.wire}`, ...style}}>
-      <div className="rom-section-pad" style={{maxWidth:1200, margin:"0 auto"}}>
+      <div style={{maxWidth:1200, margin:"0 auto", padding:"60px 20px"}}>
         {children}
       </div>
     </div>
@@ -320,7 +310,7 @@ function GuideCard({ guide }) {
 // ─── CATEGORIES ───────────────────────────────────────────────────────────────
 function CategoryGrid() {
   return (
-    <div style={{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12}}>
+    <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))", gap:12}}>
       {CATEGORIES.map(cat=>{
         const [hov, setHov] = useState(false);
         return (
@@ -345,7 +335,7 @@ function CategoryGrid() {
 // ─── DESTINATIONS ─────────────────────────────────────────────────────────────
 function DestinationGrid() {
   return (
-    <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14}}>
+    <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:14}}>
       {DESTINATIONS.map((dest,i)=>{
         const [hov,setHov]=useState(false);
         const tall = i===0 || i===3;
@@ -381,7 +371,7 @@ function HowItWorks() {
     { num:"03", title:"Go do the thing", body:"Your guide handles the details. You show up and have the best day. Leave a review so the next guest knows what they're getting into." },
   ];
   return (
-    <div style={{className:"rom-grid-steps", style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:2}}>
+    <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:2}}>
       {steps.map((s,i)=>(
         <div key={s.num} style={{padding:"40px 36px", background:T.steel, borderRight: i<2?`1px solid ${T.wire}`:"none", position:"relative"}}>
           <div style={{fontFamily:FONT_DISPLAY, fontSize:64, color:T.rim, fontWeight:300, lineHeight:1, marginBottom:20, userSelect:"none"}}>{s.num}</div>
@@ -405,7 +395,7 @@ function TrustBar() {
     ["✦","Protected booking","25% deposit holds your date. We mediate any disputes — guests and guides both."],
   ];
   return (
-    <div className="rom-grid-verticals" style={{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:0}}>
+    <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:0}}>
       {items.map(([icon,title,body],i)=>(
         <div key={title} style={{padding:"36px 28px", borderRight:i<3?`1px solid ${T.wire}`:"none"}}>
           <div style={{fontSize:22, color:T.gold, marginBottom:14}}>{icon}</div>
@@ -420,7 +410,7 @@ function TrustBar() {
 // ─── GUIDE CTA ────────────────────────────────────────────────────────────────
 function GuideCTA() {
   return (
-    <div className="rom-grid-2" style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:0, minHeight:400}}>
+    <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:0, minHeight:400}}>
       {/* Left — visual */}
       <div style={{background:"linear-gradient(135deg, #152018 0%, #0b1a24 60%, #1a1206 100%)", position:"relative", overflow:"hidden"}}>
         <div style={{position:"absolute", inset:0, backgroundImage:`radial-gradient(ellipse at 30% 60%, ${T.gold}28 0%, transparent 50%)`}}/>
@@ -473,7 +463,7 @@ function Testimonials() {
     { text:"Three days in Yellowstone's backcountry. No crowds. Wild cutthroat trout in streams that didn't appear on any map. Worth every dollar.", guest:"Derek & Amy P.", trip:"3-Day Backcountry · Yellowstone", rating:5 },
   ];
   return (
-    <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14}}>
+    <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:14}}>
       {reviews.map((r,i)=>(
         <div key={i} style={{background:T.steel, border:`1px solid ${T.wire}`, borderRadius:10, padding:28}}>
           <div style={{marginBottom:16}}><Stars rating={r.rating} size={15}/></div>
@@ -498,9 +488,9 @@ function Footer() {
   ];
   return (
     <div style={{background:T.void, borderTop:`1px solid ${T.wire}`}}>
-      <div style={{maxWidth:1200, margin:"0 auto", padding:"64px 20px 40px"}}>
+      <div style={{maxWidth:1200, margin:"0 auto", padding:"64px 40px 40px"}}>
         {/* Top row */}
-        <div style={{display:"grid", gridTemplateColumns:"1.5fr 1fr 1fr 1fr 1fr", gap:48, marginBottom:56}} className="rom-footer-grid" style={{}}>
+        <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:32, marginBottom:40}}>
           {/* Brand */}
           <div>
             <div style={{fontFamily:FONT_DISPLAY, fontSize:30, color:T.gold, letterSpacing:"0.14em", marginBottom:16}}>RŌM</div>
@@ -601,33 +591,7 @@ export default function HomePage() {
         body{background:${T.void};}
         ::placeholder{color:${T.muted};}
         ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:${T.carbon};}::-webkit-scrollbar-thumb{background:${T.wire};border-radius:3px;}
-        .rom-section-pad { padding: 80px 40px; }
-        .rom-grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
-        .rom-grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
-        .rom-grid-2 { display: grid; grid-template-columns: 1fr 1fr; }
-        .rom-grid-steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 2px; }
-        .rom-grid-verticals { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; }
-        .rom-footer-grid { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 56px; }
-        .rom-stats-bar { display: flex; }
-        .rom-nav-hamburger { display: none; }
-        .rom-nav-links { display: flex; gap: 32px; align-items: center; }
-        .scroll-indicator { display: flex; }
-        @media (max-width: 768px) {
-          .rom-section-pad { padding: 48px 20px; }
-          .rom-grid-4 { grid-template-columns: repeat(2,1fr); gap: 10px; }
-          .rom-grid-3 { grid-template-columns: 1fr; }
-          .rom-grid-2 { grid-template-columns: 1fr; }
-          .rom-grid-steps { grid-template-columns: 1fr; }
-          .rom-grid-verticals { grid-template-columns: repeat(2,1fr); }
-          .rom-footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
-          .rom-stats-bar { flex-wrap: wrap; }
-          .rom-stats-bar > div { flex: 0 0 50% !important; border-right: none !important; border-bottom: 1px solid #323840 !important; }
-          .rom-hide-mobile { display: none !important; }
-          .scroll-indicator { display: none !important; }
-          .rom-nav-hamburger { display: flex !important; }
-          .rom-nav-links { display: none !important; }
-          .rom-guide-cards { grid-template-columns: 1fr !important; }
-        }
+        @media(max-width:768px){.hide-mobile{display:none!important;}}
       `}</style>
 
       <Nav scrolled={scrolled} user={user} userRole={userRole}/>
@@ -641,7 +605,7 @@ export default function HomePage() {
           title="Featured guides"
           sub="Every guide on Rōm is manually reviewed and approved. These are some of the best."
         />
-        <div className="rom-guide-cards" style={{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16, marginBottom:36}}>
+        <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:16, marginBottom:36}}>
           {featuredGuides.map(g=><GuideCard key={g.id} guide={g}/>)}
         </div>
         <div style={{textAlign:"center"}}>
