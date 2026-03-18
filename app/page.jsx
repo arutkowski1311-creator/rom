@@ -148,6 +148,7 @@ function Nav({ scrolled, user, userRole }) {
 
 // ─── HERO ─────────────────────────────────────────────────────────────────────
 function Hero() {
+  const isMobile = useIsMobile();
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const suggestions = ["Fly fishing in Montana","Elk hunting in Wyoming","Rock climbing in Moab","Surfing in Hawaii","Kayaking in Maine"];
@@ -173,7 +174,7 @@ function Hero() {
       {/* Content */}
       <div style={{position:"relative", width:"100%", display:"flex", justifyContent:"center"}}>
         <div style={{width:"100%", maxWidth:900, padding:"0 40px", boxSizing:"border-box", textAlign:"center"}}>
-        <div style={{display:"inline-flex", alignItems:"center", gap:10, background:"rgba(0,0,0,0.4)", backdropFilter:"blur(12px)", border:`1px solid ${T.wire}`, borderRadius:20, padding:"7px 16px", marginBottom:32}}>
+        <div style={{display: isMobile ? "none" : "inline-flex", alignItems:"center", gap:10, background:"rgba(0,0,0,0.4)", backdropFilter:"blur(12px)", border:`1px solid ${T.wire}`, borderRadius:20, padding:"7px 16px", marginBottom:32}}>
           <span style={{fontFamily:FONT_BODY, fontSize:17, fontWeight:700, color:T.gold, textTransform:"uppercase", letterSpacing:"0.1em"}}>340+ verified guides</span>
           <div style={{width:3, height:3, borderRadius:"50%", background:T.wire}}/>
           <span style={{fontFamily:FONT_BODY, fontSize:17, color:T.silver}}>62 destinations worldwide</span>
@@ -321,7 +322,7 @@ function CategoryGrid() {
     <div style={{display:"grid", gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)", gap:12}}>
       {CATEGORIES.map(cat=>(
         <div key={cat.label} onClick={()=>window.location.href=`/search?category=${encodeURIComponent(cat.label)}`}
-          style={{background:T.steel, border:`1px solid ${T.rim}`, borderRadius:8, padding:"24px 20px", cursor:"pointer", display:"flex", flexDirection:"column", gap:10}}>
+          style={{background:T.steel, border:`1px solid ${T.rim}`, borderRadius:8, padding:isMobile?"16px 14px":"24px 20px", cursor:"pointer", display:"flex", flexDirection:"column", gap:isMobile?6:10}}>
           <div style={{fontSize:28}}>{cat.icon}</div>
           <div style={{fontFamily:FONT_BODY, fontSize:16, fontWeight:700, color:T.parchment}}>{cat.label}</div>
           <div style={{fontFamily:FONT_BODY, fontSize:16, color:T.silver}}>{cat.count} guides available</div>
@@ -363,8 +364,8 @@ function HowItWorks() {
   return (
     <div style={{display:"grid", gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)", gap:16, maxWidth:1000, margin:"0 auto"}}>
       {steps.map((s,i)=>(
-        <div key={s.num} style={{padding:"40px 36px", background:T.steel, border:`1px solid ${T.wire}`, borderTop:`3px solid ${T.gold}`, borderRadius:10}}>
-          <div style={{fontFamily:FONT_DISPLAY, fontSize:64, color:T.gold, fontWeight:300, lineHeight:1, marginBottom:20, opacity:0.6, userSelect:"none"}}>{s.num}</div>
+        <div key={s.num} style={{padding:isMobile?"24px 20px":"40px 36px", background:T.steel, border:`1px solid ${T.wire}`, borderTop:`3px solid ${T.gold}`, borderRadius:10}}>
+          <div style={{fontFamily:FONT_DISPLAY, fontSize:isMobile?44:64, color:T.gold, fontWeight:300, lineHeight:1, marginBottom:12, opacity:0.6, userSelect:"none"}}>{s.num}</div>
           <div style={{fontFamily:FONT_DISPLAY, fontSize:28, color:T.white, fontWeight:400, marginBottom:16, lineHeight:1.2}}>{s.title}</div>
           <div style={{fontFamily:FONT_BODY, fontSize:17, color:T.parchment, lineHeight:1.8}}>{s.body}</div>
         </div>
@@ -599,9 +600,19 @@ export default function HomePage() {
           title="Featured guides"
           sub="Every guide on Rōm is manually reviewed and approved. These are some of the best."
         />
-        <div style={{display:"grid", gridTemplateColumns:isMobile?"1fr":"repeat(auto-fill,minmax(280px,1fr))", gap:16, marginBottom:36}}>
-          {featuredGuides.map(g=><GuideCard key={g.id} guide={g}/>)}
-        </div>
+        {isMobile ? (
+          <div style={{display:"flex", gap:16, overflowX:"auto", paddingBottom:16, marginBottom:20, scrollSnapType:"x mandatory", WebkitOverflowScrolling:"touch"}}>
+            {featuredGuides.map(g=>(
+              <div key={g.id} style={{minWidth:"85vw", scrollSnapAlign:"start", flexShrink:0}}>
+                <GuideCard guide={g}/>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:16, marginBottom:36}}>
+            {featuredGuides.map(g=><GuideCard key={g.id} guide={g}/>)}
+          </div>
+        )}
         <div style={{textAlign:"center"}}>
           <button onClick={()=>window.location.href="/search"} style={{background:"none", border:`1px solid ${T.wire}`, borderRadius:6, padding:"12px 28px", fontFamily:FONT_BODY, fontSize:16, color:T.ash, cursor:"pointer"}}>
             Browse all guides →
