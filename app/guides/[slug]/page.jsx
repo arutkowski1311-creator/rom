@@ -496,81 +496,10 @@ function MessagePanel({ guide, onClose }) {
   );
 }
 
-function GuideProfile({ guide=GUIDE, currentUser=null, onReviewSubmitted=()=>{} }) {
+function GuideProfile({ guide=GUIDE }) {
   const [bookingOpen,setBookingOpen]=useState(false);
   const [messageOpen,setMessageOpen]=useState(false);
   const [activeTab,setActiveTab]=useState("about");
-  const [reviewRating,setReviewRating]=useState(5);
-  const [reviewBody,setReviewBody]=useState("");
-  const [reviewHover,setReviewHover]=useState(0);
-  const [reviewSubmitting,setReviewSubmitting]=useState(false);
-  const [reviewDone,setReviewDone]=useState(false);
-  const [reviewError,setReviewError]=useState("");
-  const [eligibleBooking,setEligibleBooking]=useState(null);
-
-  useEffect(() => {
-    if (!currentUser || !guide?.id) return;
-    const supabase = getSupabase();
-    supabase.from("bookings")
-      .select("id, trip_date")
-      .eq("guide_id", guide.id)
-      .eq("guest_id", currentUser.id)
-      .eq("status", "confirmed")
-      .order("trip_date", { ascending: false })
-      .limit(1)
-      .then(async ({ data }) => {
-        if (data && data.length > 0) {
-          // Check if already reviewed
-          const { data: existing } = await supabase
-            .from("reviews")
-            .select("id")
-            .eq("guide_id", guide.id)
-            .eq("guest_id", currentUser.id)
-            .limit(1);
-          if (!existing || existing.length === 0) {
-            setEligibleBooking(data[0]);
-          } else {
-            setReviewDone(true); // already reviewed, show confirmation state
-          }
-        }
-      });
-  }, [currentUser, guide?.id]);
-
-  const submitReview = async () => {
-    if (!reviewBody.trim()) { setReviewError("Please write a review."); return; }
-    setReviewSubmitting(true);
-    setReviewError("");
-    try {
-      const supabase = getSupabase();
-      const { error } = await supabase.from("reviews").insert({
-        guide_id: guide.id,
-        guest_id: currentUser.id,
-        booking_id: eligibleBooking?.id || null,
-        rating: reviewRating,
-        body: reviewBody.trim(),
-      });
-      if (error) throw error;
-
-      // Notify guide of new review
-      fetch("/api/reviews/notify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          guideId: guide.id,
-          guideName: guide.name,
-          rating: reviewRating,
-          body: reviewBody.trim(),
-        }),
-      }).catch(console.error);
-
-      setReviewDone(true);
-      setReviewBody("");
-      onReviewSubmitted();
-    } catch(e) {
-      setReviewError("Something went wrong. Please try again.");
-    }
-    setReviewSubmitting(false);
-  };
 
   return (
     <>
@@ -648,7 +577,7 @@ function GuideProfile({ guide=GUIDE, currentUser=null, onReviewSubmitted=()=>{} 
                     {guide.bio.split("\\n\\n").map((p,i)=>(
                       <p key={i} style={{fontFamily:FONT_BODY,fontSize:16,color:T.ash,lineHeight:1.85,marginBottom:20}}>{p}</p>
                     ))}
-                    {/* Stat cards — steel on gunmetal = visible difference */}
+                    {/* Stat cards */}
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginTop:36}}>
                       {[["◷","Response time",`Usually ${guide.responseTime}`],["◉","Location",guide.location],["✦","Experience",`${guide.yearsExperience} years guiding`],["◈","Specialty",guide.categories.join(", ")]].map(([icon,label,val])=>(
                         <div key={label} style={{display:"flex",gap:14,padding:20,background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8}}>
@@ -660,6 +589,95 @@ function GuideProfile({ guide=GUIDE, currentUser=null, onReviewSubmitted=()=>{} 
                         </div>
                       ))}
                     </div>
+
+                    {/* Credentials */}
+                    {guide.slug==="rich-garfield" && (
+                      <>
+                      <div style={{marginTop:48,marginBottom:20}}>
+                        <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:16}}>Credentials & Certifications</div>
+                        <div style={{display:"flex",flexWrap:"wrap",gap:10}}>
+                          {["NYS Licensed Professional Guide","30 Years Experience","Fully Insured","Adirondack Native","Independent Operator"].map(c=>(
+                            <span key={c} style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment,background:T.steel,border:`1px solid ${T.gold}`,borderRadius:20,padding:"6px 14px",display:"flex",alignItems:"center",gap:6}}>
+                              <span style={{color:T.gold,fontSize:11}}>✓</span> {c}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Waters */}
+                      <div style={{marginTop:40}}>
+                        <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:16}}>Waters Rich Guides</div>
+                        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                          {[
+                            ["West Branch Ausable River","Lake Placid · Wilmington · Jay","The crown jewel of Adirondack fly fishing. World-class spring hatches, wild browns and brookies."],
+                            ["East Branch Ausable River","Keene Valley area","Remote and wild. Less pressure, big fish. Rich knows every pool."],
+                            ["Saranac River","Saranac Lake · Plattsburgh","Diverse water from freestone rapids to slow pools. Excellent brown trout fishery."],
+                            ["Backcountry Ponds","Northern Adirondacks","Remote brook trout ponds most anglers never find. Accessible only by foot or canoe."],
+                            ["Salmon River","Malone area","Landlocked Atlantic salmon and trophy browns in overlooked water."],
+                          ].map(([name,loc,desc])=>(
+                            <div key={name} style={{background:T.steel,border:`1px solid ${T.wire}`,borderLeft:`3px solid ${T.gold}`,borderRadius:8,padding:"18px 20px"}}>
+                              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                                <div style={{fontFamily:FONT_BODY,fontSize:15,fontWeight:700,color:T.white}}>{name}</div>
+                                <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,textAlign:"right",flexShrink:0,marginLeft:12}}>📍 {loc}</div>
+                              </div>
+                              <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.ash,lineHeight:1.65}}>{desc}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Best times */}
+                      <div style={{marginTop:40}}>
+                        <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:16}}>Best Times to Book</div>
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                          {[
+                            ["🌱 Spring (Apr–Jun)","Prime hatch season. Hendricksons, Cahills, and Green Drakes bring the biggest fish up. Book early."],
+                            ["☀️ Summer (Jul–Aug)","Early morning and evening sessions. Terrestrials and hoppers on warm afternoons."],
+                            ["🍂 Fall (Sep–Oct)","Brown trout pre-spawn. Some of the biggest fish of the year on the swing."],
+                            ["❄️ Winter (Dec–Mar)","Ice fishing available. Backcountry brook trout through the ice."],
+                          ].map(([season,desc])=>(
+                            <div key={season} style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:"16px 18px"}}>
+                              <div style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:T.parchment,marginBottom:8}}>{season}</div>
+                              <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash,lineHeight:1.6}}>{desc}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* What to expect */}
+                      <div style={{marginTop:40,background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:"28px 24px"}}>
+                        <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:20}}>What to Bring</div>
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                          {["Valid NY fishing license","Wading boots (felt or rubber sole)","Polarized sunglasses","Rain jacket","Lunch and water","Camera — you'll want it"].map(item=>(
+                            <div key={item} style={{display:"flex",alignItems:"center",gap:8,fontFamily:FONT_BODY,fontSize:14,color:T.ash}}>
+                              <span style={{color:T.gold,fontSize:12}}>✦</span> {item}
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{marginTop:20,paddingTop:16,borderTop:`1px solid ${T.rim}`,fontFamily:FONT_BODY,fontSize:13,color:T.silver,lineHeight:1.65}}>
+                          Rich provides all flies, leaders, and tippet. Loaner rods available on request. All skill levels welcome — beginners will leave as better anglers.
+                        </div>
+                      </div>
+
+                      {/* Reviews highlight */}
+                      <div style={{marginTop:40}}>
+                        <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:16}}>What Guests Say</div>
+                        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                          {[
+                            ["Rich is the standard against which all fly guides should be measured. Full day, pulled 30+ trout.","Mark D."],
+                            ["Shakespeare lost sleep wishing he could write like Rick Garfield reads water.","James K."],
+                            ["Rich is an incredible guide. World class experience fly fishing for small stream Brook trout.","Sarah M."],
+                            ["Found him highly knowledgeable and no-nonsense. Got on fish and learned a ton. Will be back.","Tom R."],
+                          ].map(([quote,author])=>(
+                            <div key={author} style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:"18px 20px"}}>
+                              <div style={{fontFamily:FONT_DISPLAY,fontSize:17,color:T.parchment,fontStyle:"italic",lineHeight:1.65,marginBottom:10}}>"{quote}"</div>
+                              <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.gold,fontWeight:700}}>— {author}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -743,54 +761,6 @@ function GuideProfile({ guide=GUIDE, currentUser=null, onReviewSubmitted=()=>{} 
                         </div>
                       ))}
                     </div>
-
-                    {/* LEAVE A REVIEW */}
-                    {currentUser && eligibleBooking && !reviewDone && (
-                      <div style={{marginTop:32,background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:28}}>
-                        <h3 style={{fontFamily:FONT_DISPLAY,fontSize:26,color:T.white,fontWeight:400,marginBottom:6}}>Leave a Review</h3>
-                        <p style={{fontFamily:FONT_BODY,fontSize:13,color:T.silver,marginBottom:20}}>
-                          Share your experience with {guide.name}
-                        </p>
-                        {/* Star selector */}
-                        <div style={{display:"flex",gap:6,marginBottom:20}}>
-                          {[1,2,3,4,5].map(n=>(
-                            <span key={n}
-                              onMouseEnter={()=>setReviewHover(n)}
-                              onMouseLeave={()=>setReviewHover(0)}
-                              onClick={()=>setReviewRating(n)}
-                              style={{fontSize:28,cursor:"pointer",color:n<=(reviewHover||reviewRating)?T.gold:T.wire,transition:"color 0.1s"}}>★</span>
-                          ))}
-                        </div>
-                        <textarea
-                          value={reviewBody}
-                          onChange={e=>setReviewBody(e.target.value)}
-                          placeholder="What made this trip memorable? Be specific — other travelers appreciate honest detail."
-                          rows={5}
-                          style={{width:"100%",background:T.lifted,border:`1px solid ${T.wire}`,borderRadius:8,padding:"14px 16px",fontFamily:FONT_BODY,fontSize:15,color:T.parchment,resize:"vertical",outline:"none",lineHeight:1.6}}
-                        />
-                        {reviewError && <p style={{fontFamily:FONT_BODY,fontSize:13,color:"#e05555",marginTop:8}}>{reviewError}</p>}
-                        <button
-                          onClick={submitReview}
-                          disabled={reviewSubmitting}
-                          style={{marginTop:14,background:T.gold,border:"none",borderRadius:6,padding:"12px 28px",fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:T.ink,cursor:"pointer",opacity:reviewSubmitting?0.6:1}}>
-                          {reviewSubmitting ? "Submitting…" : "Submit Review"}
-                        </button>
-                      </div>
-                    )}
-
-                    {reviewDone && (
-                      <div style={{marginTop:32,background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:28,textAlign:"center"}}>
-                        <div style={{fontSize:32,marginBottom:12}}>★</div>
-                        <div style={{fontFamily:FONT_DISPLAY,fontSize:26,color:T.white,fontWeight:400,marginBottom:8}}>Review submitted</div>
-                        <p style={{fontFamily:FONT_BODY,fontSize:14,color:T.silver}}>Your review has been posted. Thank you.</p>
-                      </div>
-                    )}
-
-                    {currentUser && !eligibleBooking && guide.reviews.length === 0 && (
-                      <div style={{marginTop:24,fontFamily:FONT_BODY,fontSize:13,color:T.muted,textAlign:"center",padding:16}}>
-                        Complete a trip with {guide.name} to leave a review.
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -873,12 +843,9 @@ export default function GuideProfilePage({ params }) {
   const [guide, setGuide] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     if (slug) fetchGuide(slug);
-    const supabase = getSupabase();
-    supabase.auth.getUser().then(({ data }) => setCurrentUser(data?.user || null));
   }, [slug]);
 
   const fetchGuide = async (slug) => {
@@ -902,23 +869,10 @@ export default function GuideProfilePage({ params }) {
 
       const { data: reviews } = await supabase
         .from("reviews")
-        .select("id, rating, body, trip_label, created_at, guest_id")
+        .select("*, profiles(full_name)")
         .eq("guide_id", g.id)
         .order("created_at", { ascending: false })
         .limit(10);
-
-      // Get guest names for reviews (flat queries per RLS pattern)
-      const guestIds = [...new Set((reviews || []).map(r => r.guest_id).filter(Boolean))];
-      let guestNames = {};
-      if (guestIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("id, full_name")
-          .in("id", guestIds);
-        if (profiles) {
-          profiles.forEach(p => { guestNames[p.id] = p.full_name; });
-        }
-      }
 
       await supabase.rpc("increment_guide_views", { guide_id: g.id }).maybeSingle();
 
@@ -955,7 +909,7 @@ export default function GuideProfilePage({ params }) {
         })),
         reviews: (reviews || []).map(r => ({
           id: r.id,
-          guest: guestNames[r.guest_id] || "Verified Traveler",
+          guest: r.profiles?.full_name || "Traveler",
           rating: r.rating,
           date: new Date(r.created_at).toLocaleDateString("en-US", { month:"short", year:"numeric" }),
           trip: r.trip_label || "",
@@ -987,5 +941,5 @@ export default function GuideProfilePage({ params }) {
 
   const guideData = guide && guide.packages.length > 0 ? guide : { ...guide, packages: GUIDE.packages, reviews: GUIDE.reviews };
 
-  return <GuideProfile guide={guideData} currentUser={currentUser} onReviewSubmitted={() => fetchGuide(slug)}/>;
+  return <GuideProfile guide={guideData}/>;
 }
