@@ -329,7 +329,7 @@ function CategoryGrid() {
 // ─── DESTINATIONS ─────────────────────────────────────────────────────────────
 function DestinationGrid() {
   return (
-    <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:14}}>
+    <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14, maxWidth:1000, margin:"0 auto"}}>
       {DESTINATIONS.map((dest,i)=>(
         <div key={dest.name} onClick={()=>window.location.href=`/search?destination=${encodeURIComponent(dest.name)}`}
           style={{background:dest.gradient, border:`1px solid ${T.rim}`, borderRadius:10, padding:"32px 28px", cursor:"pointer", position:"relative", overflow:"hidden", minHeight:180}}>
@@ -374,7 +374,7 @@ function TrustBar() {
     ["✦","Protected booking","25% deposit holds your date. We mediate any disputes — guests and guides both."],
   ];
   return (
-    <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:0}}>
+    <div style={{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:0, maxWidth:1000, margin:"0 auto"}}>
       {items.map(([icon,title,body],i)=>(
         <div key={title} style={{padding:"40px 32px", borderRight:i<3?`1px solid ${T.wire}`:"none", textAlign:"center"}}>
           <div style={{fontSize:32, color:T.gold, marginBottom:16}}>{icon}</div>
@@ -442,7 +442,7 @@ function Testimonials() {
     { text:"Three days in Yellowstone's backcountry. No crowds. Wild cutthroat trout in streams that didn't appear on any map. Worth every dollar.", guest:"Derek & Amy P.", trip:"3-Day Backcountry · Yellowstone", rating:5 },
   ];
   return (
-    <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:14}}>
+    <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14, maxWidth:1000, margin:"0 auto"}}>
       {reviews.map((r,i)=>(
         <div key={i} style={{background:T.steel, border:`1px solid ${T.wire}`, borderRadius:10, padding:28}}>
           <div style={{marginBottom:16}}><Stars rating={r.rating} size={15}/></div>
