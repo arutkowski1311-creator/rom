@@ -605,9 +605,9 @@ export default function HomePage() {
           sub="Every guide on Rōm is manually reviewed and approved. These are some of the best."
         />
         {isMobile ? (
-          <div className="carousel-scroll" style={{display:"flex", gap:12, overflowX:"auto", paddingBottom:16, paddingLeft:16, paddingRight:16, marginLeft:-20, marginRight:-20, marginBottom:20, scrollSnapType:"x mandatory", WebkitOverflowScrolling:"touch", msOverflowStyle:"none", scrollbarWidth:"none"}}>
+          <div className="carousel-scroll" style={{display:"flex", gap:12, overflowX:"auto", paddingBottom:16, paddingLeft:16, paddingRight:8, marginBottom:20, scrollSnapType:"x mandatory", WebkitOverflowScrolling:"touch", msOverflowStyle:"none", scrollbarWidth:"none"}}>
             {featuredGuides.map(g=>(
-              <div key={g.id} style={{minWidth:"78vw", scrollSnapAlign:"center", flexShrink:0}}>
+              <div key={g.id} style={{width:"75vw", maxWidth:300, minWidth:240, scrollSnapAlign:"start", flexShrink:0}}>
                 <GuideCard guide={g}/>
               </div>
             ))}
