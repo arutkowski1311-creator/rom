@@ -92,13 +92,16 @@ You MUST return valid JSON matching this exact schema:
   "lodging": [
     { "name": "Place name", "type": "hotel|cabin|lodge|camping", "priceRange": "$|$$|$$$|$$$$", "reason": "Why this option (1 sentence)" }
   ],
+  "dining": [
+    { "name": "Restaurant name", "meal": "breakfast|lunch|dinner", "cuisine": "Type of food", "priceRange": "$|$$|$$$", "reason": "Why this spot (1 sentence)" }
+  ],
   "gear": ["Item 1", "Item 2"],
   "transportation": "How to get there and get around (2-3 sentences)",
   "localTips": ["Tip 1", "Tip 2", "Tip 3"],
   "estimatedBudget": {
     "guideServices": "$X - $X",
     "lodging": "$X - $X per night",
-    "meals": "$X - $X per day",
+    "dining": "$X - $X per day",
     "total": "$X - $X"
   }
 }`;

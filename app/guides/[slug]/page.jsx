@@ -51,7 +51,7 @@ function BookingPanel({ guide, onClose }) {
 
   const pkg = guide.packages.find(p=>p.id===selectedPkg);
   const tripPrice = pkg?(pkg.priceType==="person"?pkg.price*guests:pkg.price):0;
-  const tierConfig = getTierConfig(guide.subscription_tier || "trail");
+  const tierConfig = getTierConfig(guide.subscription_tier || "spark");
   const feeRate = tierConfig.commissionRate;
   const serviceFee = Math.round(tripPrice * feeRate);
   const total = tripPrice+serviceFee;

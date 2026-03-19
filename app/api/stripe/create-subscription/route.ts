@@ -3,9 +3,9 @@ import { getStripe } from "@/app/lib/stripe";
 import { getSupabaseAdmin } from "@/app/lib/supabase-server";
 
 const TIER_PRICES: Record<string, string> = {
-  trail: process.env.STRIPE_PRICE_TRAIL || "",
-  pro: process.env.STRIPE_PRICE_PRO || "",
-  elite: process.env.STRIPE_PRICE_ELITE || "",
+  spark: process.env.STRIPE_PRICE_SPARK || "",
+  discover: process.env.STRIPE_PRICE_DISCOVER || "",
+  immerse: process.env.STRIPE_PRICE_IMMERSE || "",
 };
 
 export async function POST(req: NextRequest) {

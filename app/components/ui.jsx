@@ -149,12 +149,12 @@ export function SectionHeader({ children }) {
 // ─── TIER BADGE ──────────────────────────────────────────────────────────────
 export function TierBadge({ tier }) {
   const colors = {
-    trail: { bg: T.lifted, border: T.wire, color: T.silver },
-    pro:   { bg: T.goldGlow, border: T.gold, color: T.gold },
-    elite: { bg: "#2a1a4a28", border: "#6a4aaa", color: "#a08ada" },
+    spark:    { bg: T.lifted, border: T.wire, color: T.silver },
+    discover: { bg: T.goldGlow, border: T.gold, color: T.gold },
+    immerse:  { bg: "#2a1a4a28", border: "#6a4aaa", color: "#a08ada" },
   }[tier] || { bg: T.lifted, border: T.wire, color: T.silver };
 
-  const label = (tier || "trail").charAt(0).toUpperCase() + (tier || "trail").slice(1);
+  const label = (tier || "spark").charAt(0).toUpperCase() + (tier || "spark").slice(1);
 
   return (
     <span style={{
@@ -208,7 +208,7 @@ export function FeatureGate({ tier, feature, children }) {
           fontFamily: FONT_BODY, fontSize: 13, color: T.silver,
           textAlign: "center", maxWidth: 300,
         }}>
-          {feature} requires a Pro or Elite plan.
+          {feature} requires a Discover or Immerse plan.
         </div>
         <GoldBtn small onClick={() => window.location.href = "/guide/billing"}>
           View Plans

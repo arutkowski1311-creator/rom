@@ -32,9 +32,9 @@ export const FONT_BODY    = "'Barlow', system-ui, sans-serif";
 
 // ─── TIER CONFIGURATION ──────────────────────────────────────────────────────
 export const TIERS = {
-  trail: {
-    id: "trail",
-    name: "Trail",
+  spark: {
+    id: "spark",
+    name: "Spark",
     monthlyPrice: 9,
     commissionRate: 0.20,
     features: [
@@ -46,28 +46,28 @@ export const TIERS = {
     ],
     locked: ["Finances", "Marketing Hub", "Analytics", "CRM", "Widgets", "Tax Center"],
   },
-  pro: {
-    id: "pro",
-    name: "Pro",
+  discover: {
+    id: "discover",
+    name: "Discover",
     monthlyPrice: 29,
     commissionRate: 0.15,
     features: [
-      "Everything in Trail",
+      "Everything in Spark",
       "Finances dashboard",
       "Marketing Hub + AI content",
       "Expense & mileage tracking",
       "Tax center + 1099 export",
-      "Trip Journal (TRAIL)",
+      "Trip Journal",
     ],
     locked: ["Analytics", "CRM", "Widgets"],
   },
-  elite: {
-    id: "elite",
-    name: "Elite",
+  immerse: {
+    id: "immerse",
+    name: "Immerse",
     monthlyPrice: 59,
     commissionRate: 0.12,
     features: [
-      "Everything in Pro",
+      "Everything in Discover",
       "Analytics dashboard",
       "Guest CRM",
       "Embeddable widgets",
@@ -80,18 +80,18 @@ export const TIERS = {
 
 // Which tier unlocks which dashboard tabs
 export const TIER_GATES = {
-  Finances:  ["pro", "elite"],
-  Marketing: ["pro", "elite"],
-  Analytics: ["elite"],
-  CRM:       ["elite"],
+  Finances:  ["discover", "immerse"],
+  Marketing: ["discover", "immerse"],
+  Analytics: ["immerse"],
+  CRM:       ["immerse"],
 };
 
 export function getTierConfig(tierName) {
-  return TIERS[tierName] || TIERS.trail;
+  return TIERS[tierName] || TIERS.spark;
 }
 
 export function canAccessFeature(guideTier, feature) {
   const gates = TIER_GATES[feature];
   if (!gates) return true; // no gate = everyone can access
-  return gates.includes(guideTier || "trail");
+  return gates.includes(guideTier || "spark");
 }

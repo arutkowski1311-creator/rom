@@ -196,6 +196,23 @@ export default function ConciergePage() {
             </div>
           )}
 
+          {/* Dining */}
+          {itinerary.dining?.length > 0 && (
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.silver, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>Where to Eat</div>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+                {itinerary.dining.map((d, i) => (
+                  <div key={i} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 8, padding: 16 }}>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.white, fontWeight: 600 }}>{d.name}</div>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 2 }}>{d.cuisine} · {d.priceRange}</div>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.muted, marginTop: 2, textTransform: "capitalize" }}>{d.meal}</div>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, marginTop: 6 }}>{d.reason}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Gear, Transport, Tips */}
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 28 }}>
             {itinerary.gear?.length > 0 && (

@@ -65,9 +65,9 @@ export async function POST(req: NextRequest) {
 
         // Map Stripe price to tier
         const priceToTier: Record<string, string> = {};
-        if (process.env.STRIPE_PRICE_TRAIL) priceToTier[process.env.STRIPE_PRICE_TRAIL] = "trail";
-        if (process.env.STRIPE_PRICE_PRO) priceToTier[process.env.STRIPE_PRICE_PRO] = "pro";
-        if (process.env.STRIPE_PRICE_ELITE) priceToTier[process.env.STRIPE_PRICE_ELITE] = "elite";
+        if (process.env.STRIPE_PRICE_SPARK) priceToTier[process.env.STRIPE_PRICE_SPARK] = "spark";
+        if (process.env.STRIPE_PRICE_DISCOVER) priceToTier[process.env.STRIPE_PRICE_DISCOVER] = "discover";
+        if (process.env.STRIPE_PRICE_IMMERSE) priceToTier[process.env.STRIPE_PRICE_IMMERSE] = "immerse";
 
         const priceId = sub.items?.data?.[0]?.price?.id;
         const newTier = priceId ? priceToTier[priceId] : undefined;
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
           .from("guides")
           .update({
             subscription_status: "cancelled",
-            subscription_tier: "trail",
+            subscription_tier: "spark",
           })
           .eq("stripe_customer_id", sub.customer);
         break;

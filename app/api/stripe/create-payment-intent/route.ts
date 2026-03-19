@@ -35,11 +35,11 @@ export async function POST(req: NextRequest) {
 
     // Calculate commission based on guide's tier
     const commissionRates: Record<string, number> = {
-      trail: 0.20,
-      pro: 0.15,
-      elite: 0.12,
+      spark: 0.20,
+      discover: 0.15,
+      immerse: 0.12,
     };
-    const tier = guide.subscription_tier || "trail";
+    const tier = guide.subscription_tier || "spark";
     const commissionRate = commissionRates[tier] || 0.20;
     const commissionAmount = Math.round(amount * commissionRate);
     const guideAmount = amount - commissionAmount;
