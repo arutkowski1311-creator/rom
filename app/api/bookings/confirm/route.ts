@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/app/lib/supabase-server";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -25,10 +25,7 @@ export async function POST(req: NextRequest) {
     // Look up guide email server-side
     let guideEmail = null;
     if (guideId) {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
+      const supabase = getSupabaseAdmin();
       const { data: guideRow } = await supabase
         .from("guides")
         .select("email")
@@ -127,7 +124,7 @@ export async function POST(req: NextRequest) {
                 `).join("")}
               </div>
 
-              <a href="https://rom.travel/guide/dashboard" style="display: block; background: #c9a96e; color: #0d0d0d; text-decoration: none; text-align: center; padding: 14px; border-radius: 6px; font-weight: 700; font-size: 14px; letter-spacing: 0.04em;">
+              <a href="https://romlife.co/guide/dashboard" style="display: block; background: #c9a96e; color: #0d0d0d; text-decoration: none; text-align: center; padding: 14px; border-radius: 6px; font-weight: 700; font-size: 14px; letter-spacing: 0.04em;">
                 View in Dashboard →
               </a>
             </div>

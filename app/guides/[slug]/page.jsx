@@ -1,39 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
 import React from "react";
-import { createBrowserClient } from "@supabase/ssr";
-
-function getSupabase() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-}
-
-// ─── 5-STEP DARK PALETTE ──────────────────────────────────────────────────────
-// Each step is visibly distinct. Sections stack light-on-dark to create depth.
-const T = {
-  void:     "#080a0b",   // deepest — page background
-  carbon:   "#0f1214",   // nav, hero base
-  gunmetal: "#171b1e",   // section backgrounds
-  steel:    "#1f2428",   // card backgrounds
-  lifted:   "#272c31",   // hover states, inner elements
-  rim:      "#323840",   // subtle borders
-  wire:     "#424c54",   // visible borders, dividers
-  muted:    "#5a6470",   // placeholder text
-  silver:   "#8a96a0",   // secondary text
-  ash:      "#b8c2ca",   // body text
-  parchment:"#e8e2d8",   // primary text
-  white:    "#f5f2ee",   // headings, emphasis
-  gold:     "#c9973a",
-  goldLt:   "#e0b050",
-  goldDk:   "#a07828",
-  goldGlow: "#c9973a28",
-  ink:      "#080a0b",
-};
-
-const FONT_DISPLAY = "'Cormorant Garamond', Georgia, serif";
-const FONT_BODY    = "'Barlow', system-ui, sans-serif";
+import { T, FONT_DISPLAY, FONT_BODY, getTierConfig } from "@/app/lib/theme";
+import { getSupabase } from "@/app/lib/supabase-browser";
+import { Stars, GoldBtn } from "@/app/components/ui";
 
 const GUIDE = {
   name:"James Whitfield", slug:"james-whitfield",
@@ -59,10 +29,6 @@ const GUIDE = {
   ],
 };
 
-function Stars({ rating, size=14 }) {
-  return <span>{[1,2,3,4,5].map(i=><span key={i} style={{fontSize:size,color:i<=Math.round(rating)?T.gold:T.rim}}>★</span>)}</span>;
-}
-
 // ─── BOOKING PANEL ────────────────────────────────────────────────────────────
 function BookingPanel({ guide, onClose }) {
   const [step, setStep] = useState(1);
@@ -85,7 +51,9 @@ function BookingPanel({ guide, onClose }) {
 
   const pkg = guide.packages.find(p=>p.id===selectedPkg);
   const tripPrice = pkg?(pkg.priceType==="person"?pkg.price*guests:pkg.price):0;
-  const serviceFee = Math.round(tripPrice*0.15);
+  const tierConfig = getTierConfig(guide.subscription_tier || "trail");
+  const feeRate = tierConfig.commissionRate;
+  const serviceFee = Math.round(tripPrice * feeRate);
   const total = tripPrice+serviceFee;
   const deposit = Math.round(total*0.25);
   const balance = total-deposit;
@@ -138,6 +106,7 @@ function BookingPanel({ guide, onClose }) {
           total: total,
           deposit: deposit,
           balance: balance,
+          commission_rate: feeRate,
           status: "pending",
           package_title: pkg.title,
           guide_name: guide.name,
@@ -310,7 +279,7 @@ function BookingPanel({ guide, onClose }) {
               </div>
               <textarea value={requests} onChange={e=>setRequests(e.target.value)} rows={4} placeholder="Skill level, physical limitations, specific goals…" style={{width:"100%",boxSizing:"border-box",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:6,padding:"12px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none",resize:"vertical"}}/>
               <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:20}}>
-                {[[pkg.priceType==="person"?`$${pkg.price} × ${guests} guest${guests!==1?"s":""}` : "Flat rate",`$${tripPrice}`],["Service fee (15%)",`$${serviceFee}`]].map(([l,v])=>(
+                {[[pkg.priceType==="person"?`$${pkg.price} × ${guests} guest${guests!==1?"s":""}` : "Flat rate",`$${tripPrice}`],["RŌM service fee",`$${serviceFee}`]].map(([l,v])=>(
                   <div key={l} style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
                     <span style={{fontFamily:FONT_BODY,fontSize:14,color:T.silver}}>{l}</span>
                     <span style={{fontFamily:FONT_BODY,fontSize:14,color:T.parchment,fontWeight:600}}>{v}</span>

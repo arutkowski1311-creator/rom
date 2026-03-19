@@ -1,40 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
-import { createBrowserClient } from "@supabase/ssr";
-
-function getSupabase() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-}
-
-const T = {
-  void:     "#080a0b",
-  carbon:   "#0f1214",
-  gunmetal: "#171b1e",
-  steel:    "#1f2428",
-  lifted:   "#272c31",
-  rim:      "#323840",
-  wire:     "#424c54",
-  muted:    "#5a6470",
-  silver:   "#8a96a0",
-  ash:      "#b8c2ca",
-  parchment:"#e8e2d8",
-  white:    "#f5f2ee",
-  gold:     "#c9973a",
-  goldLt:   "#e0b050",
-  goldGlow: "#c9973a28",
-  ink:      "#080a0b",
-  green:    "#3a7a54",
-  greenGlow:"#3a7a5428",
-  red:      "#8a3a3a",
-  redGlow:  "#8a3a3a28",
-  blue:     "#2a4a7a",
-  blueGlow: "#2a4a7a28",
-};
-const FONT_DISPLAY = "'Cormorant Garamond', Georgia, serif";
-const FONT_BODY    = "'Barlow', system-ui, sans-serif";
+import { T, FONT_DISPLAY, FONT_BODY, getTierConfig } from "@/app/lib/theme";
+import { getSupabase } from "@/app/lib/supabase-browser";
+import { Stars, StatusPill, GoldBtn, TierBadge, FeatureGate } from "@/app/components/ui";
+import FinancesTab from "./tabs/FinancesTab";
+import MarketingTab from "./tabs/MarketingTab";
+import AnalyticsTab from "./tabs/AnalyticsTab";
 
 // ─── MOCK DATA ────────────────────────────────────────────────────────────────
 const GUIDE = {
@@ -86,38 +57,7 @@ const MESSAGES = [
   { id:"m3", client:"Derek & Amy P.", preview:"We'll need to arrive a day early — can you recommend anywhere to stay near the trailhead?", time:"3 days ago", unread:false, booking:"3-Day Yellowstone · April 8" },
 ];
 
-// ─── SHARED ───────────────────────────────────────────────────────────────────
-function Stars({ rating, size=12 }) {
-  return <span>{[1,2,3,4,5].map(i=><span key={i} style={{fontSize:size,color:i<=Math.round(rating)?T.gold:T.rim}}>★</span>)}</span>;
-}
-
-function StatusPill({ status }) {
-  const cfg = {
-    pending:  { bg:T.goldGlow,  border:T.gold,  color:T.gold,    label:"Pending" },
-    confirmed:{ bg:T.blueGlow,  border:T.blue,  color:"#6a9ada", label:"Confirmed" },
-    completed:{ bg:T.greenGlow, border:T.green, color:"#6aaa84", label:"Completed" },
-    cancelled:{ bg:T.redGlow,   border:T.red,   color:"#aa7a7a", label:"Cancelled" },
-  }[status] || { bg:T.goldGlow, border:T.gold, color:T.gold, label:status };
-  return <span style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:cfg.color,background:cfg.bg,border:`1px solid ${cfg.border}`,borderRadius:4,padding:"3px 10px",letterSpacing:"0.06em",textTransform:"uppercase"}}>{cfg.label}</span>;
-}
-
-function GoldBtn({ children, onClick, outline, small, disabled, full }) {
-  const [hov,setHov]=useState(false);
-  return (
-    <button onClick={onClick} disabled={disabled}
-      onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
-      style={{
-        width:full?"100%":"auto",
-        background:outline?"transparent":hov&&!disabled?T.goldLt:T.gold,
-        color:outline?(hov?T.goldLt:T.gold):T.ink,
-        border:`1.5px solid ${hov&&!disabled?T.goldLt:T.gold}`,
-        borderRadius:6, padding:small?"7px 14px":"11px 22px",
-        fontFamily:FONT_BODY, fontSize:small?12:13, fontWeight:700,
-        cursor:disabled?"not-allowed":"pointer", opacity:disabled?0.4:1,
-        transition:"all 0.15s",
-      }}>{children}</button>
-  );
-}
+// ─── SHARED (imported from @/app/components/ui) ──────────────────────────────
 
 function SectionCard({ children, title, action }) {
   return (
@@ -252,7 +192,7 @@ function BookingPanel({ booking, onClose, onAccept, onDecline }) {
 }
 
 // ─── TABS ─────────────────────────────────────────────────────────────────────
-const TABS = ["Overview","Bookings","Calendar","Packages","Messages","Earnings","Profile"];
+const TABS = ["Overview","Bookings","Calendar","Packages","Messages","Earnings","Finances","Marketing","Analytics","Profile"];
 
 export default function GuideDashboard() {
   const [tab, setTab] = useState("Overview");
@@ -938,6 +878,27 @@ export default function GuideDashboard() {
                 <GoldBtn small outline onClick={()=>alert("Stripe dashboard — redirecting.")}>View Stripe Dashboard →</GoldBtn>
               </SectionCard>
             </div>
+          )}
+
+          {/* ── FINANCES ── */}
+          {tab==="Finances" && (
+            <FeatureGate tier={guide?.subscription_tier} feature="Finances">
+              <FinancesTab guide={guide} />
+            </FeatureGate>
+          )}
+
+          {/* ── MARKETING ── */}
+          {tab==="Marketing" && (
+            <FeatureGate tier={guide?.subscription_tier} feature="Marketing">
+              <MarketingTab guide={guide} />
+            </FeatureGate>
+          )}
+
+          {/* ── ANALYTICS ── */}
+          {tab==="Analytics" && (
+            <FeatureGate tier={guide?.subscription_tier} feature="Analytics">
+              <AnalyticsTab guide={guide} />
+            </FeatureGate>
           )}
 
           {/* ── PROFILE ── */}

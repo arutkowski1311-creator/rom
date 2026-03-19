@@ -1,46 +1,8 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-
-function useIsMobile() {
-  const [m, setM] = useState(false);
-  useEffect(() => {
-    const c = () => setM(typeof window !== "undefined" && window.innerWidth < 768);
-    c();
-    window.addEventListener("resize", c);
-    return () => window.removeEventListener("resize", c);
-  }, []);
-  return m;
-}
-import { createBrowserClient } from "@supabase/ssr";
-
-function getSupabase() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-}
-
-const T = {
-  void:     "#080a0b",
-  carbon:   "#0f1214",
-  gunmetal: "#171b1e",
-  steel:    "#1f2428",
-  lifted:   "#272c31",
-  rim:      "#323840",
-  wire:     "#424c54",
-  muted:    "#5a6470",
-  silver:   "#8a96a0",
-  ash:      "#b8c2ca",
-  parchment:"#e8e2d8",
-  white:    "#f5f2ee",
-  gold:     "#c9973a",
-  goldLt:   "#e0b050",
-  goldDk:   "#a07828",
-  goldGlow: "#c9973a28",
-  ink:      "#080a0b",
-};
-const FONT_DISPLAY = "'Cormorant Garamond', Georgia, serif";
-const FONT_BODY    = "'Barlow', system-ui, sans-serif";
+import { T, FONT_DISPLAY, FONT_BODY } from "@/app/lib/theme";
+import { getSupabase } from "@/app/lib/supabase-browser";
+import { useIsMobile, Stars } from "@/app/components/ui";
 
 // ─── MOCK DATA ────────────────────────────────────────────────────────────────
 const FEATURED_GUIDES = [
@@ -77,10 +39,6 @@ const STATS = [
   { value:"8,200+", label:"Trips booked" },
 ];
 
-function Stars({ rating, size=12 }) {
-  return <span>{[1,2,3,4,5].map(i=><span key={i} style={{fontSize:size,color:i<=Math.round(rating)?T.gold:T.rim}}>★</span>)}</span>;
-}
-
 // ─── NAV ──────────────────────────────────────────────────────────────────────
 function Nav({ scrolled, user, userRole }) {
   const isMobile = useIsMobile();
@@ -98,7 +56,7 @@ function Nav({ scrolled, user, userRole }) {
         <div style={{fontFamily:FONT_DISPLAY,fontSize:28,color:T.gold,letterSpacing:"0.16em",fontWeight:500,cursor:"pointer"}} onClick={()=>window.location.href="/"}>RŌM</div>
         {!isMobile && (
           <div style={{display:"flex",gap:32,alignItems:"center"}}>
-            {[["Explore","/search"],["How It Works","#how-it-works"]].map(([item,href])=>(
+            {[["Explore","/search"],["Plan a Trip","/concierge"],["How It Works","#how-it-works"]].map(([item,href])=>(
               <span key={item} onClick={()=>window.location.href=href} style={{fontFamily:FONT_BODY,fontSize:16,color:scrolled?T.ash:T.parchment,cursor:"pointer"}}>{item}</span>
             ))}
             <div style={{width:1,height:18,background:T.wire}}/>
@@ -126,7 +84,7 @@ function Nav({ scrolled, user, userRole }) {
     </div>
     {isMobile && menuOpen && (
       <div style={{position:"fixed",top:64,left:0,right:0,background:T.void,borderBottom:`1px solid ${T.wire}`,padding:20,display:"flex",flexDirection:"column",gap:16,zIndex:99}}>
-        {[["Explore","/search"],["How It Works","#how-it-works"]].map(([item,href])=>(
+        {[["Explore","/search"],["Plan a Trip","/concierge"],["How It Works","#how-it-works"]].map(([item,href])=>(
           <span key={item} onClick={()=>{window.location.href=href;setMenuOpen(false);}} style={{fontFamily:FONT_BODY,fontSize:16,color:T.ash,cursor:"pointer",padding:"10px 0",borderBottom:`1px solid ${T.rim}`}}>{item}</span>
         ))}
         {user ? (

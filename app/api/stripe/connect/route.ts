@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
-import { createClient } from "@supabase/supabase-js";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+import { getStripe } from "@/app/lib/stripe";
+import { getSupabaseAdmin } from "@/app/lib/supabase-server";
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,10 +10,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "guideId required" }, { status: 400 });
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const stripe = getStripe();
+    const supabase = getSupabaseAdmin();
 
     // Check if guide already has a Stripe account
     const { data: guide } = await supabase

@@ -1,20 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
-
-function useIsMobile() {
-  const [m, setM] = useState(false);
-  useEffect(() => { const c=()=>setM(window.innerWidth<768); c(); window.addEventListener("resize",c); return()=>window.removeEventListener("resize",c); },[]);
-  return m;
-}
-
-const T = {
-  void:"#080a0b", carbon:"#0f1214", gunmetal:"#171b1e", steel:"#1f2428",
-  lifted:"#272c31", rim:"#323840", wire:"#424c54", muted:"#5a6470",
-  silver:"#8a96a0", ash:"#b8c2ca", parchment:"#e8e2d8", white:"#f5f2ee",
-  gold:"#c9973a", goldGlow:"#c9973a28", ink:"#080a0b",
-};
-const FONT_DISPLAY = "'Cormorant Garamond', Georgia, serif";
-const FONT_BODY = "'Barlow', system-ui, sans-serif";
+import { T, FONT_DISPLAY, FONT_BODY } from "@/app/lib/theme";
+import { useIsMobile } from "@/app/components/ui";
 
 const PERKS = [
   { icon:"◎", title:"100% of your listed price", body:"We charge guests a 15% service fee on top of your rate. Your listed price is your payout, every time. No commissions, no surprises." },

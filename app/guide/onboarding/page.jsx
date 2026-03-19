@@ -1,22 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
-import { createBrowserClient } from "@supabase/ssr";
-
-function getSupabase() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-}
-
-const T = {
-  void:"#080a0b", carbon:"#0f1214", gunmetal:"#171b1e", steel:"#1f2428",
-  lifted:"#272c31", rim:"#323840", wire:"#424c54", muted:"#5a6470",
-  silver:"#8a96a0", ash:"#b8c2ca", parchment:"#e8e2d8", white:"#f5f2ee",
-  gold:"#c9973a", goldGlow:"#c9973a28", ink:"#080a0b",
-};
-const FONT_DISPLAY = "'Cormorant Garamond', Georgia, serif";
-const FONT_BODY = "'Barlow', system-ui, sans-serif";
+import { T, FONT_DISPLAY, FONT_BODY } from "@/app/lib/theme";
+import { getSupabase } from "@/app/lib/supabase-browser";
 
 const CATEGORIES = [
   "Fly Fishing","Hunting","Hiking","Rock Climbing","Kayaking",
