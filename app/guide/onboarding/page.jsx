@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { T, FONT_DISPLAY, FONT_BODY } from "@/app/lib/theme";
+import { T, FONT_DISPLAY, FONT_BODY, TIERS } from "@/app/lib/theme";
 import { getSupabase } from "@/app/lib/supabase-browser";
 
 const CATEGORIES = [
@@ -9,7 +9,8 @@ const CATEGORIES = [
   "Snowshoeing","Ice Fishing","Backpacking","Mountain Biking",
 ];
 
-const STEPS = ["Account","Profile","Categories","Packages","Done"];
+const STEPS = ["Account","Profile","Activities","Packages","Plan","Payments","Done"];
+const PROGRESS_STEPS = STEPS.slice(0, 6); // progress bar shows first 6
 
 function Input({ label, value, onChange, placeholder, type="text", multiline=false, required=false }) {
   return (
@@ -28,7 +29,7 @@ function Input({ label, value, onChange, placeholder, type="text", multiline=fal
   );
 }
 
-function GoldBtn({ children, onClick, disabled, outline=false, small=false }) {
+function GoldBtn({ children, onClick, disabled, outline=false, small=false, full=false }) {
   return (
     <button onClick={onClick} disabled={disabled} style={{
       background:outline?"transparent":disabled?"#5a4a20":T.gold,
@@ -37,6 +38,7 @@ function GoldBtn({ children, onClick, disabled, outline=false, small=false }) {
       fontFamily:FONT_BODY, fontSize:small?14:15, fontWeight:700,
       color:outline?T.ash:T.ink, cursor:disabled?"not-allowed":"pointer",
       opacity:disabled?0.6:1, transition:"all 0.15s",
+      width:full?"100%":"auto",
     }}>{children}</button>
   );
 }
@@ -66,7 +68,53 @@ export default function GuideOnboarding() {
     { title:"", duration:"", price:"", priceType:"person", description:"" }
   ]);
 
+  // Step 4 — Tier
+  const [selectedTier, setSelectedTier] = useState("spark");
+
+  // Step 5 — Stripe
+  const [stripeLoading, setStripeLoading] = useState(false);
+  const [stripeConnected, setStripeConnected] = useState(false);
+
   const [guideId, setGuideId] = useState(null);
+
+  // Check for Stripe return redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("stripe") === "success") {
+      // Returned from Stripe Connect — verify and advance
+      const gId = params.get("guide_id");
+      if (gId) {
+        setGuideId(gId);
+        verifyStripeConnect(gId);
+      }
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+    if (params.get("stripe") === "refresh") {
+      const gId = params.get("guide_id");
+      if (gId) setGuideId(gId);
+      setStep(5);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
+  const verifyStripeConnect = async (gId) => {
+    try {
+      const res = await fetch("/api/stripe/callback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ guideId: gId }),
+      });
+      const data = await res.json();
+      if (data.complete) {
+        setStripeConnected(true);
+        setStep(6);
+      } else {
+        setStep(5); // Not complete, show retry
+      }
+    } catch(e) {
+      setStep(5);
+    }
+  };
 
   const toggleCat = (cat) => {
     setSelectedCats(prev =>
@@ -90,6 +138,8 @@ export default function GuideOnboarding() {
 
   const slugify = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
 
+  // ─── Step Handlers ─────────────────────────────────────────
+
   const handleAccountSubmit = async () => {
     if (!email || !password || !fullName) { setError("All fields required."); return; }
     if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
@@ -98,7 +148,6 @@ export default function GuideOnboarding() {
       const supabase = getSupabase();
       const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
       if (signUpError) { setError(signUpError.message); setLoading(false); return; }
-      // Insert profile
       const { error: profError } = await supabase.from("profiles").insert({
         id: data.user.id, full_name: fullName, role: "guide", email
       });
@@ -109,7 +158,7 @@ export default function GuideOnboarding() {
   };
 
   const handleProfileSubmit = async () => {
-    if (!tagline || !bio || !location) { setError("Name, tagline, bio, and location are required."); return; }
+    if (!tagline || !bio || !location) { setError("Tagline, bio, and location are required."); return; }
     setError(""); setStep(2);
   };
 
@@ -127,7 +176,6 @@ export default function GuideOnboarding() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setError("Not logged in."); setLoading(false); return; }
 
-      // Insert guide
       const slug = slugify(fullName) + "-" + Math.random().toString(36).slice(2,6);
       const { data: guide, error: guideError } = await supabase.from("guides").insert({
         profile_id: user.id,
@@ -142,12 +190,12 @@ export default function GuideOnboarding() {
         insured: false,
         licensed: false,
         status: "pending",
+        subscription_tier: "spark",
       }).select().single();
 
       if (guideError) { setError(guideError.message); setLoading(false); return; }
       setGuideId(guide.id);
 
-      // Insert packages
       const pkgInserts = valid.map((p, i) => ({
         guide_id: guide.id,
         title: p.title,
@@ -162,12 +210,45 @@ export default function GuideOnboarding() {
       }));
       await supabase.from("packages").insert(pkgInserts);
 
-      setStep(4);
+      setStep(4); // → Choose Plan
     } catch(e) { setError("Something went wrong. Please try again."); }
     setLoading(false);
   };
 
-  const progressPct = (step / (STEPS.length - 1)) * 100;
+  const handleTierSelect = async () => {
+    if (!guideId) return;
+    setError(""); setLoading(true);
+    try {
+      const supabase = getSupabase();
+      await supabase.from("guides").update({ subscription_tier: selectedTier }).eq("id", guideId);
+      setStep(5); // → Connect Stripe
+    } catch(e) { setError("Failed to save plan. Please try again."); }
+    setLoading(false);
+  };
+
+  const handleStripeConnect = async () => {
+    if (!guideId) return;
+    setStripeLoading(true);
+    try {
+      const res = await fetch("/api/stripe/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ guideId, returnTo: "onboarding" }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setError(data.error || "Failed to start Stripe setup.");
+      }
+    } catch(e) {
+      setError("Failed to connect to Stripe. Please try again.");
+    }
+    setStripeLoading(false);
+  };
+
+  const progressPct = (Math.min(step, 5) / 5) * 100;
+  const tier = TIERS[selectedTier];
 
   return (
     <>
@@ -189,14 +270,14 @@ export default function GuideOnboarding() {
       </div>
 
       <div style={{minHeight:"100vh",paddingTop:64,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"100px 24px 60px"}}>
-        <div style={{width:"100%",maxWidth:600}}>
+        <div style={{width:"100%",maxWidth:step===4?800:600}}>
 
           {/* Progress bar */}
-          {step < 4 && (
-            <div style={{marginBottom:40}}>
+          {step < 6 && (
+            <div style={{marginBottom:40,maxWidth:600,margin:"0 auto 40px"}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
-                {STEPS.slice(0,4).map((s,i)=>(
-                  <span key={s} style={{fontFamily:FONT_BODY,fontSize:12,color:i<=step?T.gold:T.muted,fontWeight:i===step?700:400}}>{s}</span>
+                {PROGRESS_STEPS.map((s,i)=>(
+                  <span key={s} style={{fontFamily:FONT_BODY,fontSize:11,color:i<=step?T.gold:T.muted,fontWeight:i===step?700:400}}>{s}</span>
                 ))}
               </div>
               <div style={{height:3,background:T.wire,borderRadius:2}}>
@@ -206,14 +287,14 @@ export default function GuideOnboarding() {
           )}
 
           {error && (
-            <div style={{background:"rgba(180,60,60,0.15)",border:"1px solid rgba(180,60,60,0.4)",borderRadius:8,padding:"12px 16px",marginBottom:24,fontFamily:FONT_BODY,fontSize:14,color:"#f08080"}}>
+            <div style={{background:"rgba(180,60,60,0.15)",border:"1px solid rgba(180,60,60,0.4)",borderRadius:8,padding:"12px 16px",marginBottom:24,fontFamily:FONT_BODY,fontSize:14,color:"#f08080",maxWidth:600,margin:"0 auto 24px"}}>
               {error}
             </div>
           )}
 
           {/* Step 0 — Account */}
           {step === 0 && (
-            <div>
+            <div style={{maxWidth:600,margin:"0 auto"}}>
               <div style={{fontFamily:FONT_DISPLAY,fontSize:42,color:T.white,fontWeight:400,marginBottom:8}}>Create your account</div>
               <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver,marginBottom:36,lineHeight:1.6}}>Start your guide application. Takes about 5 minutes.</p>
               <Input label="Full name" value={fullName} onChange={setFullName} placeholder="Your legal name" required/>
@@ -228,7 +309,7 @@ export default function GuideOnboarding() {
 
           {/* Step 1 — Profile */}
           {step === 1 && (
-            <div>
+            <div style={{maxWidth:600,margin:"0 auto"}}>
               <div style={{fontFamily:FONT_DISPLAY,fontSize:42,color:T.white,fontWeight:400,marginBottom:8}}>Your guide profile</div>
               <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver,marginBottom:36,lineHeight:1.6}}>This is what guests will see when they find you.</p>
               <Input label="Tagline" value={tagline} onChange={setTagline} placeholder="e.g. 30 years on the Ausable. NYS Licensed." required/>
@@ -245,7 +326,7 @@ export default function GuideOnboarding() {
 
           {/* Step 2 — Categories */}
           {step === 2 && (
-            <div>
+            <div style={{maxWidth:600,margin:"0 auto"}}>
               <div style={{fontFamily:FONT_DISPLAY,fontSize:42,color:T.white,fontWeight:400,marginBottom:8}}>What do you guide?</div>
               <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver,marginBottom:36,lineHeight:1.6}}>Select all activity types that apply.</p>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:32}}>
@@ -275,7 +356,7 @@ export default function GuideOnboarding() {
 
           {/* Step 3 — Packages */}
           {step === 3 && (
-            <div>
+            <div style={{maxWidth:600,margin:"0 auto"}}>
               <div style={{fontFamily:FONT_DISPLAY,fontSize:42,color:T.white,fontWeight:400,marginBottom:8}}>Your packages</div>
               <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver,marginBottom:36,lineHeight:1.6}}>Add your trip offerings. You can edit these anytime from your dashboard.</p>
 
@@ -313,22 +394,153 @@ export default function GuideOnboarding() {
 
               <div style={{display:"flex",gap:16}}>
                 <GoldBtn outline small onClick={()=>setStep(2)}>← Back</GoldBtn>
-                <GoldBtn onClick={handlePackagesSubmit} disabled={loading}>{loading?"Submitting…":"Submit Application →"}</GoldBtn>
+                <GoldBtn onClick={handlePackagesSubmit} disabled={loading}>{loading?"Saving…":"Continue →"}</GoldBtn>
               </div>
             </div>
           )}
 
-          {/* Step 4 — Done */}
+          {/* Step 4 — Choose Plan */}
           {step === 4 && (
-            <div style={{textAlign:"center",padding:"40px 0"}}>
-              <div style={{fontSize:64,marginBottom:24}}>🎣</div>
-              <div style={{fontFamily:FONT_DISPLAY,fontSize:48,color:T.white,fontWeight:400,marginBottom:16}}>Application submitted.</div>
-              <p style={{fontFamily:FONT_BODY,fontSize:16,color:T.ash,lineHeight:1.75,marginBottom:16,maxWidth:480,margin:"0 auto 24px"}}>
-                We'll review your profile within 48 hours and reach out to {email} once you're approved.
+            <div>
+              <div style={{textAlign:"center",marginBottom:40}}>
+                <div style={{fontFamily:FONT_DISPLAY,fontSize:42,color:T.white,fontWeight:400,marginBottom:8}}>Choose your plan</div>
+                <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver,lineHeight:1.6,maxWidth:500,margin:"0 auto"}}>
+                  All plans include profile, booking, and messaging. Upgrade anytime from your dashboard.
+                </p>
+              </div>
+
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16,marginBottom:40}}>
+                {Object.values(TIERS).map(t => {
+                  const isSelected = selectedTier === t.id;
+                  const isPopular = t.id === "discover";
+                  return (
+                    <div key={t.id} onClick={()=>setSelectedTier(t.id)} style={{
+                      background:isSelected?T.goldGlow:T.steel,
+                      border:`2px solid ${isSelected?T.gold:T.wire}`,
+                      borderRadius:12, padding:"28px 24px", cursor:"pointer",
+                      transition:"all 0.2s", position:"relative",
+                    }}>
+                      {isPopular && (
+                        <div style={{position:"absolute",top:-12,left:"50%",transform:"translateX(-50%)",background:T.gold,color:T.ink,fontFamily:FONT_BODY,fontSize:10,fontWeight:700,padding:"3px 12px",borderRadius:10,textTransform:"uppercase",letterSpacing:"0.08em"}}>
+                          Most Popular
+                        </div>
+                      )}
+                      <div style={{fontFamily:FONT_DISPLAY,fontSize:28,color:isSelected?T.gold:T.white,fontWeight:400,marginBottom:4}}>{t.name}</div>
+                      <div style={{display:"flex",alignItems:"baseline",gap:4,marginBottom:4}}>
+                        <span style={{fontFamily:FONT_DISPLAY,fontSize:42,color:isSelected?T.gold:T.white,fontWeight:300}}>${t.monthlyPrice}</span>
+                        <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.silver}}>/month</span>
+                      </div>
+                      <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.gold,fontWeight:600,marginBottom:18}}>
+                        {Math.round(t.commissionRate * 100)}% commission per booking
+                      </div>
+                      <div style={{height:1,background:isSelected?"rgba(193,163,98,0.3)":T.wire,marginBottom:16}}/>
+                      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                        {t.features.map(f=>(
+                          <div key={f} style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+                            <span style={{color:T.gold,fontSize:12,marginTop:2,flexShrink:0}}>✓</span>
+                            <span style={{fontFamily:FONT_BODY,fontSize:13,color:isSelected?T.parchment:T.ash,lineHeight:1.4}}>{f}</span>
+                          </div>
+                        ))}
+                        {t.locked.length > 0 && t.locked.map(f=>(
+                          <div key={f} style={{display:"flex",gap:8,alignItems:"flex-start",opacity:0.35}}>
+                            <span style={{fontSize:12,marginTop:2,flexShrink:0,color:T.muted}}>—</span>
+                            <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.muted,lineHeight:1.4}}>{f}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {isSelected && (
+                        <div style={{marginTop:20,textAlign:"center",fontFamily:FONT_BODY,fontSize:12,fontWeight:700,color:T.gold}}>
+                          ✓ Selected
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{maxWidth:600,margin:"0 auto"}}>
+                <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:"16px 20px",marginBottom:24}}>
+                  <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.silver,lineHeight:1.6}}>
+                    Your first 30 days are free on any plan. You can change plans or cancel anytime from your dashboard. No long-term contracts.
+                  </div>
+                </div>
+                <div style={{display:"flex",gap:16}}>
+                  <GoldBtn outline small onClick={()=>setStep(3)}>← Back</GoldBtn>
+                  <GoldBtn onClick={handleTierSelect} disabled={loading}>{loading?"Saving…":`Continue with ${TIERS[selectedTier].name} →`}</GoldBtn>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5 — Connect Stripe */}
+          {step === 5 && (
+            <div style={{maxWidth:600,margin:"0 auto",textAlign:"center"}}>
+              <div style={{width:80,height:80,borderRadius:"50%",background:T.steel,border:`2px solid ${T.gold}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 24px",fontSize:36}}>
+                💳
+              </div>
+              <div style={{fontFamily:FONT_DISPLAY,fontSize:42,color:T.white,fontWeight:400,marginBottom:8}}>Get paid</div>
+              <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver,marginBottom:12,lineHeight:1.6}}>
+                Connect your bank account through Stripe so you can receive payouts from bookings. This takes about 2 minutes.
+              </p>
+              <p style={{fontFamily:FONT_BODY,fontSize:13,color:T.muted,marginBottom:36,lineHeight:1.6}}>
+                Stripe is the same payment platform used by Airbnb, Lyft, and Shopify. Your banking information is never stored on our servers.
+              </p>
+
+              <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:28,marginBottom:28,textAlign:"left"}}>
+                <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:16}}>What you'll need</div>
+                {[
+                  "Your legal name and date of birth",
+                  "Your Social Security number or EIN",
+                  "A bank account for direct deposits",
+                  "A valid ID (driver's license or passport)",
+                ].map(item=>(
+                  <div key={item} style={{display:"flex",gap:10,alignItems:"center",marginBottom:12}}>
+                    <span style={{color:T.gold,fontSize:12}}>•</span>
+                    <span style={{fontFamily:FONT_BODY,fontSize:14,color:T.ash}}>{item}</span>
+                  </div>
+                ))}
+              </div>
+
+              <GoldBtn full onClick={handleStripeConnect} disabled={stripeLoading}>
+                {stripeLoading ? "Connecting…" : "Connect with Stripe →"}
+              </GoldBtn>
+
+              <button onClick={()=>setStep(6)} style={{display:"block",margin:"16px auto 0",background:"none",border:"none",fontFamily:FONT_BODY,fontSize:13,color:T.muted,cursor:"pointer"}}>
+                Skip for now — I'll set this up later
+              </button>
+            </div>
+          )}
+
+          {/* Step 6 — Done */}
+          {step === 6 && (
+            <div style={{textAlign:"center",padding:"40px 0",maxWidth:600,margin:"0 auto"}}>
+              <div style={{width:80,height:80,borderRadius:"50%",background:"#3a7a5420",border:`2px solid #3a7a54`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 24px",fontSize:36,color:"#3a7a54"}}>
+                ✓
+              </div>
+              <div style={{fontFamily:FONT_DISPLAY,fontSize:48,color:T.white,fontWeight:400,marginBottom:16}}>You're all set.</div>
+              <p style={{fontFamily:FONT_BODY,fontSize:16,color:T.ash,lineHeight:1.75,maxWidth:480,margin:"0 auto 8px"}}>
+                Your profile is live on the {TIERS[selectedTier].name} plan{stripeConnected ? " and payments are connected" : ""}.
+                {!stripeConnected && " Connect Stripe from your dashboard when you're ready to accept bookings."}
               </p>
               <p style={{fontFamily:FONT_BODY,fontSize:14,color:T.silver,marginBottom:40}}>
-                While you wait, you can explore your guide dashboard to get familiar with the platform.
+                Head to your dashboard to manage bookings, customize your profile, and start getting discovered.
               </p>
+
+              <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:24,marginBottom:32,textAlign:"left"}}>
+                <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:16}}>Your Setup</div>
+                {[
+                  ["Plan", TIERS[selectedTier].name + " — $" + TIERS[selectedTier].monthlyPrice + "/mo"],
+                  ["Commission", Math.round(TIERS[selectedTier].commissionRate * 100) + "% per booking"],
+                  ["Payments", stripeConnected ? "Connected" : "Not connected yet"],
+                  ["Profile", "Pending review"],
+                ].map(([l,v])=>(
+                  <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${T.rim}`}}>
+                    <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.silver}}>{l}</span>
+                    <span style={{fontFamily:FONT_BODY,fontSize:13,color:l==="Payments"&&!stripeConnected?"#aa7a7a":T.gold,fontWeight:600}}>{v}</span>
+                  </div>
+                ))}
+              </div>
+
               <div style={{display:"flex",gap:16,justifyContent:"center"}}>
                 <GoldBtn onClick={()=>window.location.href="/guide/dashboard"}>Go to Dashboard →</GoldBtn>
                 <GoldBtn outline onClick={()=>window.location.href="/"}>Back to Home</GoldBtn>

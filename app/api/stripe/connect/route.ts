@@ -4,7 +4,8 @@ import { getSupabaseAdmin } from "@/app/lib/supabase-server";
 
 export async function POST(req: NextRequest) {
   try {
-    const { guideId } = await req.json();
+    const body = await req.json();
+    const { guideId, returnTo } = body;
 
     if (!guideId) {
       return NextResponse.json({ error: "guideId required" }, { status: 400 });
@@ -40,11 +41,14 @@ export async function POST(req: NextRequest) {
         .eq("id", guideId);
     }
 
+    // Return to onboarding or dashboard after Stripe
+    const basePath = returnTo === "onboarding" ? "/guide/onboarding" : "/guide/dashboard";
+
     // Create onboarding link
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
-      refresh_url: `${process.env.NEXT_PUBLIC_APP_URL}/guide/dashboard?stripe=refresh`,
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/guide/dashboard?stripe=success`,
+      refresh_url: `${process.env.NEXT_PUBLIC_APP_URL}${basePath}?stripe=refresh&guide_id=${guideId}`,
+      return_url: `${process.env.NEXT_PUBLIC_APP_URL}${basePath}?stripe=success&guide_id=${guideId}`,
       type: "account_onboarding",
     });
 

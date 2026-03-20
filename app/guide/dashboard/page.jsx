@@ -7,55 +7,28 @@ import FinancesTab from "./tabs/FinancesTab";
 import MarketingTab from "./tabs/MarketingTab";
 import AnalyticsTab from "./tabs/AnalyticsTab";
 
-// ─── MOCK DATA ────────────────────────────────────────────────────────────────
-const GUIDE = {
-  name: "James Whitfield", slug: "james-whitfield",
-  location: "Bozeman, MT", category: "Fly Fishing",
-  rating: 4.97, reviewCount: 143, responseRate: 98,
-  avatar: "J", verified: true, memberSince: "March 2024",
-  stripeConnected: true,
+// ─── DEFAULT STATE (overwritten by fetchData) ────────────────────────────────
+const GUIDE_DEFAULT = {
+  name: "", slug: "",
+  location: "", category: "",
+  rating: 0, reviewCount: 0, responseRate: 0,
+  avatar: "G", verified: false, memberSince: "",
+  stripeConnected: false,
 };
 
-const STATS = {
-  earningsThisMonth: 3840,
-  earningsLastMonth: 2970,
-  tripsThisMonth: 7,
-  tripsAllTime: 68,
-  avgRating: 4.97,
-  responseRate: 98,
-  profileViews: 312,
-  conversionRate: 14,
+const STATS_DEFAULT = {
+  earningsThisMonth: 0,
+  earningsLastMonth: 0,
+  tripsThisMonth: 0,
+  tripsAllTime: 0,
+  avgRating: 0,
+  responseRate: 0,
+  profileViews: 0,
+  conversionRate: 0,
+  reviewCount: 0,
 };
 
-const BOOKINGS = [
-  { id:"b1", status:"pending", client:"Marcus Chen", guestEmail:"marcus@gmail.com", guests:2, package:"Full Day Trophy Hunt", date:"March 28, 2026", total:1140, deposit:285, message:"My buddy and I have been fishing together for 10 years but never with a guide on the Madison. We're solid casters but want to learn how to read the water better.", createdAt:"2 days ago" },
-  { id:"b2", status:"confirmed", guest:"Sarah Liu", guestEmail:"sliu@email.com", guests:1, package:"Half Day — Learn to Read Water", date:"March 22, 2026", total:411, deposit:103, message:"First time fly fishing. Complete beginner. Very excited.", createdAt:"5 days ago" },
-  { id:"b3", status:"confirmed", client:"Derek & Amy P.", guestEmail:"derek.p@gmail.com", guests:2, package:"3-Day Yellowstone Backcountry", date:"April 8, 2026", total:3600, deposit:900, message:"We did the backcountry trip last fall and want to come back for spring runoff.", createdAt:"1 week ago" },
-  { id:"b4", status:"completed", guest:"Chris M.", guestEmail:"chrism@email.com", guests:1, package:"Full Day Trophy Hunt", date:"February 18, 2026", total:570, deposit:143, message:"", createdAt:"3 weeks ago", reviewed:true, reviewText:"Landed a 22-inch brown on a dry fly in the afternoon hatch. James called it twenty minutes before it happened.", reviewRating:5 },
-  { id:"b5", status:"completed", guest:"Rachel K.", guestEmail:"rachel.k@email.com", guests:2, package:"Half Day — Learn to Read Water", date:"February 5, 2026", total:822, deposit:206, message:"", createdAt:"5 weeks ago", reviewed:false },
-];
-
-const PACKAGES = [
-  { id:"p1", title:"Half Day — Learn to Read Water", duration:"4 hours", price:275, priceType:"person", active:true, bookingsCount:41, rating:4.96 },
-  { id:"p2", title:"Full Day Trophy Hunt", duration:"8 hours", price:495, priceType:"person", active:true, bookingsCount:22, rating:4.98 },
-  { id:"p3", title:"3-Day Yellowstone Backcountry", duration:"3 days", price:3200, priceType:"flat", active:true, bookingsCount:5, rating:5.0 },
-];
-
-const EARNINGS_MONTHLY = [
-  { month:"Sep", amount:1840 },
-  { month:"Oct", amount:2640 },
-  { month:"Nov", amount:3120 },
-  { month:"Dec", amount:1480 },
-  { month:"Jan", amount:2200 },
-  { month:"Feb", amount:2970 },
-  { month:"Mar", amount:3840 },
-];
-
-const MESSAGES = [
-  { id:"m1", client:"Emily R.", preview:"Hi James — I'm looking at the backcountry trip for late May. Any availability around the 18th?", time:"3 hours ago", unread:true, booking:null },
-  { id:"m2", client:"Marcus Chen", preview:"Perfect, see you at the bridge at 6am. Should I bring my own waders or are yours better?", time:"1 day ago", unread:true, booking:"Full Day Trophy Hunt · March 28" },
-  { id:"m3", client:"Derek & Amy P.", preview:"We'll need to arrive a day early — can you recommend anywhere to stay near the trailhead?", time:"3 days ago", unread:false, booking:"3-Day Yellowstone · April 8" },
-];
+// (earnings and messages now computed from real data)
 
 // ─── SHARED (imported from @/app/components/ui) ──────────────────────────────
 
@@ -75,7 +48,8 @@ function SectionCard({ children, title, action }) {
 
 // ─── EARNINGS CHART ───────────────────────────────────────────────────────────
 function EarningsChart({ data }) {
-  const max = Math.max(...data.map(d=>d.amount));
+  if (!data || data.length === 0) return <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.muted,textAlign:"center",padding:"20px 0"}}>No earnings data yet</div>;
+  const max = Math.max(...data.map(d=>d.amount)) || 1;
   return (
     <div style={{display:"flex", alignItems:"flex-end", gap:8, height:100}}>
       {data.map((d,i)=>{
@@ -196,12 +170,12 @@ const TABS = ["Overview","Bookings","Calendar","Packages","Messages","Earnings",
 
 export default function GuideDashboard() {
   const [tab, setTab] = useState("Overview");
-  const [bookings, setBookings] = useState(BOOKINGS);
+  const [bookings, setBookings] = useState([]);
   const [activeBooking, setActiveBooking] = useState(null);
   const [bookingFilter, setBookingFilter] = useState("all");
-  const [packages, setPackages] = useState(PACKAGES);
-  const [guide, setGuide] = useState({...GUIDE, name: '...'});
-  const [stats, setStats] = useState(STATS);
+  const [packages, setPackages] = useState([]);
+  const [guide, setGuide] = useState({...GUIDE_DEFAULT});
+  const [stats, setStats] = useState(STATS_DEFAULT);
   const [guideId, setGuideId] = useState(null);
   const [blockedDatesDB, setBlockedDatesDB] = useState([]);
   const [threads, setThreads] = useState([]);
@@ -217,6 +191,7 @@ export default function GuideDashboard() {
   const [uploadError, setUploadError] = useState("");
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [earningsMonthly, setEarningsMonthly] = useState([]);
 
   // Check for Stripe redirect return
   useEffect(() => {
@@ -387,7 +362,24 @@ export default function GuideDashboard() {
         responseRate: g.response_rate || 0,
         profileViews: g.profile_views || 0,
         conversionRate: 0,
+        reviewCount: g.review_count || 0,
       });
+
+      // Compute earnings by month (last 7 months)
+      const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      const monthlyData = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthBookings = (rawBookings||[]).filter(b => {
+          const bd = new Date(b.trip_date);
+          return bd.getMonth() === d.getMonth() && bd.getFullYear() === d.getFullYear();
+        });
+        monthlyData.push({
+          month: monthNames[d.getMonth()],
+          amount: monthBookings.reduce((s,b) => s + (parseFloat(b.total)||0), 0),
+        });
+      }
+      setEarningsMonthly(monthlyData);
 
 
       // Fetch blocked dates from availability table
@@ -619,7 +611,7 @@ export default function GuideDashboard() {
               {/* Earnings chart — spans 2 cols */}
               <div style={{gridColumn:"1 / 3",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:24}}>
                 <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:20}}>Earnings — Last 7 Months</div>
-                <EarningsChart data={EARNINGS_MONTHLY}/>
+                <EarningsChart data={earningsMonthly}/>
               </div>
 
               {/* Pending bookings */}
@@ -666,29 +658,58 @@ export default function GuideDashboard() {
                 </div>
               )}
 
-              {/* Recent messages */}
+              {/* Stripe Connect prompt */}
+              {!guide.stripeConnected && (
+                <div style={{gridColumn:"1 / -1",background:T.goldGlow,border:`1px solid ${T.gold}`,borderRadius:10,padding:"20px 24px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div>
+                    <div style={{fontFamily:FONT_DISPLAY,fontSize:20,color:T.gold,fontWeight:400,marginBottom:4}}>Connect payments to start earning</div>
+                    <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash}}>Set up Stripe to receive payouts from guest bookings. Takes about 2 minutes.</div>
+                  </div>
+                  <button onClick={handleStripeConnect} disabled={stripeLoading} style={{background:T.gold,border:"none",borderRadius:7,padding:"11px 24px",fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:T.ink,cursor:"pointer",whiteSpace:"nowrap",opacity:stripeLoading?0.6:1}}>
+                    {stripeLoading?"Connecting…":"Connect Stripe →"}
+                  </button>
+                </div>
+              )}
+
+              {/* Recent messages — from real threads */}
               <div style={{gridColumn:"1 / -1",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,overflow:"hidden"}}>
                 <div style={{background:T.void,padding:"14px 20px",borderBottom:`1px solid ${T.wire}`,display:"flex",justifyContent:"space-between"}}>
                   <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em"}}>Recent Messages</div>
                   <div onClick={()=>setTab("Messages")} style={{fontFamily:FONT_BODY,fontSize:12,color:T.gold,cursor:"pointer",fontWeight:600}}>View all →</div>
                 </div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:0}}>
-                  {MESSAGES.map((m,i)=>(
-                    <div key={m.id} style={{padding:"16px 20px",borderRight:i<2?`1px solid ${T.wire}`:"none",cursor:"pointer",background:m.unread?T.lifted:T.steel}}
-                      onMouseEnter={e=>e.currentTarget.style.background=T.lifted}
-                      onMouseLeave={e=>e.currentTarget.style.background=m.unread?T.lifted:T.steel}>
-                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-                        <div style={{fontFamily:FONT_BODY,fontSize:13,fontWeight:m.unread?700:500,color:T.parchment}}>{m.guest}</div>
-                        <div style={{display:"flex",alignItems:"center",gap:6}}>
-                          <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.muted}}>{m.time}</div>
-                          {m.unread&&<div style={{width:7,height:7,borderRadius:"50%",background:T.gold}}/>}
+                {threads.length > 0 ? (
+                  <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(threads.length,3)},1fr)`,gap:0}}>
+                    {threads.slice(0,3).map((t,i)=>{
+                      const msgs=(t.messages||[]).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+                      const lastMsg=msgs[0];
+                      const hasUnread=msgs.some(m=>m.sender_id!==currentUserId&&!m.read_at);
+                      const timeAgo = lastMsg ? (() => {
+                        const diff = Date.now() - new Date(lastMsg.created_at).getTime();
+                        const mins = Math.floor(diff/60000);
+                        if (mins < 60) return `${mins}m ago`;
+                        const hrs = Math.floor(mins/60);
+                        if (hrs < 24) return `${hrs}h ago`;
+                        return `${Math.floor(hrs/24)}d ago`;
+                      })() : "";
+                      return (
+                        <div key={t.id} onClick={()=>{setTab("Messages");openThread(t);}} style={{padding:"16px 20px",borderRight:i<Math.min(threads.length,3)-1?`1px solid ${T.wire}`:"none",cursor:"pointer",background:hasUnread?T.lifted:T.steel}}
+                          onMouseEnter={e=>e.currentTarget.style.background=T.lifted}
+                          onMouseLeave={e=>e.currentTarget.style.background=hasUnread?T.lifted:T.steel}>
+                          <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                            <div style={{fontFamily:FONT_BODY,fontSize:13,fontWeight:hasUnread?700:500,color:T.parchment}}>Client</div>
+                            <div style={{display:"flex",alignItems:"center",gap:6}}>
+                              <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.muted}}>{timeAgo}</div>
+                              {hasUnread&&<div style={{width:7,height:7,borderRadius:"50%",background:T.gold}}/>}
+                            </div>
+                          </div>
+                          <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{lastMsg?.body||"No messages"}</div>
                         </div>
-                      </div>
-                      {m.booking&&<div style={{fontFamily:FONT_BODY,fontSize:11,color:T.gold,marginBottom:5,fontWeight:600}}>{m.booking}</div>}
-                      <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.preview}</div>
-                    </div>
-                  ))}
-                </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div style={{padding:"24px 20px",textAlign:"center",fontFamily:FONT_BODY,fontSize:13,color:T.muted}}>No messages yet. Client messages will appear here.</div>
+                )}
               </div>
             </div>
           )}
@@ -924,7 +945,7 @@ export default function GuideDashboard() {
               </div>
               <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:28,marginBottom:24}}>
                 <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:20}}>Monthly Earnings</div>
-                <EarningsChart data={EARNINGS_MONTHLY}/>
+                <EarningsChart data={earningsMonthly}/>
               </div>
               <SectionCard title="Payout Schedule">
                 <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash,lineHeight:1.7,marginBottom:16}}>Earnings are paid out within 2 business days of trip completion via Stripe. The 25% deposit is held by Rōm and released to you after the trip occurs. The balance is auto-charged to the guest 14 days before the trip date and released to you on trip day.</div>
