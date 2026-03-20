@@ -132,6 +132,17 @@ QUALITY STANDARDS:
 - For lodging: mention specific room types, views, or features when relevant.
 - Research quality matters — specific, real recommendations that locals would endorse over tourist-trap generic suggestions.
 
+ACCURACY — DO NOT FABRICATE:
+- NEVER invent fees, surcharges, or costs that you are not confident exist (e.g., do not make up "check-in fees", "resort fees", "booking fees" unless you know the property charges them).
+- If you are unsure of an exact price, say "approximately $X" or give a range. Do not state a specific price as fact unless you are confident.
+- Do not invent phone numbers, addresses, or URLs. If you don't have a real link, use null.
+
+BOOKING & RESERVATION LINKS — CRITICAL:
+- For EVERY restaurant, provide a reservationLink. Use the format: "https://www.google.com/maps/search/{restaurant+name}+{city}" as a minimum fallback if you don't have an OpenTable/Resy link.
+- For lodging, provide booking links. Use "https://www.google.com/maps/search/{property+name}+{city}" as fallback.
+- For activities with ticket purchases, provide the actual booking URL or a Google search link.
+- NEVER return null for reservationLink on dining — always provide at least a Google Maps search link.
+
 TRAVEL TIME AWARENESS:
 - Be realistic about travel time between locations. If two activities are 2+ hours apart, do NOT schedule them in the same half-day.
 - Account for driving time in rural/mountain areas where distances are deceptive.

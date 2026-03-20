@@ -85,6 +85,25 @@ function formatCurrency(n) {
   return "$" + Math.round(n).toLocaleString();
 }
 
+// ─── VIBE GRADIENTS FOR SOCIAL CARD ────────────────────────────────────────
+const VIBE_GRADIENTS = {
+  Adventure: "linear-gradient(135deg, #1a3a2a 0%, #0d1f15 30%, #2d1810 70%, #1a0e08 100%)",
+  Cultural: "linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 70%, #1a1a2e 100%)",
+  Foodie: "linear-gradient(135deg, #2d1810 0%, #1a0e08 30%, #3d1a0a 60%, #1a0505 100%)",
+  Relaxed: "linear-gradient(135deg, #0a1628 0%, #0d2137 40%, #0a2a3a 70%, #061520 100%)",
+  Mixed: "linear-gradient(135deg, #1a1520 0%, #1f1a30 40%, #251a20 70%, #0d0a15 100%)",
+  default: "linear-gradient(135deg, #0d0d0d 0%, #1a1510 40%, #0d0d0d 70%, #1a1510 100%)",
+};
+
+function getVibeGradient(vibes) {
+  if (!vibes || vibes.length === 0) return VIBE_GRADIENTS.default;
+  return VIBE_GRADIENTS[vibes[0]] || VIBE_GRADIENTS.default;
+}
+
+function makeGoogleMapsLink(name, destination) {
+  return `https://www.google.com/maps/search/${encodeURIComponent(name + " " + destination)}`;
+}
+
 // ─── SLIDER COMPONENT ──────────────────────────────────────────────────────
 function BudgetSlider({ label, value, max, onChange }) {
   const pct = max > 0 ? (value / max) * 100 : 0;
@@ -308,7 +327,7 @@ export default function ConciergePage() {
   };
 
   // ─── ITINERARY VIEW ──────────────────────────────────────────────────────
-  if (itinerary) return <ItineraryView itinerary={itinerary} isMobile={isMobile} refineInput={refineInput} setRefineInput={setRefineInput} handleRefine={handleRefine} refining={refining} handleShare={handleShare} copied={copied} shareToken={shareToken} onStartOver={() => { setItinerary(null); setStep(0); setMode(""); }} destination={destination} dateStart={dateStart} dateEnd={dateEnd} adults={adults} children={children} socialCardRef={socialCardRef} handleDownloadCard={handleDownloadCard} downloadingCard={downloadingCard} />;
+  if (itinerary) return <ItineraryView itinerary={itinerary} isMobile={isMobile} refineInput={refineInput} setRefineInput={setRefineInput} handleRefine={handleRefine} refining={refining} handleShare={handleShare} copied={copied} shareToken={shareToken} onStartOver={() => { setItinerary(null); setStep(0); setMode(""); }} destination={destination} dateStart={dateStart} dateEnd={dateEnd} adults={adults} children={children} socialCardRef={socialCardRef} handleDownloadCard={handleDownloadCard} downloadingCard={downloadingCard} vibes={vibes} />;
 
   // ─── LOADING STATE ────────────────────────────────────────────────────────
   if (generating) return (
@@ -612,18 +631,7 @@ export default function ConciergePage() {
 }
 
 // ─── ITINERARY VIEW COMPONENT ───────────────────────────────────────────────
-function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handleRefine, refining, handleShare, copied, shareToken, onStartOver, destination, dateStart, dateEnd, adults, children, socialCardRef, handleDownloadCard, downloadingCard }) {
-  const [cardPhotoUrl, setCardPhotoUrl] = useState(null);
-
-  // Fetch destination photo for social card
-  useEffect(() => {
-    if (destination) {
-      fetch(`/api/social-card?destination=${encodeURIComponent(destination)}`)
-        .then(r => r.json())
-        .then(d => setCardPhotoUrl(d.imageUrl))
-        .catch(() => {});
-    }
-  }, [destination]);
+function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handleRefine, refining, handleShare, copied, shareToken, onStartOver, destination, dateStart, dateEnd, adults, children, socialCardRef, handleDownloadCard, downloadingCard, vibes }) {
   return (
     <div style={{ minHeight: "100vh", background: T.void, color: T.parchment }}>
       {/* Header */}
@@ -631,7 +639,7 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
         <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: T.gold, letterSpacing: "0.12em" }}>RŌM</div>
         <div style={{ display: "flex", gap: 12 }}>
           <button onClick={handleDownloadCard} disabled={downloadingCard} style={{ background: T.gold, border: "none", borderRadius: 6, padding: "8px 16px", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, color: T.ink, cursor: "pointer", opacity: downloadingCard ? 0.6 : 1 }}>
-            {downloadingCard ? "..." : "Trip Card"}
+            {downloadingCard ? "..." : "For The Gram"}
           </button>
           <button onClick={handleShare} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "8px 16px", fontFamily: FONT_BODY, fontSize: 13, color: T.ash, cursor: "pointer" }}>
             {copied ? "Copied!" : "Share"}
@@ -740,7 +748,7 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
                   <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 2 }}>{l.type} {l.pricePerNight ? `\u00B7 ${l.pricePerNight}/night` : l.priceRange ? `\u00B7 ${l.priceRange}` : ""}</div>
                   {l.totalEstimate && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver, marginTop: 2 }}>Est. total: {l.totalEstimate}</div>}
                   <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, marginTop: 6 }}>{l.reason}</div>
-                  {l.bookingLink && <a href={l.bookingLink} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 6, display: "inline-block" }}>Book &rarr;</a>}
+                  <a href={l.bookingLink || makeGoogleMapsLink(l.name, destination)} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 6, display: "inline-block" }}>{l.bookingLink ? "Book" : "View on Maps"} &rarr;</a>
                 </div>
               ))}
             </div>
@@ -767,7 +775,7 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
                   <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.muted, marginTop: 2, textTransform: "capitalize" }}>{d.meal}</div>
                   <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, marginTop: 6 }}>{d.reason}</div>
                   {d.mustTry && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 4, fontStyle: "italic" }}>Must try: {d.mustTry}</div>}
-                  {d.reservationLink && <a href={d.reservationLink} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 6, display: "inline-block" }}>Reserve &rarr;</a>}
+                  <a href={d.reservationLink || makeGoogleMapsLink(d.name, destination)} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 6, display: "inline-block" }}>{d.reservationLink ? "Reserve" : "View on Maps"} &rarr;</a>
                 </div>
               ))}
             </div>
@@ -855,33 +863,41 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
       <div style={{ position: "fixed", left: "-9999px", top: 0 }}>
         <div ref={socialCardRef} style={{
           width: 1080, height: 1920, position: "relative", overflow: "hidden",
-          background: T.void, display: "flex", flexDirection: "column", justifyContent: "flex-end",
+          background: getVibeGradient(vibes),
+          display: "flex", flexDirection: "column", justifyContent: "space-between",
         }}>
-          {/* Background photo */}
-          {cardPhotoUrl && (
-            <img src={cardPhotoUrl} crossOrigin="anonymous" alt="" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-          )}
-          {/* Gradient overlay */}
-          <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.85) 100%)" }} />
-          {/* ROM logo top-right */}
-          <div style={{ position: "absolute", top: 48, right: 48, fontFamily: FONT_DISPLAY, fontSize: 36, color: T.gold, letterSpacing: "0.14em", zIndex: 2 }}>RŌM</div>
-          {/* Content at bottom */}
-          <div style={{ position: "relative", zIndex: 2, padding: "0 64px 80px" }}>
-            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 72, color: "#fff", lineHeight: 1.1, marginBottom: 16, textShadow: "0 2px 12px rgba(0,0,0,0.5)" }}>
+          {/* Decorative texture overlay */}
+          <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", background: "radial-gradient(ellipse at 30% 20%, rgba(193,163,98,0.08) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(193,163,98,0.05) 0%, transparent 50%)", zIndex: 1 }} />
+
+          {/* Top section - ROM branding */}
+          <div style={{ position: "relative", zIndex: 2, padding: "64px 64px 0" }}>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 42, color: T.gold, letterSpacing: "0.16em" }}>RŌM</div>
+          </div>
+
+          {/* Center section - destination name, large and bold */}
+          <div style={{ position: "relative", zIndex: 2, padding: "0 64px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 96, color: "#fff", lineHeight: 1.05, marginBottom: 24, fontWeight: 400, letterSpacing: "0.02em" }}>
               {destination || itinerary.title}
             </div>
             {dateStart && dateEnd && (
-              <div style={{ fontFamily: FONT_BODY, fontSize: 28, color: "rgba(255,255,255,0.85)", marginBottom: 20, textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}>
-                {new Date(dateStart + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })} &ndash; {new Date(dateEnd + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+              <div style={{ fontFamily: FONT_BODY, fontSize: 32, color: "rgba(255,255,255,0.7)", marginBottom: 16, fontWeight: 300, letterSpacing: "0.04em" }}>
+                {new Date(dateStart + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" })} – {new Date(dateEnd + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
               </div>
             )}
             {itinerary.title && destination && (
-              <div style={{ fontFamily: FONT_BODY, fontSize: 24, color: "rgba(255,255,255,0.7)", lineHeight: 1.4 }}>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 30, color: "rgba(255,255,255,0.5)", lineHeight: 1.3, fontStyle: "italic", maxWidth: 800 }}>
                 {itinerary.title}
               </div>
             )}
-            <div style={{ marginTop: 40, fontFamily: FONT_DISPLAY, fontSize: 22, color: T.gold, letterSpacing: "0.1em" }}>Built with RŌM</div>
-            <div style={{ fontFamily: FONT_BODY, fontSize: 16, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>romlife.co/concierge</div>
+          </div>
+
+          {/* Bottom section */}
+          <div style={{ position: "relative", zIndex: 2, padding: "0 64px 64px", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+            <div>
+              <div style={{ width: 80, height: 2, background: T.gold, marginBottom: 16 }} />
+              <div style={{ fontFamily: FONT_BODY, fontSize: 18, color: "rgba(255,255,255,0.4)", letterSpacing: "0.06em" }}>romlife.co</div>
+            </div>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, color: T.gold, letterSpacing: "0.1em" }}>Built with RŌM</div>
           </div>
         </div>
       </div>
