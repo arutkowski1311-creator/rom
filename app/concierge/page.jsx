@@ -270,7 +270,7 @@ export default function ConciergePage() {
                   { id: "standard", title: "Plan My Trip", sub: "Full control. Tell us exactly what you want." },
                   { id: "surprise", title: "Surprise Me", sub: "Just the basics. We handle everything else." },
                 ].map(m => (
-                  <button key={m.id} onClick={() => setMode(m.id)}
+                  <button key={m.id} onClick={() => { setMode(m.id); setStep(1); }}
                     style={{ background: mode === m.id ? T.goldGlow : T.steel, border: `1.5px solid ${mode === m.id ? T.gold : T.wire}`, borderRadius: 12, padding: isMobile ? "24px 16px" : "32px 24px", cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}>
                     <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: mode === m.id ? T.gold : T.white, marginBottom: 8 }}>{m.title}</div>
                     <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.silver, lineHeight: 1.5 }}>{m.sub}</div>
