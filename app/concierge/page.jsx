@@ -4,69 +4,158 @@ import { T, FONT_DISPLAY, FONT_BODY } from "@/app/lib/theme";
 import { getSupabase } from "@/app/lib/supabase-browser";
 import { GoldBtn, Stars, useIsMobile } from "@/app/components/ui";
 
-const CATEGORIES = [
-  { label: "Fly Fishing", icon: "🎣" },
-  { label: "Hunting", icon: "🦌" },
-  { label: "Rock Climbing", icon: "🧗" },
-  { label: "Surfing", icon: "🏄" },
-  { label: "Kayaking", icon: "🚣" },
-  { label: "Diving", icon: "🤿" },
-  { label: "Hiking", icon: "🥾" },
-  { label: "Wildlife", icon: "🦅" },
+// ─── CONSTANTS ──────────────────────────────────────────────────────────────
+const ACTIVITIES = [
+  { label: "Fly Fishing", icon: "\u{1F3A3}" },
+  { label: "Hunting", icon: "\u{1F98C}" },
+  { label: "Rock Climbing", icon: "\u{1F9D7}" },
+  { label: "Surfing", icon: "\u{1F3C4}" },
+  { label: "Kayaking", icon: "\u{1F6A3}" },
+  { label: "Diving", icon: "\u{1F93F}" },
+  { label: "Hiking", icon: "\u{1F97E}" },
+  { label: "Wildlife", icon: "\u{1F985}" },
+  { label: "Photography", icon: "\u{1F4F7}" },
+  { label: "Sailing", icon: "\u{26F5}" },
+  { label: "Camping", icon: "\u{26FA}" },
+  { label: "Mountain Biking", icon: "\u{1F6B5}" },
 ];
 
-const EXPERIENCE_LEVELS = [
-  { id: "beginner", label: "Beginner", sub: "First time or minimal experience" },
-  { id: "intermediate", label: "Intermediate", sub: "Comfortable with basics" },
-  { id: "expert", label: "Expert", sub: "Experienced, seeking challenge" },
-];
+const VIBES = ["Adventure", "Cultural", "Foodie", "Relaxed", "Mixed"];
 
-const BUDGET_OPTIONS = [
-  { id: "budget", label: "$", sub: "Under $500" },
-  { id: "moderate", label: "$$", sub: "$500–$1,500" },
-  { id: "premium", label: "$$$", sub: "$1,500–$3,000" },
-  { id: "luxury", label: "$$$$", sub: "$3,000+" },
-];
+const CUISINES = ["Italian", "Asian", "American", "Local", "Seafood", "Vegetarian", "Mexican", "French", "BBQ", "Farm-to-Table"];
 
-const STEPS = ["destination", "activities", "dates", "group", "experience", "budget", "requests"];
+const LODGING_OPTIONS = ["Hotel", "Airbnb", "Either", "I have my own"];
+const TRANSPORT_OPTIONS = ["Rental Car", "Rideshare", "Public Transit", "Walking"];
 
+const DEFAULT_ALLOCATION = { flights: 0.20, lodging: 0.30, dining: 0.17, guide: 0.13, activities: 0.10, transportation: 0.07, buffer: 0.03 };
+const ALLOC_LABELS = { flights: "\u{2708}\u{FE0F} Flights", lodging: "\u{1F3E8} Lodging", dining: "\u{1F37D}\u{FE0F} Dining", guide: "\u{1F9ED} Guide", activities: "\u{1F3DF}\u{FE0F} Activities", transportation: "\u{1F697} Transportation", buffer: "\u{1F392} Buffer" };
+
+const STANDARD_STEPS = ["mode", "destination", "dates", "party", "vibe", "activity", "budget", "allocation", "flights", "lodging", "cuisine", "transport", "requests"];
+const SURPRISE_STEPS = ["mode", "destination", "dates", "party", "budget", "allocation", "requests"];
+
+// ─── HELPERS ────────────────────────────────────────────────────────────────
+function todayISO() {
+  const d = new Date();
+  return d.toISOString().split("T")[0];
+}
+
+function nextDayISO(dateStr) {
+  if (!dateStr) return todayISO();
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().split("T")[0];
+}
+
+function formatCurrency(n) {
+  return "$" + Math.round(n).toLocaleString();
+}
+
+// ─── SLIDER COMPONENT ──────────────────────────────────────────────────────
+function BudgetSlider({ label, value, max, onChange }) {
+  const pct = max > 0 ? (value / max) * 100 : 0;
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+        <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.ash }}>{label}</span>
+        <span style={{ fontFamily: FONT_BODY, fontSize: 14, fontWeight: 700, color: T.white }}>{formatCurrency(value)}</span>
+      </div>
+      <div style={{ position: "relative", height: 6, background: T.wire, borderRadius: 3 }}>
+        <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${Math.min(pct, 100)}%`, background: T.gold, borderRadius: 3, transition: "width 0.1s" }} />
+      </div>
+      <input
+        type="range" min={0} max={max} step={10} value={value}
+        onChange={e => onChange(parseInt(e.target.value))}
+        style={{ width: "100%", marginTop: 4, accentColor: T.gold, cursor: "pointer", opacity: 0.01, position: "relative", top: -14, height: 20 }}
+      />
+    </div>
+  );
+}
+
+// ─── MAIN COMPONENT ─────────────────────────────────────────────────────────
 export default function ConciergePage() {
   const isMobile = useIsMobile();
-  const [step, setStep] = useState(0);
   const [generating, setGenerating] = useState(false);
   const [itinerary, setItinerary] = useState(null);
   const [tripPlanId, setTripPlanId] = useState(null);
+  const [shareToken, setShareToken] = useState(null);
   const [refineInput, setRefineInput] = useState("");
   const [refining, setRefining] = useState(false);
   const [user, setUser] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   // Form state
+  const [mode, setMode] = useState(""); // "standard" | "surprise"
   const [destination, setDestination] = useState("");
-  const [activities, setActivities] = useState([]);
   const [dateStart, setDateStart] = useState("");
   const [dateEnd, setDateEnd] = useState("");
-  const [groupSize, setGroupSize] = useState(2);
-  const [experienceLevel, setExperienceLevel] = useState("");
-  const [budgetRange, setBudgetRange] = useState("");
+  const [adults, setAdults] = useState(2);
+  const [children, setChildren] = useState(0);
+  const [vibes, setVibes] = useState([]);
+  const [mainActivity, setMainActivity] = useState("");
+  const [customActivity, setCustomActivity] = useState("");
+  const [totalBudget, setTotalBudget] = useState("");
+  const [allocation, setAllocation] = useState({});
+  const [flightOrigin, setFlightOrigin] = useState("");
+  const [lodgingPref, setLodgingPref] = useState("");
+  const [cuisinePrefs, setCuisinePrefs] = useState([]);
+  const [transportPref, setTransportPref] = useState("");
   const [specialRequests, setSpecialRequests] = useState("");
 
-  const contentRef = useRef(null);
+  const steps = mode === "surprise" ? SURPRISE_STEPS : STANDARD_STEPS;
+  const [step, setStep] = useState(0);
 
   useEffect(() => {
     const supabase = getSupabase();
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
   }, []);
 
+  // When budget changes, recalculate allocation
+  useEffect(() => {
+    const budget = parseFloat(totalBudget) || 0;
+    if (budget <= 0) return;
+    const noFlights = !flightOrigin;
+    const ownLodging = lodgingPref === "I have my own";
+    let alloc = { ...DEFAULT_ALLOCATION };
+    if (noFlights) { const extra = alloc.flights / 6; alloc.flights = 0; Object.keys(alloc).forEach(k => { if (k !== "flights") alloc[k] += extra; }); }
+    if (ownLodging) { const extra = alloc.lodging / 5; alloc.lodging = 0; Object.keys(alloc).forEach(k => { if (k !== "lodging" && k !== "flights") alloc[k] += extra; }); }
+    const result = {};
+    Object.keys(alloc).forEach(k => { result[k] = Math.round(budget * alloc[k]); });
+    setAllocation(result);
+  }, [totalBudget, flightOrigin, lodgingPref]);
+
+  const updateAllocation = (key, val) => {
+    setAllocation(prev => ({ ...prev, [key]: val }));
+  };
+
+  const allocTotal = Object.values(allocation).reduce((s, v) => s + (v || 0), 0);
+  const budgetNum = parseFloat(totalBudget) || 0;
+  const allocRemaining = budgetNum - allocTotal;
+
   const canAdvance = () => {
-    switch (STEPS[step]) {
+    const s = steps[step];
+    switch (s) {
+      case "mode": return mode !== "";
       case "destination": return destination.length > 2;
-      case "activities": return activities.length > 0;
-      case "dates": return true; // optional
-      case "group": return groupSize > 0;
-      case "experience": return experienceLevel !== "";
-      case "budget": return budgetRange !== "";
+      case "dates": return dateStart && dateEnd;
+      case "party": return adults >= 1;
+      case "vibe": return vibes.length > 0;
+      case "activity": return mainActivity !== "" || customActivity.length > 2;
+      case "budget": return parseFloat(totalBudget) > 0;
+      case "allocation": return true;
+      case "flights": return true; // optional
+      case "lodging": return lodgingPref !== "";
+      case "cuisine": return true; // optional
+      case "transport": return transportPref !== "";
       case "requests": return true; // optional
       default: return false;
+    }
+  };
+
+  const advance = () => {
+    if (step < steps.length - 1) {
+      setStep(step + 1);
+    } else {
+      handleGenerate();
     }
   };
 
@@ -77,13 +166,20 @@ export default function ConciergePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          mode,
           destination,
-          activityTypes: activities,
           dateStart: dateStart || undefined,
           dateEnd: dateEnd || undefined,
-          groupSize,
-          experienceLevel,
-          budgetRange,
+          adults,
+          children,
+          tripVibe: vibes,
+          mainActivity: mainActivity || customActivity || undefined,
+          totalBudget: budgetNum || undefined,
+          budgetAllocation: Object.keys(allocation).length > 0 ? allocation : undefined,
+          flightOrigin: flightOrigin || undefined,
+          lodgingPreference: lodgingPref || undefined,
+          cuisinePreferences: cuisinePrefs.length > 0 ? cuisinePrefs : undefined,
+          transportPreference: transportPref || undefined,
           specialRequests: specialRequests || undefined,
           guestId: user?.id || undefined,
         }),
@@ -92,6 +188,7 @@ export default function ConciergePage() {
       if (data.itinerary) {
         setItinerary(data.itinerary);
         setTripPlanId(data.tripPlanId);
+        setShareToken(data.shareToken);
       }
     } catch (err) {
       console.error("Concierge error:", err);
@@ -109,256 +206,144 @@ export default function ConciergePage() {
         body: JSON.stringify({ tripPlanId, refinement: refineInput }),
       });
       const data = await res.json();
-      if (data.itinerary) {
-        setItinerary(data.itinerary);
-        setRefineInput("");
-      }
-    } catch (err) {
-      console.error("Refine error:", err);
-    }
+      if (data.itinerary) { setItinerary(data.itinerary); setRefineInput(""); }
+    } catch (err) { console.error("Refine error:", err); }
     setRefining(false);
   };
 
-  const advance = () => {
-    if (step < STEPS.length - 1) {
-      setStep(step + 1);
-    } else {
-      handleGenerate();
-    }
+  const handleShare = () => {
+    const url = shareToken ? `${window.location.origin}/trip/${shareToken}` : window.location.href;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
-  // ─── ITINERARY VIEW ────────────────────────────────────────────────────────
-  if (itinerary) {
-    return (
-      <div style={{ minHeight: "100vh", background: T.void, color: T.parchment }}>
-        {/* Header */}
-        <div style={{ background: T.carbon, borderBottom: `1px solid ${T.wire}`, padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: T.gold, letterSpacing: "0.12em" }}>RŌM</div>
-          <button onClick={() => { setItinerary(null); setStep(0); }} style={{ background: "none", border: "none", fontFamily: FONT_BODY, fontSize: 13, color: T.silver, cursor: "pointer" }}>Start Over</button>
-        </div>
+  // ─── ITINERARY VIEW ──────────────────────────────────────────────────────
+  if (itinerary) return <ItineraryView itinerary={itinerary} isMobile={isMobile} refineInput={refineInput} setRefineInput={setRefineInput} handleRefine={handleRefine} refining={refining} handleShare={handleShare} copied={copied} shareToken={shareToken} onStartOver={() => { setItinerary(null); setStep(0); setMode(""); }} />;
 
-        <div style={{ maxWidth: 800, margin: "0 auto", padding: isMobile ? "24px 16px" : "40px 24px" }}>
-          {/* Trip Title */}
-          <div style={{ marginBottom: 32 }}>
-            <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 28 : 36, color: T.white, lineHeight: 1.2, marginBottom: 8 }}>{itinerary.title}</div>
-            <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.ash, lineHeight: 1.6 }}>{itinerary.summary}</div>
-          </div>
-
-          {/* Guide Match */}
-          {itinerary.guide && (
-            <div style={{ background: T.steel, border: `1px solid ${T.gold}`, borderRadius: 12, padding: 24, marginBottom: 28 }}>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.gold, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>Your Guide Match</div>
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: T.white, marginBottom: 4 }}>{itinerary.guide.name}</div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.ash, marginBottom: 12 }}>{itinerary.guide.reason}</div>
-              {itinerary.guide.slug && (
-                <GoldBtn onClick={() => window.location.href = `/guides/${itinerary.guide.slug}`}>
-                  View Profile & Book
-                </GoldBtn>
-              )}
-            </div>
-          )}
-
-          {/* Day-by-Day */}
-          {itinerary.days?.map((day, i) => (
-            <div key={i} style={{ marginBottom: 24 }}>
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: T.white, marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.gold, background: T.goldGlow, border: `1px solid ${T.gold}`, borderRadius: 4, padding: "2px 8px" }}>Day {day.dayNumber || i + 1}</span>
-                {day.title}
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingLeft: 16, borderLeft: `2px solid ${T.wire}` }}>
-                {day.activities?.map((act, j) => (
-                  <div key={j} style={{ background: T.steel, borderRadius: 8, padding: 14 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                      <span style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: T.gold }}>{act.time}</span>
-                      <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: T.muted, textTransform: "uppercase" }}>{act.type}</span>
-                    </div>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.white, fontWeight: 600 }}>{act.name}</div>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, marginTop: 4 }}>{act.description}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-
-          {/* Lodging */}
-          {itinerary.lodging?.length > 0 && (
-            <div style={{ marginBottom: 28 }}>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.silver, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>Lodging Options</div>
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
-                {itinerary.lodging.map((l, i) => (
-                  <div key={i} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 8, padding: 16 }}>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.white, fontWeight: 600 }}>{l.name}</div>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 2 }}>{l.type} · {l.priceRange}</div>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, marginTop: 6 }}>{l.reason}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Dining */}
-          {itinerary.dining?.length > 0 && (
-            <div style={{ marginBottom: 28 }}>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.silver, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>Where to Eat</div>
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
-                {itinerary.dining.map((d, i) => (
-                  <div key={i} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 8, padding: 16 }}>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.white, fontWeight: 600 }}>{d.name}</div>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 2 }}>{d.cuisine} · {d.priceRange}</div>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.muted, marginTop: 2, textTransform: "capitalize" }}>{d.meal}</div>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, marginTop: 6 }}>{d.reason}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Gear, Transport, Tips */}
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 28 }}>
-            {itinerary.gear?.length > 0 && (
-              <div style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 8, padding: 16 }}>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.silver, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Gear to Bring</div>
-                {itinerary.gear.map((g, i) => (
-                  <div key={i} style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, padding: "4px 0" }}>• {g}</div>
-                ))}
-              </div>
-            )}
-            {itinerary.localTips?.length > 0 && (
-              <div style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 8, padding: 16 }}>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.silver, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Local Tips</div>
-                {itinerary.localTips.map((t, i) => (
-                  <div key={i} style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, padding: "4px 0" }}>• {t}</div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {itinerary.transportation && (
-            <div style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 8, padding: 16, marginBottom: 28 }}>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.silver, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Getting There</div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.ash, lineHeight: 1.6 }}>{itinerary.transportation}</div>
-            </div>
-          )}
-
-          {/* Budget Estimate */}
-          {itinerary.estimatedBudget && (
-            <div style={{ background: T.goldGlow, border: `1px solid ${T.gold}`, borderRadius: 8, padding: 16, marginBottom: 28 }}>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.gold, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Estimated Budget</div>
-              {Object.entries(itinerary.estimatedBudget).map(([k, v]) => (
-                <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
-                  <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, textTransform: "capitalize" }}>{k.replace(/([A-Z])/g, " $1")}</span>
-                  <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.white, fontWeight: 600 }}>{v}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Refinement */}
-          <div style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 12, padding: 20, marginBottom: 40 }}>
-            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, color: T.white, marginBottom: 8 }}>Want to adjust anything?</div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <input
-                type="text"
-                placeholder="e.g., 'Find somewhere cheaper to stay' or 'Add a rest day'"
-                value={refineInput}
-                onChange={e => setRefineInput(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleRefine()}
-                style={{
-                  flex: 1, background: T.lifted, border: `1px solid ${T.wire}`,
-                  borderRadius: 8, padding: "12px 16px",
-                  fontFamily: FONT_BODY, fontSize: 14, color: T.parchment, outline: "none",
-                }}
-              />
-              <GoldBtn onClick={handleRefine} disabled={refining || !refineInput.trim()}>
-                {refining ? "..." : "Refine"}
-              </GoldBtn>
-            </div>
-          </div>
-        </div>
+  // ─── LOADING STATE ────────────────────────────────────────────────────────
+  if (generating) return (
+    <div style={{ minHeight: "100vh", background: T.void, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 24 }}>
+      <div style={{ fontFamily: FONT_DISPLAY, fontSize: 32, color: T.gold, letterSpacing: "0.12em" }}>RŌM</div>
+      <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: T.white }}>Building your trip...</div>
+      <div style={{ width: 200, height: 3, background: T.wire, borderRadius: 2, overflow: "hidden" }}>
+        <div style={{ width: "40%", height: "100%", background: T.gold, borderRadius: 2, animation: "conciergeLoad 1.5s ease-in-out infinite alternate" }} />
       </div>
-    );
-  }
-
-  // ─── LOADING STATE ─────────────────────────────────────────────────────────
-  if (generating) {
-    return (
-      <div style={{ minHeight: "100vh", background: T.void, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 24 }}>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 32, color: T.gold, letterSpacing: "0.12em" }}>RŌM</div>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: T.white }}>Building your trip...</div>
-        <div style={{ width: 200, height: 3, background: T.wire, borderRadius: 2, overflow: "hidden" }}>
-          <div style={{
-            width: "40%", height: "100%", background: T.gold, borderRadius: 2,
-            animation: "conciergeLoad 1.5s ease-in-out infinite alternate",
-          }} />
-        </div>
-        <style>{`@keyframes conciergeLoad { from { margin-left: 0; } to { margin-left: 60%; } }`}</style>
-        <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.muted, textAlign: "center", maxWidth: 300 }}>
-          Matching you with the right guide, mapping out your days, finding the best places to eat and stay.
-        </div>
+      <style>{`@keyframes conciergeLoad { from { margin-left: 0; } to { margin-left: 60%; } }`}</style>
+      <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.muted, textAlign: "center", maxWidth: 300 }}>
+        {mode === "surprise"
+          ? "Curating the perfect surprise. Sit tight."
+          : "Matching you with the right guide, mapping out your days, finding the best places to eat and stay."}
       </div>
-    );
-  }
+    </div>
+  );
 
-  // ─── Q&A FLOW ──────────────────────────────────────────────────────────────
+  // ─── Q&A FLOW ─────────────────────────────────────────────────────────────
+  const s = steps[step];
+
   return (
     <div style={{ minHeight: "100vh", background: T.void, display: "flex", flexDirection: "column" }}>
       {/* Nav */}
       <div style={{ padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: T.gold, letterSpacing: "0.12em", cursor: "pointer" }} onClick={() => window.location.href = "/"}>RŌM</div>
-        <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.muted }}>
-          {step + 1} of {STEPS.length}
-        </div>
+        {step > 0 && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.muted }}>{step} of {steps.length - 1}</div>}
       </div>
 
       {/* Progress bar */}
-      <div style={{ height: 2, background: T.wire, margin: "0 24px" }}>
-        <div style={{ height: "100%", background: T.gold, width: `${((step + 1) / STEPS.length) * 100}%`, transition: "width 0.3s", borderRadius: 1 }} />
-      </div>
+      {step > 0 && (
+        <div style={{ height: 2, background: T.wire, margin: "0 24px" }}>
+          <div style={{ height: "100%", background: T.gold, width: `${(step / (steps.length - 1)) * 100}%`, transition: "width 0.3s", borderRadius: 1 }} />
+        </div>
+      )}
 
       {/* Card */}
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: isMobile ? "40px 20px" : "60px 24px" }}>
-        <div style={{ maxWidth: 600, width: "100%" }} ref={contentRef}>
+        <div style={{ maxWidth: 640, width: "100%" }}>
 
-          {/* Step: Destination */}
-          {STEPS[step] === "destination" && (
+          {/* Step: Mode */}
+          {s === "mode" && (
             <div>
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 42, color: T.white, marginBottom: 8 }}>Where are you headed?</div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.silver, marginBottom: 28 }}>A city, region, or landmark.</div>
-              <input
-                autoFocus
-                type="text" placeholder="e.g., Bozeman, Montana"
-                value={destination} onChange={e => setDestination(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && canAdvance() && advance()}
-                style={{
-                  width: "100%", background: T.steel, border: `1px solid ${T.wire}`,
-                  borderRadius: 10, padding: "16px 20px",
-                  fontFamily: FONT_BODY, fontSize: 18, color: T.parchment, outline: "none",
-                }}
-              />
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 48, color: T.white, marginBottom: 8, lineHeight: 1.1 }}>Plan your trip.</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 16, color: T.silver, marginBottom: 32 }}>How do you want to do this?</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                {[
+                  { id: "standard", title: "Plan My Trip", sub: "Full control. Tell us exactly what you want." },
+                  { id: "surprise", title: "Surprise Me", sub: "Just the basics. We handle everything else." },
+                ].map(m => (
+                  <button key={m.id} onClick={() => setMode(m.id)}
+                    style={{ background: mode === m.id ? T.goldGlow : T.steel, border: `1.5px solid ${mode === m.id ? T.gold : T.wire}`, borderRadius: 12, padding: isMobile ? "24px 16px" : "32px 24px", cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}>
+                    <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: mode === m.id ? T.gold : T.white, marginBottom: 8 }}>{m.title}</div>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.silver, lineHeight: 1.5 }}>{m.sub}</div>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* Step: Activities */}
-          {STEPS[step] === "activities" && (
+          {/* Step: Destination */}
+          {s === "destination" && (
             <div>
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 42, color: T.white, marginBottom: 8 }}>What do you want to do?</div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.silver, marginBottom: 28 }}>Select one or more.</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12 }}>
-                {CATEGORIES.map(cat => {
-                  const selected = activities.includes(cat.label);
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 42, color: T.white, marginBottom: 8 }}>Where are you headed?</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.silver, marginBottom: 28 }}>A city, region, or landmark.</div>
+              <input autoFocus type="text" placeholder="e.g., Bozeman, Montana" value={destination} onChange={e => setDestination(e.target.value)} onKeyDown={e => e.key === "Enter" && canAdvance() && advance()}
+                style={{ width: "100%", background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 10, padding: "16px 20px", fontFamily: FONT_BODY, fontSize: 18, color: T.parchment, outline: "none", boxSizing: "border-box" }} />
+            </div>
+          )}
+
+          {/* Step: Dates */}
+          {s === "dates" && (
+            <div>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 42, color: T.white, marginBottom: 8 }}>When are you going?</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.silver, marginBottom: 28 }}>Pick your arrival and departure dates.</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div>
+                  <label style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver, display: "block", marginBottom: 6 }}>Arrival</label>
+                  <input type="date" value={dateStart} min={todayISO()} onChange={e => { setDateStart(e.target.value); if (dateEnd && e.target.value >= dateEnd) setDateEnd(""); }}
+                    style={{ width: "100%", background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 8, padding: "14px 16px", fontFamily: FONT_BODY, fontSize: 15, color: T.parchment, outline: "none", boxSizing: "border-box" }} />
+                </div>
+                <div>
+                  <label style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver, display: "block", marginBottom: 6 }}>Departure</label>
+                  <input type="date" value={dateEnd} min={nextDayISO(dateStart)} onChange={e => setDateEnd(e.target.value)}
+                    style={{ width: "100%", background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 8, padding: "14px 16px", fontFamily: FONT_BODY, fontSize: 15, color: T.parchment, outline: "none", boxSizing: "border-box" }} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step: Party */}
+          {s === "party" && (
+            <div>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 42, color: T.white, marginBottom: 28 }}>Who is coming?</div>
+              {[
+                { label: "Adults", value: adults, set: setAdults, min: 1 },
+                { label: "Children", value: children, set: setChildren, min: 0 },
+              ].map(p => (
+                <div key={p.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 0", borderBottom: `1px solid ${T.wire}` }}>
+                  <span style={{ fontFamily: FONT_BODY, fontSize: 16, color: T.ash }}>{p.label}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                    <button onClick={() => p.set(Math.max(p.min, p.value - 1))}
+                      style={{ width: 40, height: 40, borderRadius: "50%", background: T.steel, border: `1px solid ${T.wire}`, fontFamily: FONT_BODY, fontSize: 18, color: T.ash, cursor: "pointer" }}>{"\u2212"}</button>
+                    <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, color: T.white, minWidth: 40, textAlign: "center" }}>{p.value}</div>
+                    <button onClick={() => p.set(p.value + 1)}
+                      style={{ width: 40, height: 40, borderRadius: "50%", background: T.steel, border: `1px solid ${T.wire}`, fontFamily: FONT_BODY, fontSize: 18, color: T.ash, cursor: "pointer" }}>+</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Step: Vibe */}
+          {s === "vibe" && (
+            <div>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 42, color: T.white, marginBottom: 8 }}>What is the vibe?</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.silver, marginBottom: 28 }}>Select all that apply.</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                {VIBES.map(v => {
+                  const sel = vibes.includes(v);
                   return (
-                    <button key={cat.label}
-                      onClick={() => setActivities(selected ? activities.filter(a => a !== cat.label) : [...activities, cat.label])}
-                      style={{
-                        background: selected ? T.goldGlow : T.steel,
-                        border: `1.5px solid ${selected ? T.gold : T.wire}`,
-                        borderRadius: 10, padding: "18px 12px",
-                        cursor: "pointer", transition: "all 0.15s",
-                        display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
-                      }}
-                    >
-                      <span style={{ fontSize: 28 }}>{cat.icon}</span>
-                      <span style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600, color: selected ? T.gold : T.ash }}>{cat.label}</span>
+                    <button key={v} onClick={() => setVibes(sel ? vibes.filter(x => x !== v) : [...vibes, v])}
+                      style={{ background: sel ? T.goldGlow : T.steel, border: `1.5px solid ${sel ? T.gold : T.wire}`, borderRadius: 20, padding: "10px 20px", fontFamily: FONT_BODY, fontSize: 15, color: sel ? T.gold : T.ash, cursor: "pointer", transition: "all 0.15s" }}>
+                      {v}
                     </button>
                   );
                 })}
@@ -366,130 +351,366 @@ export default function ConciergePage() {
             </div>
           )}
 
-          {/* Step: Dates */}
-          {STEPS[step] === "dates" && (
+          {/* Step: Activity */}
+          {s === "activity" && (
             <div>
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 42, color: T.white, marginBottom: 8 }}>When are you going?</div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.silver, marginBottom: 28 }}>Skip if you are flexible.</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                <div>
-                  <label style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver, display: "block", marginBottom: 6 }}>Start</label>
-                  <input type="date" value={dateStart} onChange={e => setDateStart(e.target.value)}
-                    style={{ width: "100%", background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 8, padding: "14px 16px", fontFamily: FONT_BODY, fontSize: 15, color: T.parchment, outline: "none" }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver, display: "block", marginBottom: 6 }}>End</label>
-                  <input type="date" value={dateEnd} onChange={e => setDateEnd(e.target.value)}
-                    style={{ width: "100%", background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 8, padding: "14px 16px", fontFamily: FONT_BODY, fontSize: 15, color: T.parchment, outline: "none" }}
-                  />
-                </div>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 42, color: T.white, marginBottom: 8 }}>Main activity?</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.silver, marginBottom: 28 }}>Pick one or type your own.</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 10, marginBottom: 16 }}>
+                {ACTIVITIES.map(a => {
+                  const sel = mainActivity === a.label;
+                  return (
+                    <button key={a.label} onClick={() => { setMainActivity(sel ? "" : a.label); setCustomActivity(""); }}
+                      style={{ background: sel ? T.goldGlow : T.steel, border: `1.5px solid ${sel ? T.gold : T.wire}`, borderRadius: 10, padding: "14px 10px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, transition: "all 0.15s" }}>
+                      <span style={{ fontSize: 24 }}>{a.icon}</span>
+                      <span style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 600, color: sel ? T.gold : T.ash }}>{a.label}</span>
+                    </button>
+                  );
+                })}
               </div>
-            </div>
-          )}
-
-          {/* Step: Group */}
-          {STEPS[step] === "group" && (
-            <div>
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 42, color: T.white, marginBottom: 8 }}>How many in your group?</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 24, marginTop: 28 }}>
-                <button onClick={() => setGroupSize(Math.max(1, groupSize - 1))}
-                  style={{ width: 48, height: 48, borderRadius: "50%", background: T.steel, border: `1px solid ${T.wire}`, fontFamily: FONT_BODY, fontSize: 20, color: T.ash, cursor: "pointer" }}>−</button>
-                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 56, color: T.white, minWidth: 60, textAlign: "center" }}>{groupSize}</div>
-                <button onClick={() => setGroupSize(groupSize + 1)}
-                  style={{ width: 48, height: 48, borderRadius: "50%", background: T.steel, border: `1px solid ${T.wire}`, fontFamily: FONT_BODY, fontSize: 20, color: T.ash, cursor: "pointer" }}>+</button>
-              </div>
-            </div>
-          )}
-
-          {/* Step: Experience */}
-          {STEPS[step] === "experience" && (
-            <div>
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 42, color: T.white, marginBottom: 28 }}>Your experience level?</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {EXPERIENCE_LEVELS.map(lvl => (
-                  <button key={lvl.id} onClick={() => setExperienceLevel(lvl.id)}
-                    style={{
-                      background: experienceLevel === lvl.id ? T.goldGlow : T.steel,
-                      border: `1.5px solid ${experienceLevel === lvl.id ? T.gold : T.wire}`,
-                      borderRadius: 10, padding: "18px 20px", cursor: "pointer",
-                      textAlign: "left", transition: "all 0.15s",
-                    }}
-                  >
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 16, fontWeight: 600, color: experienceLevel === lvl.id ? T.gold : T.white }}>{lvl.label}</div>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.silver, marginTop: 2 }}>{lvl.sub}</div>
-                  </button>
-                ))}
-              </div>
+              <input type="text" placeholder="Or type something else..." value={customActivity} onChange={e => { setCustomActivity(e.target.value); setMainActivity(""); }}
+                style={{ width: "100%", background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 8, padding: "12px 16px", fontFamily: FONT_BODY, fontSize: 15, color: T.parchment, outline: "none", boxSizing: "border-box" }} />
             </div>
           )}
 
           {/* Step: Budget */}
-          {STEPS[step] === "budget" && (
+          {s === "budget" && (
             <div>
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 42, color: T.white, marginBottom: 28 }}>What is your budget?</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
-                {BUDGET_OPTIONS.map(b => (
-                  <button key={b.id} onClick={() => setBudgetRange(b.id)}
-                    style={{
-                      background: budgetRange === b.id ? T.goldGlow : T.steel,
-                      border: `1.5px solid ${budgetRange === b.id ? T.gold : T.wire}`,
-                      borderRadius: 10, padding: "20px 16px", cursor: "pointer",
-                      textAlign: "center", transition: "all 0.15s",
-                    }}
-                  >
-                    <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, color: budgetRange === b.id ? T.gold : T.white }}>{b.label}</div>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver, marginTop: 4 }}>{b.sub}</div>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 42, color: T.white, marginBottom: 8 }}>Total budget?</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.silver, marginBottom: 28 }}>One number. We will allocate it across categories.</div>
+              <div style={{ position: "relative" }}>
+                <span style={{ position: "absolute", left: 20, top: "50%", transform: "translateY(-50%)", fontFamily: FONT_DISPLAY, fontSize: 24, color: T.gold }}>$</span>
+                <input autoFocus type="number" placeholder="3,000" value={totalBudget} onChange={e => setTotalBudget(e.target.value)} onKeyDown={e => e.key === "Enter" && canAdvance() && advance()}
+                  style={{ width: "100%", background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 10, padding: "16px 20px 16px 44px", fontFamily: FONT_DISPLAY, fontSize: 24, color: T.parchment, outline: "none", boxSizing: "border-box" }} />
+              </div>
+            </div>
+          )}
+
+          {/* Step: Budget Allocation */}
+          {s === "allocation" && (
+            <div>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 28 : 36, color: T.white, marginBottom: 8 }}>Allocate your budget</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.silver, marginBottom: 8 }}>Drag to adjust. We set a smart default.</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 14, fontWeight: 700, color: allocRemaining < 0 ? "#e74c3c" : T.gold, marginBottom: 24 }}>
+                {allocRemaining >= 0 ? `${formatCurrency(allocRemaining)} remaining` : `${formatCurrency(Math.abs(allocRemaining))} over budget`}
+              </div>
+              {Object.entries(ALLOC_LABELS).map(([key, label]) => {
+                if (key === "flights" && !flightOrigin) return null;
+                if (key === "lodging" && lodgingPref === "I have my own") return null;
+                return (
+                  <BudgetSlider key={key} label={label} value={allocation[key] || 0} max={budgetNum} onChange={v => updateAllocation(key, v)} />
+                );
+              })}
+            </div>
+          )}
+
+          {/* Step: Flights */}
+          {s === "flights" && (
+            <div>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 42, color: T.white, marginBottom: 8 }}>Flying in?</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.silver, marginBottom: 28 }}>Leave blank if you are driving or already local.</div>
+              <input autoFocus type="text" placeholder="e.g., Chicago, IL" value={flightOrigin} onChange={e => setFlightOrigin(e.target.value)} onKeyDown={e => e.key === "Enter" && advance()}
+                style={{ width: "100%", background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 10, padding: "16px 20px", fontFamily: FONT_BODY, fontSize: 18, color: T.parchment, outline: "none", boxSizing: "border-box" }} />
+            </div>
+          )}
+
+          {/* Step: Lodging */}
+          {s === "lodging" && (
+            <div>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 42, color: T.white, marginBottom: 28 }}>Where do you want to stay?</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                {LODGING_OPTIONS.map(opt => (
+                  <button key={opt} onClick={() => setLodgingPref(opt)}
+                    style={{ background: lodgingPref === opt ? T.goldGlow : T.steel, border: `1.5px solid ${lodgingPref === opt ? T.gold : T.wire}`, borderRadius: 10, padding: "18px 16px", cursor: "pointer", transition: "all 0.15s" }}>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: 16, fontWeight: 600, color: lodgingPref === opt ? T.gold : T.white }}>{opt}</div>
                   </button>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Step: Special Requests */}
-          {STEPS[step] === "requests" && (
+          {/* Step: Cuisine */}
+          {s === "cuisine" && (
+            <div>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 42, color: T.white, marginBottom: 8 }}>Cuisine preferences?</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.silver, marginBottom: 28 }}>Optional. Select any that appeal.</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                {CUISINES.map(c => {
+                  const sel = cuisinePrefs.includes(c);
+                  return (
+                    <button key={c} onClick={() => setCuisinePrefs(sel ? cuisinePrefs.filter(x => x !== c) : [...cuisinePrefs, c])}
+                      style={{ background: sel ? T.goldGlow : T.steel, border: `1.5px solid ${sel ? T.gold : T.wire}`, borderRadius: 20, padding: "10px 18px", fontFamily: FONT_BODY, fontSize: 14, color: sel ? T.gold : T.ash, cursor: "pointer", transition: "all 0.15s" }}>
+                      {c}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Step: Transportation */}
+          {s === "transport" && (
+            <div>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 42, color: T.white, marginBottom: 28 }}>How do you want to get around?</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                {TRANSPORT_OPTIONS.map(opt => (
+                  <button key={opt} onClick={() => setTransportPref(opt)}
+                    style={{ background: transportPref === opt ? T.goldGlow : T.steel, border: `1.5px solid ${transportPref === opt ? T.gold : T.wire}`, borderRadius: 10, padding: "18px 16px", cursor: "pointer", transition: "all 0.15s" }}>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: 16, fontWeight: 600, color: transportPref === opt ? T.gold : T.white }}>{opt}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Step: Requests */}
+          {s === "requests" && (
             <div>
               <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 42, color: T.white, marginBottom: 8 }}>Anything else?</div>
               <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.silver, marginBottom: 28 }}>Dietary needs, accessibility, specific interests. Optional.</div>
-              <textarea
-                value={specialRequests}
-                onChange={e => setSpecialRequests(e.target.value)}
-                placeholder="e.g., My wife is a vegetarian, we'd love a place with a hot tub"
-                rows={4}
-                style={{
-                  width: "100%", background: T.steel, border: `1px solid ${T.wire}`,
-                  borderRadius: 10, padding: "16px 20px",
-                  fontFamily: FONT_BODY, fontSize: 15, color: T.parchment,
-                  outline: "none", resize: "vertical", lineHeight: 1.6,
-                }}
-              />
+              <textarea value={specialRequests} onChange={e => setSpecialRequests(e.target.value)} placeholder="e.g., My wife is vegetarian, we'd love a place with a hot tub" rows={4}
+                style={{ width: "100%", background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 10, padding: "16px 20px", fontFamily: FONT_BODY, fontSize: 15, color: T.parchment, outline: "none", resize: "vertical", lineHeight: 1.6, boxSizing: "border-box" }} />
             </div>
           )}
 
           {/* Navigation */}
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 32, gap: 12 }}>
-            {step > 0 ? (
+          {s !== "mode" && (
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 32, gap: 12 }}>
               <button onClick={() => setStep(step - 1)}
                 style={{ background: "none", border: `1px solid ${T.wire}`, borderRadius: 8, padding: "12px 24px", fontFamily: FONT_BODY, fontSize: 14, color: T.ash, cursor: "pointer" }}>
                 Back
               </button>
-            ) : <div />}
-            <GoldBtn onClick={advance} disabled={!canAdvance()}>
-              {step === STEPS.length - 1 ? "Build My Trip" : "Continue"}
-            </GoldBtn>
-          </div>
+              <GoldBtn onClick={advance} disabled={!canAdvance()}>
+                {step === steps.length - 1 ? "Build My Trip" : "Continue"}
+              </GoldBtn>
+            </div>
+          )}
 
           {/* Summary Pills */}
-          {step > 0 && (
+          {step > 1 && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 20 }}>
+              {mode === "surprise" && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, background: T.goldGlow, borderRadius: 12, padding: "4px 10px" }}>Surprise Me</span>}
               {destination && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, background: T.goldGlow, borderRadius: 12, padding: "4px 10px" }}>{destination}</span>}
-              {activities.map(a => <span key={a} style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.ash, background: T.lifted, borderRadius: 12, padding: "4px 10px" }}>{a}</span>)}
-              {dateStart && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.ash, background: T.lifted, borderRadius: 12, padding: "4px 10px" }}>{dateStart}</span>}
-              {groupSize > 0 && step > 3 && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.ash, background: T.lifted, borderRadius: 12, padding: "4px 10px" }}>{groupSize} guests</span>}
+              {dateStart && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.ash, background: T.lifted, borderRadius: 12, padding: "4px 10px" }}>{dateStart} - {dateEnd}</span>}
+              {adults > 0 && step > 3 && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.ash, background: T.lifted, borderRadius: 12, padding: "4px 10px" }}>{adults}A{children > 0 ? ` ${children}C` : ""}</span>}
+              {totalBudget && step > 6 && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.ash, background: T.lifted, borderRadius: 12, padding: "4px 10px" }}>${totalBudget}</span>}
             </div>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── ITINERARY VIEW COMPONENT ───────────────────────────────────────────────
+function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handleRefine, refining, handleShare, copied, shareToken, onStartOver }) {
+  return (
+    <div style={{ minHeight: "100vh", background: T.void, color: T.parchment }}>
+      {/* Header */}
+      <div style={{ background: T.carbon, borderBottom: `1px solid ${T.wire}`, padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: T.gold, letterSpacing: "0.12em" }}>RŌM</div>
+        <div style={{ display: "flex", gap: 12 }}>
+          <button onClick={handleShare} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "8px 16px", fontFamily: FONT_BODY, fontSize: 13, color: T.ash, cursor: "pointer" }}>
+            {copied ? "Copied!" : "Share"}
+          </button>
+          <button onClick={() => window.print()} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "8px 16px", fontFamily: FONT_BODY, fontSize: 13, color: T.ash, cursor: "pointer" }}>
+            Print
+          </button>
+          <button onClick={onStartOver} style={{ background: "none", border: "none", fontFamily: FONT_BODY, fontSize: 13, color: T.silver, cursor: "pointer" }}>Start Over</button>
+        </div>
+      </div>
+
+      <div className="print-content" style={{ maxWidth: 800, margin: "0 auto", padding: isMobile ? "24px 16px" : "40px 24px" }}>
+        {/* Trip Title */}
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 28 : 36, color: T.white, lineHeight: 1.2, marginBottom: 8 }}>{itinerary.title}</div>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.ash, lineHeight: 1.6 }}>{itinerary.summary}</div>
+        </div>
+
+        {/* Guide Match */}
+        {itinerary.guide && itinerary.guide.name && (
+          <div style={{ background: T.steel, border: `1px solid ${T.gold}`, borderRadius: 12, padding: 24, marginBottom: 28 }}>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.gold, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>Your Guide Match</div>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: T.white, marginBottom: 4 }}>{itinerary.guide.name}</div>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.ash, marginBottom: 12 }}>{itinerary.guide.reason}</div>
+            {itinerary.guide.slug && (
+              <GoldBtn onClick={() => window.location.href = `/guides/${itinerary.guide.slug}`}>View Profile & Book</GoldBtn>
+            )}
+          </div>
+        )}
+
+        {/* Flights */}
+        {itinerary.flights && itinerary.flights.recommendation && (
+          <div style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 10, padding: 20, marginBottom: 24 }}>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.silver, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>{"\u{2708}\u{FE0F}"} Flights</div>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.white, marginBottom: 4 }}>{itinerary.flights.recommendation}</div>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.gold }}>{itinerary.flights.estimatedCost}</div>
+            {itinerary.flights.bookingLink && <a href={itinerary.flights.bookingLink} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.gold, marginTop: 6, display: "inline-block" }}>Book flights &rarr;</a>}
+          </div>
+        )}
+
+        {/* Day-by-Day */}
+        {itinerary.days?.map((day, i) => (
+          <div key={i} style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: T.white, marginBottom: 14, display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.gold, background: T.goldGlow, border: `1px solid ${T.gold}`, borderRadius: 4, padding: "2px 8px" }}>Day {day.dayNumber || i + 1}</span>
+              {day.title}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingLeft: 16, borderLeft: `2px solid ${T.wire}` }}>
+              {["morning", "afternoon", "evening"].map(period => {
+                const block = day[period];
+                if (!block || !block.name) return null;
+                const periodLabel = period.charAt(0).toUpperCase() + period.slice(1);
+                return (
+                  <div key={period} style={{ background: T.steel, borderRadius: 8, padding: 16 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                      <span style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: T.gold }}>{periodLabel}</span>
+                      {block.estimatedCost && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver }}>{block.estimatedCost}</span>}
+                    </div>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.white, fontWeight: 600 }}>{block.name}</div>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, marginTop: 4, lineHeight: 1.5 }}>{block.description}</div>
+                    {block.bookingLink && <a href={block.bookingLink} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 6, display: "inline-block" }}>Book &rarr;</a>}
+                  </div>
+                );
+              })}
+              {/* Fallback for legacy activities array format */}
+              {!day.morning && !day.afternoon && !day.evening && day.activities?.map((act, j) => (
+                <div key={j} style={{ background: T.steel, borderRadius: 8, padding: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <span style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: T.gold }}>{act.time}</span>
+                    {act.estimatedCost && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver }}>{act.estimatedCost}</span>}
+                  </div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.white, fontWeight: 600 }}>{act.name}</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, marginTop: 4 }}>{act.description}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {/* Lodging */}
+        {itinerary.lodging?.length > 0 && (
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.silver, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>Lodging Options</div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+              {itinerary.lodging.map((l, i) => (
+                <div key={i} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 8, padding: 16 }}>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.white, fontWeight: 600 }}>{l.name}</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 2 }}>{l.type} {l.pricePerNight ? `\u00B7 ${l.pricePerNight}/night` : l.priceRange ? `\u00B7 ${l.priceRange}` : ""}</div>
+                  {l.totalEstimate && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver, marginTop: 2 }}>Est. total: {l.totalEstimate}</div>}
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, marginTop: 6 }}>{l.reason}</div>
+                  {l.bookingLink && <a href={l.bookingLink} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 6, display: "inline-block" }}>Book &rarr;</a>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Dining */}
+        {itinerary.dining?.length > 0 && (
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.silver, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>Where to Eat</div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+              {itinerary.dining.map((d, i) => (
+                <div key={i} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 8, padding: 16 }}>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.white, fontWeight: 600 }}>{d.name}</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 2 }}>{d.cuisine} {d.priceRange ? `\u00B7 ${d.priceRange}` : ""}</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.muted, marginTop: 2, textTransform: "capitalize" }}>{d.meal}</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, marginTop: 6 }}>{d.reason}</div>
+                  {d.reservationLink && <a href={d.reservationLink} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 6, display: "inline-block" }}>Reserve &rarr;</a>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Gear, Transport, Tips */}
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 28 }}>
+          {itinerary.gear?.length > 0 && (
+            <div style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 8, padding: 16 }}>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.silver, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Gear to Bring</div>
+              {itinerary.gear.map((g, i) => (
+                <div key={i} style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, padding: "4px 0" }}>{"\u2022"} {g}</div>
+              ))}
+            </div>
+          )}
+          {itinerary.localTips?.length > 0 && (
+            <div style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 8, padding: 16 }}>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.silver, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Local Tips</div>
+              {itinerary.localTips.map((t, i) => (
+                <div key={i} style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, padding: "4px 0" }}>{"\u2022"} {t}</div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {itinerary.transportation && (
+          <div style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 8, padding: 16, marginBottom: 28 }}>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.silver, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Getting Around</div>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.ash, lineHeight: 1.6 }}>
+              {typeof itinerary.transportation === "string" ? itinerary.transportation : itinerary.transportation.recommendation}
+            </div>
+            {itinerary.transportation.estimatedCost && <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.gold, marginTop: 6 }}>Est. cost: {itinerary.transportation.estimatedCost}</div>}
+          </div>
+        )}
+
+        {/* Budget Summary */}
+        {itinerary.budgetSummary && (
+          <div style={{ background: itinerary.budgetSummary.overBudget ? "rgba(231,76,60,0.1)" : T.goldGlow, border: `1px solid ${itinerary.budgetSummary.overBudget ? "#e74c3c" : T.gold}`, borderRadius: 10, padding: 20, marginBottom: 28 }}>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: itinerary.budgetSummary.overBudget ? "#e74c3c" : T.gold, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
+              {itinerary.budgetSummary.overBudget ? "Over Budget" : "Budget Summary"}
+            </div>
+            {Object.entries(itinerary.budgetSummary).filter(([k]) => k !== "overBudget").map(([k, v]) => (
+              <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: k === "total" ? "none" : `1px solid ${T.rim}` }}>
+                <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: k === "total" ? T.white : T.ash, fontWeight: k === "total" ? 700 : 400, textTransform: "capitalize" }}>{k}</span>
+                <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: k === "total" ? T.white : T.parchment, fontWeight: k === "total" ? 700 : 600 }}>{v}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Legacy estimatedBudget fallback */}
+        {!itinerary.budgetSummary && itinerary.estimatedBudget && (
+          <div style={{ background: T.goldGlow, border: `1px solid ${T.gold}`, borderRadius: 8, padding: 16, marginBottom: 28 }}>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.gold, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Estimated Budget</div>
+            {Object.entries(itinerary.estimatedBudget).map(([k, v]) => (
+              <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
+                <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, textTransform: "capitalize" }}>{k.replace(/([A-Z])/g, " $1")}</span>
+                <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.white, fontWeight: 600 }}>{v}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Refinement */}
+        <div className="no-print" style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 12, padding: 20, marginBottom: 40 }}>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, color: T.white, marginBottom: 8 }}>Want to adjust anything?</div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <input type="text" placeholder="e.g., 'Find somewhere cheaper to stay' or 'Add a rest day'" value={refineInput} onChange={e => setRefineInput(e.target.value)} onKeyDown={e => e.key === "Enter" && handleRefine()}
+              style={{ flex: 1, background: T.lifted, border: `1px solid ${T.wire}`, borderRadius: 8, padding: "12px 16px", fontFamily: FONT_BODY, fontSize: 14, color: T.parchment, outline: "none" }} />
+            <GoldBtn onClick={handleRefine} disabled={refining || !refineInput.trim()}>
+              {refining ? "..." : "Refine"}
+            </GoldBtn>
+          </div>
+        </div>
+
+        {/* ROM Watermark */}
+        <div style={{ textAlign: "center", padding: "20px 0 40px", opacity: 0.5 }}>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, color: T.gold, letterSpacing: "0.12em" }}>Built with RŌM</div>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.muted, marginTop: 4 }}>romlife.co</div>
+        </div>
+      </div>
+
+      {/* Print styles */}
+      <style>{`
+        @media print {
+          body { background: white !important; color: black !important; }
+          .no-print { display: none !important; }
+          .print-content { max-width: 100% !important; padding: 20px !important; }
+          .print-content * { color: #222 !important; background: white !important; border-color: #ddd !important; }
+          .print-content [style*="gold"] { color: #8B7335 !important; }
+        }
+      `}</style>
     </div>
   );
 }
