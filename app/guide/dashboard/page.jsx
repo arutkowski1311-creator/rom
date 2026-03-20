@@ -192,6 +192,8 @@ export default function GuideDashboard() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [earningsMonthly, setEarningsMonthly] = useState([]);
+  const [editingPkg, setEditingPkg] = useState(null); // package object being edited, or {} for new
+  const [pkgSaving, setPkgSaving] = useState(false);
 
   // Check for Stripe redirect return
   useEffect(() => {
@@ -322,6 +324,7 @@ export default function GuideDashboard() {
           guests: b.guests,
           package: b.package_title || "Package",
           date: new Date(b.trip_date).toLocaleDateString("en-US", {month:"long", day:"numeric", year:"numeric"}),
+          rawDate: b.trip_date, // ISO date for forecasting
           total: b.total,
           deposit: b.deposit,
           message: b.special_requests || "",
@@ -332,7 +335,7 @@ export default function GuideDashboard() {
 
       // Fetch packages
       const { data: pkgs } = await supabase
-        .from("packages").select("*").eq("guide_id", g.id).eq("active", true);
+        .from("packages").select("*").eq("guide_id", g.id).order("sort_order", { ascending: true });
       if (pkgs?.length > 0) {
         setPackages(pkgs.map(p => ({
           id: p.id, title: p.title, duration: p.duration,
@@ -834,8 +837,70 @@ export default function GuideDashboard() {
             <div style={{maxWidth:800}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
                 <div style={{fontFamily:FONT_DISPLAY,fontSize:32,color:T.white,fontWeight:400}}>Your Packages</div>
-                <GoldBtn onClick={()=>alert("Package editor — coming soon.")}>+ Add Package</GoldBtn>
+                <GoldBtn onClick={()=>setEditingPkg({title:"",duration:"",price:"",priceType:"person",description:""})}>+ Add Package</GoldBtn>
               </div>
+
+              {/* Package Editor Form */}
+              {editingPkg && (
+                <div style={{background:T.steel,border:`2px solid ${T.gold}`,borderRadius:10,padding:24,marginBottom:20}}>
+                  <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:16}}>
+                    {editingPkg.id ? "Edit Package" : "New Package"}
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:14}}>
+                    <div>
+                      <label style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,display:"block",marginBottom:4}}>Title *</label>
+                      <input value={editingPkg.title||""} onChange={e=>setEditingPkg({...editingPkg,title:e.target.value})} placeholder="e.g. Full Day Wade Trip"
+                        style={{width:"100%",background:T.lifted,border:`1px solid ${T.wire}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none"}}/>
+                    </div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+                      <div>
+                        <label style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,display:"block",marginBottom:4}}>Price *</label>
+                        <input type="number" value={editingPkg.price||""} onChange={e=>setEditingPkg({...editingPkg,price:e.target.value})} placeholder="300"
+                          style={{width:"100%",background:T.lifted,border:`1px solid ${T.wire}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none"}}/>
+                      </div>
+                      <div>
+                        <label style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,display:"block",marginBottom:4}}>Price Type</label>
+                        <select value={editingPkg.priceType||"person"} onChange={e=>setEditingPkg({...editingPkg,priceType:e.target.value})}
+                          style={{width:"100%",background:T.lifted,border:`1px solid ${T.wire}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none"}}>
+                          <option value="person">Per person</option>
+                          <option value="flat">Flat rate</option>
+                          <option value="day">Per day</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,display:"block",marginBottom:4}}>Duration</label>
+                        <input value={editingPkg.duration||""} onChange={e=>setEditingPkg({...editingPkg,duration:e.target.value})} placeholder="e.g. 8 hours"
+                          style={{width:"100%",background:T.lifted,border:`1px solid ${T.wire}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none"}}/>
+                      </div>
+                    </div>
+                    <div>
+                      <label style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,display:"block",marginBottom:4}}>Description</label>
+                      <textarea value={editingPkg.description||""} onChange={e=>setEditingPkg({...editingPkg,description:e.target.value})} rows={3} placeholder="What's included, what guests should bring…"
+                        style={{width:"100%",background:T.lifted,border:`1px solid ${T.wire}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none",resize:"vertical"}}/>
+                    </div>
+                    <div style={{display:"flex",gap:10}}>
+                      <GoldBtn small disabled={pkgSaving||!editingPkg.title||!editingPkg.price} onClick={async()=>{
+                        setPkgSaving(true);
+                        try{
+                          if(editingPkg.id){
+                            const res=await fetch("/api/packages",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:editingPkg.id,title:editingPkg.title,duration:editingPkg.duration,price:editingPkg.price,priceType:editingPkg.priceType,description:editingPkg.description})});
+                            const data=await res.json();
+                            if(data.package) setPackages(ps=>ps.map(p=>p.id===data.package.id?{...p,title:data.package.title,duration:data.package.duration,price:data.package.price,priceType:data.package.price_type,description:data.package.description}:p));
+                          }else{
+                            const res=await fetch("/api/packages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guideId,title:editingPkg.title,duration:editingPkg.duration,price:editingPkg.price,priceType:editingPkg.priceType,description:editingPkg.description})});
+                            const data=await res.json();
+                            if(data.package) setPackages(ps=>[...ps,{id:data.package.id,title:data.package.title,duration:data.package.duration,price:data.package.price,priceType:data.package.price_type,active:true,bookingsCount:0,rating:0,description:data.package.description}]);
+                          }
+                          setEditingPkg(null);
+                        }catch(e){console.error("Save package error:",e);}
+                        setPkgSaving(false);
+                      }}>{pkgSaving?"Saving…":editingPkg.id?"Save Changes":"Create Package"}</GoldBtn>
+                      <GoldBtn small outline onClick={()=>setEditingPkg(null)}>Cancel</GoldBtn>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div style={{display:"flex",flexDirection:"column",gap:12}}>
                 {packages.map(p=>(
                   <div key={p.id} style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:"20px 24px",display:"grid",gridTemplateColumns:"1fr auto",gap:20,alignItems:"center"}}>
@@ -844,21 +909,32 @@ export default function GuideDashboard() {
                         <div style={{fontFamily:FONT_DISPLAY,fontSize:22,color:T.white,fontWeight:400}}>{p.title}</div>
                         <span style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:p.active?"#6aaa84":"#aa7a7a",background:p.active?T.greenGlow:T.redGlow,border:`1px solid ${p.active?T.green:T.red}`,borderRadius:3,padding:"2px 8px"}}>{p.active?"ACTIVE":"INACTIVE"}</span>
                       </div>
-                      <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.silver,marginBottom:8}}>{p.duration} · ${p.price} {p.priceType==="person"?"per person":"flat rate"}</div>
+                      <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.silver,marginBottom:4}}>{p.duration} · ${p.price} {p.priceType==="person"?"per person":"flat rate"}</div>
+                      {p.description&&<div style={{fontFamily:FONT_BODY,fontSize:12,color:T.ash,marginBottom:8,lineHeight:1.5}}>{p.description.slice(0,120)}{p.description.length>120?"…":""}</div>}
                       <div style={{display:"flex",gap:16}}>
-                        <span style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver}}>{p.bookingsCount} bookings</span>
-                        <div style={{display:"flex",alignItems:"center",gap:4}}><Stars rating={p.rating} size={11}/><span style={{fontFamily:FONT_BODY,fontSize:12,color:T.parchment,fontWeight:700}}>{p.rating}</span></div>
+                        <span style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver}}>{p.bookingsCount||0} bookings</span>
                       </div>
                     </div>
                     <div style={{display:"flex",gap:8}}>
-                      <GoldBtn small outline onClick={()=>alert("Edit package — coming soon.")}>Edit</GoldBtn>
-                      <button onClick={()=>setPackages(ps=>ps.map(pkg=>pkg.id===p.id?{...pkg,active:!pkg.active}:pkg))}
+                      <GoldBtn small outline onClick={()=>setEditingPkg({id:p.id,title:p.title,duration:p.duration,price:p.price,priceType:p.priceType,description:p.description||""})}>Edit</GoldBtn>
+                      <button onClick={async()=>{
+                        const newActive=!p.active;
+                        try{await fetch("/api/packages",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:p.id,active:newActive})});}catch(e){console.error(e);}
+                        setPackages(ps=>ps.map(pkg=>pkg.id===p.id?{...pkg,active:newActive}:pkg));
+                      }}
                         style={{background:T.lifted,border:`1px solid ${T.wire}`,borderRadius:5,padding:"7px 12px",fontFamily:FONT_BODY,fontSize:12,color:T.silver,cursor:"pointer"}}>
                         {p.active?"Pause":"Activate"}
                       </button>
                     </div>
                   </div>
                 ))}
+                {packages.length===0&&(
+                  <div style={{textAlign:"center",padding:"48px",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8}}>
+                    <div style={{fontFamily:FONT_DISPLAY,fontSize:28,color:T.silver,fontWeight:300,marginBottom:8}}>No packages yet</div>
+                    <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.muted,marginBottom:20}}>Create your first package to start accepting bookings.</div>
+                    <GoldBtn onClick={()=>setEditingPkg({title:"",duration:"",price:"",priceType:"person",description:""})}>+ Create Package</GoldBtn>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -931,28 +1007,105 @@ export default function GuideDashboard() {
 
 
           {/* ── EARNINGS ── */}
-          {tab==="Earnings" && (
+          {tab==="Earnings" && (() => {
+            // Compute real stats
+            const allTimeEarnings = bookings.filter(b=>b.status==="completed"||b.status==="confirmed"||b.status==="deposit_paid").reduce((s,b)=>s+(parseFloat(b.total)||0),0);
+            const avgPerTrip = stats.tripsAllTime > 0 ? Math.round(allTimeEarnings / stats.tripsAllTime) : 0;
+
+            // Revenue Forecast — next 3 months from confirmed bookings
+            const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+            const forecastMonths = [];
+            const today = new Date();
+            for (let i = 0; i < 3; i++) {
+              const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
+              const nextM = new Date(today.getFullYear(), today.getMonth() + i + 1, 0);
+              const confirmedInMonth = bookings.filter(b => {
+                if (b.status !== "confirmed" && b.status !== "deposit_paid") return false;
+                const bd = b.rawDate || b.date;
+                const bdt = new Date(typeof bd === "string" && bd.includes(",") ? bd : bd + "T12:00:00");
+                return bdt.getMonth() === d.getMonth() && bdt.getFullYear() === d.getFullYear() && bdt >= today;
+              });
+              const pendingInMonth = bookings.filter(b => {
+                if (b.status !== "pending") return false;
+                const bd = b.rawDate || b.date;
+                const bdt = new Date(typeof bd === "string" && bd.includes(",") ? bd : bd + "T12:00:00");
+                return bdt.getMonth() === d.getMonth() && bdt.getFullYear() === d.getFullYear();
+              });
+              forecastMonths.push({
+                label: `${monthNames[d.getMonth()]} ${d.getFullYear()}`,
+                confirmed: confirmedInMonth.reduce((s,b) => s + (parseFloat(b.total)||0), 0),
+                confirmedCount: confirmedInMonth.length,
+                pending: pendingInMonth.reduce((s,b) => s + (parseFloat(b.total)||0), 0),
+                pendingCount: pendingInMonth.length,
+              });
+            }
+            const totalForecast = forecastMonths.reduce((s,m) => s + m.confirmed, 0);
+            const totalPending = forecastMonths.reduce((s,m) => s + m.pending, 0);
+            const maxForecast = Math.max(...forecastMonths.map(m => m.confirmed + m.pending), 1);
+
+            return (
             <div style={{maxWidth:900}}>
               <div style={{fontFamily:FONT_DISPLAY,fontSize:32,color:T.white,fontWeight:400,marginBottom:28}}>Earnings</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:28}}>
-                {[["This month",`$${stats.earningsThisMonth.toLocaleString()}`,`${stats.tripsThisMonth} trips`],["Last month",`$${stats.earningsLastMonth.toLocaleString()}`,"6 trips"],["All time",`$${(41280).toLocaleString()}`,`${stats.tripsAllTime} trips`],["Avg per trip","$607","Based on last 12 months"]].map(([label,val,sub])=>(
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:28}}>
+                {[
+                  ["This month",`$${stats.earningsThisMonth.toLocaleString()}`,`${stats.tripsThisMonth} trips`],
+                  ["Last month",`$${stats.earningsLastMonth.toLocaleString()}`,`${stats.earningsThisMonth-stats.earningsLastMonth>=0?"+":"-"}$${Math.abs(stats.earningsThisMonth-stats.earningsLastMonth)} vs this month`],
+                  ["All time",`$${allTimeEarnings.toLocaleString()}`,`${stats.tripsAllTime} trips`],
+                  ["Avg per trip",`$${avgPerTrip.toLocaleString()}`,"Based on completed trips"],
+                ].map(([label,val,sub])=>(
                   <div key={label} style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:"20px 22px"}}>
                     <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:10}}>{label}</div>
-                    <div style={{fontFamily:FONT_DISPLAY,fontSize:36,color:T.white,fontWeight:300,lineHeight:1,marginBottom:6}}>{val}</div>
+                    <div style={{fontFamily:FONT_DISPLAY,fontSize:32,color:T.white,fontWeight:300,lineHeight:1,marginBottom:6}}>{val}</div>
                     <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver}}>{sub}</div>
                   </div>
                 ))}
               </div>
+
+              {/* Historical Earnings Chart */}
               <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:28,marginBottom:24}}>
-                <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:20}}>Monthly Earnings</div>
+                <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:20}}>Monthly Earnings — Last 7 Months</div>
                 <EarningsChart data={earningsMonthly}/>
               </div>
+
+              {/* Revenue Forecast */}
+              <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:28,marginBottom:24}}>
+                <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Revenue Forecast — Next 90 Days</div>
+                <div style={{display:"flex",gap:16,marginBottom:24}}>
+                  <div>
+                    <span style={{fontFamily:FONT_DISPLAY,fontSize:28,color:T.gold}}>${totalForecast.toLocaleString()}</span>
+                    <span style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,marginLeft:8}}>confirmed</span>
+                  </div>
+                  {totalPending > 0 && (
+                    <div>
+                      <span style={{fontFamily:FONT_DISPLAY,fontSize:28,color:T.ash}}>+${totalPending.toLocaleString()}</span>
+                      <span style={{fontFamily:FONT_BODY,fontSize:12,color:T.muted,marginLeft:8}}>pending</span>
+                    </div>
+                  )}
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16}}>
+                  {forecastMonths.map(m=>(
+                    <div key={m.label} style={{background:T.lifted,border:`1px solid ${T.wire}`,borderRadius:8,padding:"16px 18px"}}>
+                      <div style={{fontFamily:FONT_BODY,fontSize:12,fontWeight:700,color:T.silver,marginBottom:12}}>{m.label}</div>
+                      {/* Mini bar */}
+                      <div style={{height:8,background:T.rim,borderRadius:4,marginBottom:12,overflow:"hidden",display:"flex"}}>
+                        <div style={{height:"100%",width:`${(m.confirmed/maxForecast)*100}%`,background:T.gold,borderRadius:4}}/>
+                        {m.pending>0&&<div style={{height:"100%",width:`${(m.pending/maxForecast)*100}%`,background:"rgba(193,163,98,0.3)"}}/>}
+                      </div>
+                      <div style={{fontFamily:FONT_DISPLAY,fontSize:24,color:T.white,marginBottom:4}}>${m.confirmed.toLocaleString()}</div>
+                      <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver}}>{m.confirmedCount} confirmed trip{m.confirmedCount!==1?"s":""}</div>
+                      {m.pendingCount>0&&<div style={{fontFamily:FONT_BODY,fontSize:11,color:T.muted,marginTop:4}}>+${m.pending.toLocaleString()} pending ({m.pendingCount})</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <SectionCard title="Payout Schedule">
-                <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash,lineHeight:1.7,marginBottom:16}}>Earnings are paid out within 2 business days of trip completion via Stripe. The 25% deposit is held by Rōm and released to you after the trip occurs. The balance is auto-charged to the guest 14 days before the trip date and released to you on trip day.</div>
-                <GoldBtn small outline onClick={()=>alert("Stripe dashboard — redirecting.")}>View Stripe Dashboard →</GoldBtn>
+                <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash,lineHeight:1.7,marginBottom:16}}>Earnings are paid out within 2 business days of trip completion via Stripe. The 25% deposit is held by RŌM and released to you after the trip occurs. The balance is auto-charged to the guest 14 days before the trip date and released to you on trip day.</div>
+                <GoldBtn small outline onClick={()=>window.open("https://dashboard.stripe.com","_blank")}>View Stripe Dashboard →</GoldBtn>
               </SectionCard>
             </div>
-          )}
+            );
+          })()}
 
           {/* ── FINANCES ── */}
           {tab==="Finances" && (
