@@ -100,6 +100,91 @@ function getVibeGradient(vibes) {
   return VIBE_GRADIENTS[vibes[0]] || VIBE_GRADIENTS.default;
 }
 
+// ─── DESTINATION PHOTOS FOR SOCIAL CARD ────────────────────────────────────
+// Curated Unsplash photo IDs mapped to destinations. Stable CDN URLs, no API key needed.
+const DESTINATION_PHOTOS = {
+  "Bozeman, Montana": "photo-1508193638397-1c4234db14d8",
+  "Big Sky, Montana": "photo-1508193638397-1c4234db14d8",
+  "Missoula, Montana": "photo-1469854523086-cc02fe5d8800",
+  "Whitefish, Montana": "photo-1519681393784-d120267933ba",
+  "Glacier National Park, Montana": "photo-1501785888041-af3ef285b470",
+  "Lake Placid, New York": "photo-1507041957456-9c397ce39c97",
+  "Adirondacks, New York": "photo-1507041957456-9c397ce39c97",
+  "Saranac Lake, New York": "photo-1507041957456-9c397ce39c97",
+  "Finger Lakes, New York": "photo-1506905925346-21bda4d32df4",
+  "Hudson Valley, New York": "photo-1508739773434-c26b3d09e071",
+  "Catskills, New York": "photo-1441974231531-c6227db76b6e",
+  "Jackson Hole, Wyoming": "photo-1506905925346-21bda4d32df4",
+  "Yellowstone National Park, Wyoming": "photo-1529439322271-42931c09bfb1",
+  "Grand Teton National Park, Wyoming": "photo-1508193638397-1c4234db14d8",
+  "Bend, Oregon": "photo-1475924156734-496f6cac6ec1",
+  "Portland, Oregon": "photo-1477959858617-67f85cf4f1df",
+  "Crater Lake, Oregon": "photo-1464822759023-fed622ff2c3b",
+  "Park City, Utah": "photo-1519681393784-d120267933ba",
+  "Moab, Utah": "photo-1474044159687-1ee9f3a51722",
+  "Zion National Park, Utah": "photo-1474044159687-1ee9f3a51722",
+  "Bryce Canyon, Utah": "photo-1474044159687-1ee9f3a51722",
+  "Aspen, Colorado": "photo-1519681393784-d120267933ba",
+  "Vail, Colorado": "photo-1519681393784-d120267933ba",
+  "Telluride, Colorado": "photo-1464822759023-fed622ff2c3b",
+  "Boulder, Colorado": "photo-1506905925346-21bda4d32df4",
+  "Denver, Colorado": "photo-1546156929-a4c0ac411f47",
+  "Durango, Colorado": "photo-1464822759023-fed622ff2c3b",
+  "Steamboat Springs, Colorado": "photo-1519681393784-d120267933ba",
+  "Lake Tahoe, California": "photo-1501785888041-af3ef285b470",
+  "Yosemite, California": "photo-1426604966848-d7adac402bff",
+  "Big Sur, California": "photo-1449034446853-66c86144b0ad",
+  "Napa Valley, California": "photo-1506377247377-2a5b3b417ebb",
+  "San Diego, California": "photo-1512100356356-de1b84283e18",
+  "Joshua Tree, California": "photo-1451187580459-43490279c0fa",
+  "Sedona, Arizona": "photo-1518098268026-4e89f1a2cd8e",
+  "Scottsdale, Arizona": "photo-1518098268026-4e89f1a2cd8e",
+  "Grand Canyon, Arizona": "photo-1474044159687-1ee9f3a51722",
+  "Maui, Hawaii": "photo-1507525428034-b723cf961d3e",
+  "Kauai, Hawaii": "photo-1505852679233-d9fd70aff56d",
+  "Big Island, Hawaii": "photo-1542259009477-d625272157b7",
+  "Oahu, Hawaii": "photo-1507525428034-b723cf961d3e",
+  "Key West, Florida": "photo-1507525428034-b723cf961d3e",
+  "Charleston, South Carolina": "photo-1508739773434-c26b3d09e071",
+  "Asheville, North Carolina": "photo-1441974231531-c6227db76b6e",
+  "Smoky Mountains, North Carolina": "photo-1441974231531-c6227db76b6e",
+  "Nashville, Tennessee": "photo-1546156929-a4c0ac411f47",
+  "Austin, Texas": "photo-1546156929-a4c0ac411f47",
+  "New Orleans, Louisiana": "photo-1546156929-a4c0ac411f47",
+  "Acadia National Park, Maine": "photo-1507041957456-9c397ce39c97",
+  "Portland, Maine": "photo-1507041957456-9c397ce39c97",
+  "Cape Cod, Massachusetts": "photo-1507525428034-b723cf961d3e",
+  "Stowe, Vermont": "photo-1519681393784-d120267933ba",
+  "Burlington, Vermont": "photo-1441974231531-c6227db76b6e",
+  "Sun Valley, Idaho": "photo-1508193638397-1c4234db14d8",
+  "Denali, Alaska": "photo-1464822759023-fed622ff2c3b",
+  "Anchorage, Alaska": "photo-1464822759023-fed622ff2c3b",
+  "Taos, New Mexico": "photo-1518098268026-4e89f1a2cd8e",
+  "Santa Fe, New Mexico": "photo-1518098268026-4e89f1a2cd8e",
+  "Banff, Canada": "photo-1501785888041-af3ef285b470",
+  "Whistler, Canada": "photo-1519681393784-d120267933ba",
+  "Costa Rica": "photo-1505852679233-d9fd70aff56d",
+  "Iceland": "photo-1504829857797-ddff29c27927",
+  "New Zealand": "photo-1469854523086-cc02fe5d8800",
+  "Patagonia, Argentina": "photo-1464822759023-fed622ff2c3b",
+};
+
+function getDestinationPhoto(destination) {
+  if (!destination) return null;
+  // Exact match
+  if (DESTINATION_PHOTOS[destination]) {
+    return `https://images.unsplash.com/${DESTINATION_PHOTOS[destination]}?w=1080&h=1920&fit=crop&q=80`;
+  }
+  // Partial match — check if destination contains a key or vice versa
+  const destLower = destination.toLowerCase();
+  for (const [key, photoId] of Object.entries(DESTINATION_PHOTOS)) {
+    if (destLower.includes(key.split(",")[0].toLowerCase()) || key.toLowerCase().includes(destLower)) {
+      return `https://images.unsplash.com/${photoId}?w=1080&h=1920&fit=crop&q=80`;
+    }
+  }
+  return null;
+}
+
 function makeGoogleMapsLink(name, destination) {
   return `https://www.google.com/maps/search/${encodeURIComponent(name + " " + destination)}`;
 }
@@ -423,11 +508,11 @@ export default function ConciergePage() {
           {/* Step: Mode */}
           {s === "mode" && (
             <div>
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 48, color: T.white, marginBottom: 8, lineHeight: 1.1 }}>Plan your trip.</div>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 48, color: T.white, marginBottom: 8, lineHeight: 1.1 }}>Where to next.</div>
               <div style={{ fontFamily: FONT_BODY, fontSize: 16, color: T.silver, marginBottom: 32 }}>How do you want to do this?</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 {[
-                  { id: "standard", title: "Plan My Trip", sub: "Full control. Tell us exactly what you want." },
+                  { id: "standard", title: "ROM Concierge", sub: "We'll handle the details. You set the direction." },
                   { id: "surprise", title: "Surprise Me", sub: "Just the basics. We handle everything else." },
                 ].map(m => (
                   <button key={m.id} onClick={() => { setMode(m.id); setStep(1); }}
@@ -918,47 +1003,61 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
       </div>
 
       {/* Social Card (hidden, for capture) */}
-      <div style={{ position: "fixed", left: "-9999px", top: 0 }}>
-        <div ref={socialCardRef} style={{
-          width: 1080, height: 1920, position: "relative", overflow: "hidden",
-          background: getVibeGradient(vibes),
-          display: "flex", flexDirection: "column", justifyContent: "space-between",
-        }}>
-          {/* Decorative texture overlay */}
-          <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", background: "radial-gradient(ellipse at 30% 20%, rgba(193,163,98,0.08) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(193,163,98,0.05) 0%, transparent 50%)", zIndex: 1 }} />
+      {(() => {
+        const photoUrl = getDestinationPhoto(destination);
+        const proxyUrl = photoUrl ? `/api/social-card?url=${encodeURIComponent(photoUrl)}` : null;
+        return (
+          <div style={{ position: "fixed", left: "-9999px", top: 0 }}>
+            <div ref={socialCardRef} style={{
+              width: 1080, height: 1920, position: "relative", overflow: "hidden",
+              background: proxyUrl ? "#000" : getVibeGradient(vibes),
+              display: "flex", flexDirection: "column", justifyContent: "space-between",
+            }}>
+              {/* Destination photo background (proxied for CORS) */}
+              {proxyUrl && (
+                <img src={proxyUrl} crossOrigin="anonymous" alt="" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 0 }} />
+              )}
 
-          {/* Top section - ROM branding */}
-          <div style={{ position: "relative", zIndex: 2, padding: "64px 64px 0" }}>
-            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 42, color: T.gold, letterSpacing: "0.16em" }}>RŌM</div>
-          </div>
+              {/* Dark gradient overlay for text readability */}
+              <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", background: proxyUrl
+                ? "linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.15) 30%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.85) 100%)"
+                : "radial-gradient(ellipse at 30% 20%, rgba(193,163,98,0.08) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(193,163,98,0.05) 0%, transparent 50%)",
+                zIndex: 1 }} />
 
-          {/* Center section - destination name, large and bold */}
-          <div style={{ position: "relative", zIndex: 2, padding: "0 64px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 96, color: "#fff", lineHeight: 1.05, marginBottom: 24, fontWeight: 400, letterSpacing: "0.02em" }}>
-              {destination || itinerary.title}
-            </div>
-            {dateStart && dateEnd && (
-              <div style={{ fontFamily: FONT_BODY, fontSize: 32, color: "rgba(255,255,255,0.7)", marginBottom: 16, fontWeight: 300, letterSpacing: "0.04em" }}>
-                {new Date(dateStart + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" })} – {new Date(dateEnd + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+              {/* Top section - ROM branding */}
+              <div style={{ position: "relative", zIndex: 2, padding: "64px 64px 0" }}>
+                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 42, color: T.gold, letterSpacing: "0.16em", textShadow: proxyUrl ? "0 2px 8px rgba(0,0,0,0.5)" : "none" }}>RŌM</div>
               </div>
-            )}
-            {itinerary.title && destination && (
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 30, color: "rgba(255,255,255,0.5)", lineHeight: 1.3, fontStyle: "italic", maxWidth: 800 }}>
-                {itinerary.title}
-              </div>
-            )}
-          </div>
 
-          {/* Bottom section */}
-          <div style={{ position: "relative", zIndex: 2, padding: "0 64px 64px", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-            <div>
-              <div style={{ width: 80, height: 2, background: T.gold, marginBottom: 16 }} />
-              <div style={{ fontFamily: FONT_BODY, fontSize: 18, color: "rgba(255,255,255,0.4)", letterSpacing: "0.06em" }}>romlife.co</div>
+              {/* Center section — pushed toward bottom for photo cards */}
+              <div style={{ position: "relative", zIndex: 2, padding: "0 64px", flex: 1, display: "flex", flexDirection: "column", justifyContent: proxyUrl ? "flex-end" : "center", paddingBottom: proxyUrl ? 40 : 0 }}>
+                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 96, color: "#fff", lineHeight: 1.05, marginBottom: 24, fontWeight: 400, letterSpacing: "0.02em", textShadow: proxyUrl ? "0 3px 16px rgba(0,0,0,0.6)" : "none" }}>
+                  {destination || itinerary.title}
+                </div>
+                {dateStart && dateEnd && (
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 32, color: "rgba(255,255,255,0.85)", marginBottom: 16, fontWeight: 300, letterSpacing: "0.04em", textShadow: proxyUrl ? "0 2px 8px rgba(0,0,0,0.5)" : "none" }}>
+                    {new Date(dateStart + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" })} – {new Date(dateEnd + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                  </div>
+                )}
+                {itinerary.title && destination && (
+                  <div style={{ fontFamily: FONT_DISPLAY, fontSize: 30, color: "rgba(255,255,255,0.7)", lineHeight: 1.3, fontStyle: "italic", maxWidth: 800, textShadow: proxyUrl ? "0 2px 8px rgba(0,0,0,0.5)" : "none" }}>
+                    {itinerary.title}
+                  </div>
+                )}
+              </div>
+
+              {/* Bottom section */}
+              <div style={{ position: "relative", zIndex: 2, padding: "0 64px 64px", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                <div>
+                  <div style={{ width: 80, height: 2, background: T.gold, marginBottom: 16 }} />
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 18, color: "rgba(255,255,255,0.5)", letterSpacing: "0.06em" }}>romlife.co</div>
+                </div>
+                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, color: T.gold, letterSpacing: "0.1em", textShadow: proxyUrl ? "0 1px 6px rgba(0,0,0,0.5)" : "none" }}>Built with RŌM</div>
+              </div>
             </div>
-            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, color: T.gold, letterSpacing: "0.1em" }}>Built with RŌM</div>
           </div>
-        </div>
-      </div>
+        );
+      })()}
 
       {/* Print styles */}
       <style>{`

@@ -1,20 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// CORS image proxy — fetches an image server-side and returns it with proper headers
+// This ensures html2canvas can capture cross-origin images without tainted canvas issues
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const destination = searchParams.get("destination") || "adventure";
+  const url = searchParams.get("url");
 
-  // Use Unsplash Source for a random destination photo (no API key needed)
-  const query = encodeURIComponent(`${destination} travel landscape`);
-  const imageUrl = `https://source.unsplash.com/1080x1920/?${query}`;
+  if (!url) {
+    return NextResponse.json({ error: "url parameter required" }, { status: 400 });
+  }
 
-  // Fetch the actual redirect URL from Unsplash
   try {
-    const res = await fetch(imageUrl, { redirect: "follow" });
-    const finalUrl = res.url;
-    return NextResponse.json({ imageUrl: finalUrl });
+    const res = await fetch(url, {
+      headers: { "Accept": "image/*" },
+    });
+
+    if (!res.ok) {
+      return NextResponse.json({ error: "Failed to fetch image" }, { status: 502 });
+    }
+
+    const buffer = await res.arrayBuffer();
+    const contentType = res.headers.get("content-type") || "image/jpeg";
+
+    return new NextResponse(buffer, {
+      headers: {
+        "Content-Type": contentType,
+        "Cache-Control": "public, max-age=86400",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
   } catch {
-    // Fallback: return the source URL directly (browser will follow redirect)
-    return NextResponse.json({ imageUrl });
+    return NextResponse.json({ error: "Image fetch failed" }, { status: 500 });
   }
 }
