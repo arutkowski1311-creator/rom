@@ -549,7 +549,6 @@ export default function HomePage() {
 
       <Nav scrolled={scrolled} user={user} userRole={userRole}/>
       <Hero/>
-      <StatsBar/>
 
       {/* Featured Guides */}
       <Section bg={T.gunmetal}>
@@ -557,6 +556,7 @@ export default function HomePage() {
           eyebrow="Hand-picked for this week"
           title="Featured guides"
           sub="Every guide on Rōm is manually reviewed and approved. These are some of the best."
+          center
         />
         {isMobile ? (
           <div className="carousel-scroll" style={{display:"flex", gap:12, overflowX:"auto", paddingBottom:16, paddingLeft:16, paddingRight:8, marginBottom:20, scrollSnapType:"x mandatory", WebkitOverflowScrolling:"touch", msOverflowStyle:"none", scrollbarWidth:"none"}}>
@@ -578,17 +578,6 @@ export default function HomePage() {
         </div>
       </Section>
 
-      {/* Categories */}
-      <Section bg={T.carbon}>
-        <SectionHeader
-          eyebrow="Browse by activity"
-          title="Every kind of adventure"
-          sub="From backcountry fly fishing to open ocean surfing. If it requires a guide, you'll find the best one here."
-          center
-        />
-        <CategoryGrid/>
-      </Section>
-
       {/* How It Works */}
       <Section bg={T.gunmetal} id="how-it-works">
         <SectionHeader eyebrow="Simple by design" title="How Rōm works" center/>
@@ -606,16 +595,22 @@ export default function HomePage() {
         <DestinationGrid/>
       </Section>
 
-      {/* Trust */}
+      {/* Trust + Testimonials */}
       <Section bg={T.gunmetal}>
-        <SectionHeader eyebrow="Why Rōm" title="Built on trust" center
-          sub="We're not a booking engine that happens to have guides. We're a guide marketplace that happens to have great technology."
-        />
-        <TrustBar/>
-      </Section>
-
-      {/* Testimonials */}
-      <Section bg={T.carbon}>
+        {/* Compact trust strip */}
+        <div style={{display:"flex", flexWrap:"wrap", justifyContent:"center", gap:isMobile?16:32, marginBottom:48, paddingBottom:48, borderBottom:`1px solid ${T.wire}`}}>
+          {[
+            ["◬","Verified guides"],
+            ["◉","Transparent pricing"],
+            ["◷","2hr response time"],
+            ["✦","Protected booking"],
+          ].map(([icon,label])=>(
+            <div key={label} style={{display:"flex", alignItems:"center", gap:10}}>
+              <span style={{fontSize:20, color:T.gold}}>{icon}</span>
+              <span style={{fontFamily:FONT_BODY, fontSize:15, fontWeight:600, color:T.ash, letterSpacing:"0.02em"}}>{label}</span>
+            </div>
+          ))}
+        </div>
         <SectionHeader eyebrow="From the field" title="What guests say" center/>
         <Testimonials/>
       </Section>
