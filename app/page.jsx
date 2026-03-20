@@ -56,7 +56,7 @@ function Nav({ scrolled, user, userRole }) {
         <div style={{fontFamily:FONT_DISPLAY,fontSize:28,color:T.gold,letterSpacing:"0.16em",fontWeight:500,cursor:"pointer"}} onClick={()=>window.location.href="/"}>RŌM</div>
         {!isMobile && (
           <div style={{display:"flex",gap:32,alignItems:"center"}}>
-            {[["Explore","/search"],["Plan a Trip","/concierge"],["How It Works","#how-it-works"]].map(([item,href])=>(
+            {[["Explore","/search"],["ROM Concierge","/concierge"],["How It Works","#how-it-works"]].map(([item,href])=>(
               <span key={item} onClick={()=>window.location.href=href} style={{fontFamily:FONT_BODY,fontSize:16,color:scrolled?T.ash:T.parchment,cursor:"pointer"}}>{item}</span>
             ))}
             <div style={{width:1,height:18,background:T.wire}}/>
@@ -84,7 +84,7 @@ function Nav({ scrolled, user, userRole }) {
     </div>
     {isMobile && menuOpen && (
       <div style={{position:"fixed",top:64,left:0,right:0,background:T.void,borderBottom:`1px solid ${T.wire}`,padding:20,display:"flex",flexDirection:"column",gap:16,zIndex:99}}>
-        {[["Explore","/search"],["Plan a Trip","/concierge"],["How It Works","#how-it-works"]].map(([item,href])=>(
+        {[["Explore","/search"],["ROM Concierge","/concierge"],["How It Works","#how-it-works"]].map(([item,href])=>(
           <span key={item} onClick={()=>{window.location.href=href;setMenuOpen(false);}} style={{fontFamily:FONT_BODY,fontSize:16,color:T.ash,cursor:"pointer",padding:"10px 0",borderBottom:`1px solid ${T.rim}`}}>{item}</span>
         ))}
         {user ? (
@@ -375,7 +375,7 @@ function GuideCTA() {
           {[
             ["100% of your listed price","We never touch your earnings. The guest pays the fee — you keep every dollar you charge."],
             ["Verified-only marketplace","No race to the bottom. Every guide is manually approved. Your competition is other professionals."],
-            ["Rōm Compass growth program","Optional $99/month subscription that handles video, social, email, and seasonal campaigns for you."],
+            ["Business tools that run themselves","GPS mileage tracking, AI marketing, expense capture, tax exports — all built in. Upgrade to Discover or Immerse for the full suite."],
             ["No long-term contracts","List today, adjust anytime. Your packages, your calendar, your rules."],
           ].map(([title,body],i)=>(
             <div key={title} style={{padding:"20px 0", borderBottom: i<3?`1px solid ${T.rim}`:"none", display:"flex", gap:16}}>
@@ -582,6 +582,51 @@ export default function HomePage() {
       <Section bg={T.gunmetal} id="how-it-works">
         <SectionHeader eyebrow="Simple by design" title="How Rōm works" center/>
         <HowItWorks/>
+      </Section>
+
+      {/* ROM Concierge */}
+      <Section bg={T.carbon}>
+        <div style={{display:"grid", gridTemplateColumns:isMobile?"1fr":"1fr 1fr", gap:0, borderRadius:12, overflow:"hidden", border:`1px solid ${T.wire}`}}>
+          {/* Left — Visual */}
+          <div style={{background:"linear-gradient(145deg, #0b1a24 0%, #152018 50%, #1a1206 100%)", position:"relative", padding:isMobile?"48px 32px":"64px 56px", display:"flex", flexDirection:"column", justifyContent:"center", minHeight:isMobile?300:440}}>
+            <div style={{position:"absolute", inset:0, backgroundImage:`radial-gradient(ellipse at 70% 30%, ${T.gold}20 0%, transparent 50%), radial-gradient(ellipse at 20% 80%, #1a3a5025 0%, transparent 40%)`}}/>
+            <div style={{position:"relative"}}>
+              <div style={{fontFamily:FONT_BODY, fontSize:13, fontWeight:700, color:T.gold, textTransform:"uppercase", letterSpacing:"0.14em", marginBottom:16}}>ROM Concierge</div>
+              <div style={{fontFamily:FONT_DISPLAY, fontSize:isMobile?36:48, color:T.white, fontWeight:400, lineHeight:1.05, marginBottom:20}}>
+                Don't search.<br/>
+                <span style={{color:T.gold, fontStyle:"italic"}}>Just tell us where.</span>
+              </div>
+              <div style={{fontFamily:FONT_BODY, fontSize:16, color:T.ash, lineHeight:1.7, maxWidth:380}}>
+                Tell us the destination, your dates, and your vibe. Our AI concierge builds a full itinerary — guides, lodging, and logistics — in under a minute.
+              </div>
+            </div>
+          </div>
+
+          {/* Right — Features */}
+          <div style={{background:T.steel, padding:isMobile?"40px 32px":"56px 56px", display:"flex", flexDirection:"column", justifyContent:"center"}}>
+            <div style={{display:"flex", flexDirection:"column", gap:0}}>
+              {[
+                ["✦", "Tell us the destination", "Type where you want to go. The Concierge knows every guide and location on the platform."],
+                ["◎", "Set your vibe", "Adventure level, group size, budget. Or pick Surprise Me and we handle everything."],
+                ["◈", "Get a full itinerary", "Guides matched to your trip, lodging recommendations, day-by-day plan — ready in seconds."],
+                ["◉", "Book in one tap", "Your whole trip, locked in. Deposits, confirmations, and prep emails handled automatically."],
+              ].map(([icon, title, body], i) => (
+                <div key={title} style={{padding:"18px 0", borderBottom:i<3?`1px solid ${T.rim}`:"none", display:"flex", gap:16}}>
+                  <span style={{color:T.gold, fontSize:18, flexShrink:0, marginTop:2}}>{icon}</span>
+                  <div>
+                    <div style={{fontFamily:FONT_BODY, fontSize:15, fontWeight:700, color:T.parchment, marginBottom:3}}>{title}</div>
+                    <div style={{fontFamily:FONT_BODY, fontSize:14, color:T.silver, lineHeight:1.6}}>{body}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{marginTop:28}}>
+              <button onClick={()=>window.location.href="/concierge"} style={{background:T.gold, border:"none", borderRadius:6, padding:"13px 28px", fontFamily:FONT_BODY, fontSize:15, fontWeight:700, color:T.ink, cursor:"pointer"}}>
+                Try ROM Concierge →
+              </button>
+            </div>
+          </div>
+        </div>
       </Section>
 
       {/* Destinations */}

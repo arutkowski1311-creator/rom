@@ -65,7 +65,6 @@ export async function POST(req: NextRequest) {
 
         // Map Stripe price to tier
         const priceToTier: Record<string, string> = {};
-        if (process.env.STRIPE_PRICE_SPARK) priceToTier[process.env.STRIPE_PRICE_SPARK] = "spark";
         if (process.env.STRIPE_PRICE_DISCOVER) priceToTier[process.env.STRIPE_PRICE_DISCOVER] = "discover";
         if (process.env.STRIPE_PRICE_IMMERSE) priceToTier[process.env.STRIPE_PRICE_IMMERSE] = "immerse";
 

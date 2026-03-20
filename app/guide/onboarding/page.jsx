@@ -221,7 +221,8 @@ export default function GuideOnboarding() {
     try {
       const supabase = getSupabase();
       await supabase.from("guides").update({ subscription_tier: selectedTier }).eq("id", guideId);
-      setStep(5); // → Connect Stripe
+      // Core tier is free — skip Stripe subscription, go straight to payment setup
+      setStep(5); // → Connect Stripe (for payouts, not subscription)
     } catch(e) { setError("Failed to save plan. Please try again."); }
     setLoading(false);
   };
@@ -431,7 +432,7 @@ export default function GuideOnboarding() {
                         <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.silver}}>/month</span>
                       </div>
                       <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.gold,fontWeight:600,marginBottom:18}}>
-                        {Math.round(t.commissionRate * 100)}% commission per booking
+                        {t.monthlyPrice === 0 ? "Free forever" : `$${t.monthlyPrice}/mo`}
                       </div>
                       <div style={{height:1,background:isSelected?"rgba(193,163,98,0.3)":T.wire,marginBottom:16}}/>
                       <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -529,8 +530,8 @@ export default function GuideOnboarding() {
               <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:24,marginBottom:32,textAlign:"left"}}>
                 <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:16}}>Your Setup</div>
                 {[
-                  ["Plan", TIERS[selectedTier].name + " — $" + TIERS[selectedTier].monthlyPrice + "/mo"],
-                  ["Commission", Math.round(TIERS[selectedTier].commissionRate * 100) + "% per booking"],
+                  ["Plan", TIERS[selectedTier].name + (TIERS[selectedTier].monthlyPrice === 0 ? " — Free" : " — $" + TIERS[selectedTier].monthlyPrice + "/mo")],
+                  ["Booking fee", "Keep 100% of your price — guests pay a 15% service fee"],
                   ["Payments", stripeConnected ? "Connected" : "Not connected yet"],
                   ["Profile", "Pending review"],
                 ].map(([l,v])=>(

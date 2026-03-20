@@ -5,6 +5,7 @@ export async function GET(req: NextRequest) {
   try {
     const guideId = req.nextUrl.searchParams.get("guideId");
     const year = req.nextUrl.searchParams.get("year") || new Date().getFullYear().toString();
+    const bookingId = req.nextUrl.searchParams.get("bookingId");
 
     if (!guideId) {
       return NextResponse.json({ error: "guideId required" }, { status: 400 });
@@ -12,13 +13,19 @@ export async function GET(req: NextRequest) {
 
     const supabase = getSupabaseAdmin();
 
-    const { data: expenses, error } = await supabase
+    let query = supabase
       .from("expenses")
       .select("*")
       .eq("guide_id", guideId)
       .gte("date", `${year}-01-01`)
       .lte("date", `${year}-12-31`)
       .order("date", { ascending: false });
+
+    if (bookingId) {
+      query = query.eq("booking_id", bookingId);
+    }
+
+    const { data: expenses, error } = await query;
 
     if (error) throw error;
 
@@ -31,7 +38,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { guideId, category, amount, description, date, receiptUrl, mileage, taxDeductible } = body;
+    const { guideId, category, amount, description, date, receiptUrl, mileage, taxDeductible, bookingId, recurringTemplateId } = body;
 
     if (!guideId || !category || !amount || !date) {
       return NextResponse.json({ error: "guideId, category, amount, and date required" }, { status: 400 });
@@ -50,6 +57,8 @@ export async function POST(req: NextRequest) {
         receipt_url: receiptUrl || null,
         mileage: mileage || null,
         tax_deductible: taxDeductible !== false,
+        booking_id: bookingId || null,
+        recurring_template_id: recurringTemplateId || null,
       })
       .select()
       .single();

@@ -19,10 +19,10 @@ export async function POST(req: NextRequest) {
     const stripe = getStripe();
     const supabase = getSupabaseAdmin();
 
-    // Get guide's Stripe Connect account and commission rate
+    // Get guide's Stripe Connect account
     const { data: guide } = await supabase
       .from("guides")
-      .select("stripe_account_id, stripe_onboarding_complete, subscription_tier")
+      .select("stripe_account_id, stripe_onboarding_complete")
       .eq("id", guideId)
       .single();
 
@@ -33,16 +33,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Calculate commission based on guide's tier
-    const commissionRates: Record<string, number> = {
-      spark: 0.20,
-      discover: 0.15,
-      immerse: 0.12,
-    };
-    const tier = guide.subscription_tier || "spark";
-    const commissionRate = commissionRates[tier] || 0.20;
-    const commissionAmount = Math.round(amount * commissionRate);
-    const guideAmount = amount - commissionAmount;
+    // Guest-side service fee model: amount is the total the guest pays (trip price + 15% fee)
+    // ROM keeps the service fee, guide gets 100% of their listed price
+    const SERVICE_FEE_RATE = 0.15;
+    const tripPriceAmount = Math.round(amount / (1 + SERVICE_FEE_RATE));
+    const serviceFeeAmount = amount - tripPriceAmount;
 
     // Get or create Stripe Customer for guest
     let stripeCustomerId: string | undefined;
@@ -64,14 +59,14 @@ export async function POST(req: NextRequest) {
       ...(stripeCustomerId && { customer: stripeCustomerId }),
       transfer_data: {
         destination: guide.stripe_account_id,
-        amount: guideAmount, // guide receives total minus commission
+        amount: tripPriceAmount, // guide receives 100% of their listed price
       },
       metadata: {
         booking_id: bookingId || "",
         guide_id: guideId,
         type,
-        commission_rate: commissionRate.toString(),
-        commission_amount: commissionAmount.toString(),
+        service_fee_rate: SERVICE_FEE_RATE.toString(),
+        service_fee_amount: serviceFeeAmount.toString(),
       },
     });
 
@@ -84,9 +79,9 @@ export async function POST(req: NextRequest) {
         amount,
         type,
         status: "pending",
-        commission_rate: commissionRate,
-        commission_amount: commissionAmount,
-        guide_payout_amount: guideAmount,
+        service_fee_rate: SERVICE_FEE_RATE,
+        service_fee_amount: serviceFeeAmount,
+        guide_payout_amount: tripPriceAmount,
       });
 
       // Update booking with payment ID

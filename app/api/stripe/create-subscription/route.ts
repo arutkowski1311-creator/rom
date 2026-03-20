@@ -3,7 +3,7 @@ import { getStripe } from "@/app/lib/stripe";
 import { getSupabaseAdmin } from "@/app/lib/supabase-server";
 
 const TIER_PRICES: Record<string, string> = {
-  spark: process.env.STRIPE_PRICE_SPARK || "",
+  spark: "", // Free tier — no Stripe subscription needed
   discover: process.env.STRIPE_PRICE_DISCOVER || "",
   immerse: process.env.STRIPE_PRICE_IMMERSE || "",
 };
@@ -12,8 +12,23 @@ export async function POST(req: NextRequest) {
   try {
     const { guideId, tier, paymentMethodId } = await req.json();
 
-    if (!guideId || !tier || !TIER_PRICES[tier]) {
+    if (!guideId || !tier) {
       return NextResponse.json({ error: "guideId and valid tier required" }, { status: 400 });
+    }
+
+    // Spark tier is free — no Stripe subscription needed
+    if (tier === "spark") {
+      const supabase = getSupabaseAdmin();
+      await supabase.from("guides").update({
+        subscription_tier: "spark",
+        subscription_status: "active",
+        tier_started_at: new Date().toISOString(),
+      }).eq("id", guideId);
+      return NextResponse.json({ subscriptionId: null, status: "active" });
+    }
+
+    if (!TIER_PRICES[tier]) {
+      return NextResponse.json({ error: "Invalid tier" }, { status: 400 });
     }
 
     const stripe = getStripe();

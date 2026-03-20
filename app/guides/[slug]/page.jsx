@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import React from "react";
-import { T, FONT_DISPLAY, FONT_BODY, getTierConfig } from "@/app/lib/theme";
+import { T, FONT_DISPLAY, FONT_BODY, GUEST_SERVICE_FEE_RATE } from "@/app/lib/theme";
 import { getSupabase } from "@/app/lib/supabase-browser";
 import { Stars, GoldBtn } from "@/app/components/ui";
 import { loadStripe } from "@stripe/stripe-js";
@@ -113,9 +113,7 @@ function BookingPanel({ guide, onClose }) {
 
   const pkg = guide.packages.find(p=>p.id===selectedPkg);
   const tripPrice = pkg?(pkg.priceType==="person"?pkg.price*guests:pkg.price):0;
-  const tierConfig = getTierConfig(guide.subscription_tier || "spark");
-  const feeRate = tierConfig.commissionRate;
-  const serviceFee = Math.round(tripPrice * feeRate);
+  const serviceFee = Math.round(tripPrice * GUEST_SERVICE_FEE_RATE);
   const total = tripPrice+serviceFee;
   const deposit = Math.round(total*0.25);
   const balance = total-deposit;
@@ -171,7 +169,7 @@ function BookingPanel({ guide, onClose }) {
           total: total,
           deposit: deposit,
           balance: balance,
-          commission_rate: feeRate,
+          service_fee_rate: GUEST_SERVICE_FEE_RATE,
           status: "pending",
           package_title: pkg.title,
           guide_name: guide.name,

@@ -708,7 +708,7 @@ export default function GuestDashboard() {
                   <div style={{textAlign:"center", padding:"72px 24px", background:T.steel, border:`1px solid ${T.wire}`, borderRadius:8}}>
                     <div style={{fontFamily:FONT_DISPLAY, fontSize:30, color:T.silver, fontWeight:300, marginBottom:10}}>No trips here</div>
                     <div style={{fontFamily:FONT_BODY, fontSize:14, color:T.muted, marginBottom:24}}>Time to plan your next adventure.</div>
-                    <GoldBtn onClick={()=>window.location.href="/concierge"}>Plan a Trip →</GoldBtn>
+                    <GoldBtn onClick={()=>window.location.href="/concierge"}>ROM Concierge →</GoldBtn>
                   </div>
                 )}
 

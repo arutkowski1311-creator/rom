@@ -31,18 +31,18 @@ export const FONT_DISPLAY = "'Cormorant Garamond', Georgia, serif";
 export const FONT_BODY    = "'Barlow', system-ui, sans-serif";
 
 // ─── TIER CONFIGURATION ──────────────────────────────────────────────────────
+export const GUEST_SERVICE_FEE_RATE = 0.15;
+
 export const TIERS = {
   spark: {
     id: "spark",
     name: "Spark",
-    monthlyPrice: 9,
-    commissionRate: 0.20,
+    monthlyPrice: 0,
     features: [
       "Profile & booking",
       "Email confirmations",
-      "Basic dashboard",
       "Availability calendar",
-      "Messaging",
+      "Payouts — keep 100% of your price",
     ],
     locked: ["Finances", "Marketing Hub", "Analytics", "CRM", "Widgets", "Tax Center"],
   },
@@ -50,14 +50,14 @@ export const TIERS = {
     id: "discover",
     name: "Discover",
     monthlyPrice: 29,
-    commissionRate: 0.15,
     features: [
       "Everything in Spark",
+      "Client messaging",
       "Finances dashboard",
-      "Marketing Hub + AI content",
       "Expense & mileage tracking",
+      "AI Marketing Hub",
+      "Social cards",
       "Tax center + 1099 export",
-      "Trip Journal",
     ],
     locked: ["Analytics", "CRM", "Widgets"],
   },
@@ -65,14 +65,15 @@ export const TIERS = {
     id: "immerse",
     name: "Immerse",
     monthlyPrice: 59,
-    commissionRate: 0.12,
     features: [
       "Everything in Discover",
-      "Analytics dashboard",
+      "Business intelligence",
       "Guest CRM",
-      "Embeddable widgets",
-      "Priority support",
+      "GPS mileage tracker",
+      "Revenue forecasting",
       "Insurance facilitation",
+      "Priority search placement",
+      "Embeddable widgets",
     ],
     locked: [],
   },
