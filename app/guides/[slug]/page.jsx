@@ -4,6 +4,10 @@ import React from "react";
 import { T, FONT_DISPLAY, FONT_BODY, getTierConfig } from "@/app/lib/theme";
 import { getSupabase } from "@/app/lib/supabase-browser";
 import { Stars, GoldBtn } from "@/app/components/ui";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
 const GUIDE = {
   name:"James Whitfield", slug:"james-whitfield",
@@ -29,6 +33,60 @@ const GUIDE = {
   ],
 };
 
+// ─── STRIPE PAYMENT FORM ──────────────────────────────────────────────────────
+function DepositPaymentForm({ onSuccess, onError, deposit }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+    setProcessing(true);
+    setError(null);
+
+    const { error: submitError } = await elements.submit();
+    if (submitError) {
+      setError(submitError.message);
+      setProcessing(false);
+      return;
+    }
+
+    const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      redirect: "if_required",
+    });
+
+    if (confirmError) {
+      setError(confirmError.message);
+      setProcessing(false);
+      if (onError) onError(confirmError.message);
+    } else if (paymentIntent?.status === "succeeded") {
+      onSuccess(paymentIntent);
+    } else {
+      // Payment requires additional action or is processing
+      setError("Payment is being processed. You'll receive confirmation shortly.");
+      setProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <PaymentElement options={{ layout: "tabs" }} />
+      {error && (
+        <div style={{ marginTop: 12, padding: 10, background: "rgba(231,76,60,0.1)", border: "1px solid #e74c3c", borderRadius: 6, fontFamily: FONT_BODY, fontSize: 13, color: "#e74c3c" }}>
+          {error}
+        </div>
+      )}
+      <button type="submit" disabled={!stripe || processing}
+        style={{ width: "100%", marginTop: 16, padding: "15px", background: T.gold, border: "none", borderRadius: 8, fontFamily: FONT_BODY, fontSize: 15, fontWeight: 700, color: T.ink, cursor: "pointer", opacity: processing ? 0.6 : 1 }}>
+        {processing ? "Processing..." : `Pay $${deposit} Deposit`}
+      </button>
+    </form>
+  );
+}
+
 // ─── BOOKING PANEL ────────────────────────────────────────────────────────────
 function BookingPanel({ guide, onClose }) {
   const [step, setStep] = useState(1);
@@ -41,6 +99,10 @@ function BookingPanel({ guide, onClose }) {
   const [confirmCode, setConfirmCode] = useState("");
   const [authError, setAuthError] = useState(false);
   const [blockedDates, setBlockedDates] = useState([]);
+  const [clientSecret, setClientSecret] = useState(null);
+  const [bookingId, setBookingId] = useState(null);
+  const [paymentError, setPaymentError] = useState(null);
+  const [stripeNotReady, setStripeNotReady] = useState(false);
 
   useEffect(() => {
     if (!guide?.id) return;
@@ -68,22 +130,25 @@ function BookingPanel({ guide, onClose }) {
   for(let i=0;i<firstDay;i++)cells.push(null);
   for(let d=1;d<=daysInMonth;d++)cells.push(d);
 
-  const handleBooking = async () => {
+  // Phase 1: Create booking + get Stripe payment intent (called when entering step 4)
+  const handlePreparePayment = async () => {
     setSubmitting(true);
+    setPaymentError(null);
+    setStripeNotReady(false);
     try {
       const supabase = getSupabase();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setAuthError(true); setSubmitting(false); return; }
 
       // Generate confirmation code
-      const confirmCode = "ROM-" + Math.random().toString(36).slice(2,7).toUpperCase();
+      const code = "ROM-" + Math.random().toString(36).slice(2,7).toUpperCase();
 
       // Only use package_id if it looks like a real UUID
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedPkg);
 
       if (!isUUID) {
-        // Mock package — show confirmation without DB insert
-        setConfirmCode(confirmCode);
+        // Mock package — show confirmation without DB or payment
+        setConfirmCode(code);
         setConfirmed(true);
         setSubmitting(false);
         return;
@@ -92,7 +157,7 @@ function BookingPanel({ guide, onClose }) {
       const { data: booking, error } = await supabase
         .from("bookings")
         .insert({
-          confirmation_code: confirmCode,
+          confirmation_code: code,
           guest_id: user.id,
           guide_id: guide.id,
           package_id: selectedPkg,
@@ -116,47 +181,88 @@ function BookingPanel({ guide, onClose }) {
         .select()
         .single();
 
-      if (error) { console.error("Booking error:", JSON.stringify(error), error.message, error.details, error.hint); setSubmitting(false); return; }
+      if (error) { console.error("Booking error:", JSON.stringify(error), error.message, error.details, error.hint); setPaymentError("Failed to create booking. Please try again."); setSubmitting(false); return; }
 
-      const finalCode = booking.confirmation_code || booking.id.slice(0,8).toUpperCase();
+      setBookingId(booking.id);
+      setConfirmCode(booking.confirmation_code || booking.id.slice(0,8).toUpperCase());
 
-      // Send confirmation emails
-      try {
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name, email")
-          .eq("id", currentUser.id)
-          .single();
+      // Get profile for email
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", user.id)
+        .single();
 
-        await fetch("/api/bookings/confirm", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            guestEmail: profile?.email || currentUser.email,
-            guestName: profile?.full_name || "Guest",
-            guideId: guide.id,
-            guideName: guide.name,
-            confirmCode: finalCode,
-            packageTitle: pkg.title,
-            tripDate: selectedDate,
-            guests,
-            total,
-            deposit,
-            balance,
-            guideLocation: guide.location,
-          }),
-        });
-      } catch (emailErr) {
-        console.error("Email send failed (non-blocking):", emailErr);
+      // Create Stripe PaymentIntent
+      const piRes = await fetch("/api/stripe/create-payment-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookingId: booking.id,
+          amount: deposit * 100, // cents
+          guideId: guide.id,
+          guestEmail: profile?.email || user.email,
+          type: "deposit",
+        }),
+      });
+
+      const piData = await piRes.json();
+
+      if (!piRes.ok) {
+        if (piData.error?.includes("Stripe") || piData.error?.includes("onboarding")) {
+          setStripeNotReady(true);
+        } else {
+          setPaymentError(piData.error || "Failed to initialize payment.");
+        }
+        setSubmitting(false);
+        setStep(4);
+        return;
       }
 
-      setConfirmCode(finalCode);
-      setConfirmed(true);
+      setClientSecret(piData.clientSecret);
+      setStep(4);
     } catch(e) {
-      console.error("Booking failed:", e);
+      console.error("Payment prep failed:", e);
+      setPaymentError("Something went wrong. Please try again.");
     }
     setSubmitting(false);
+  };
+
+  // Phase 2: After Stripe payment succeeds
+  const handlePaymentSuccess = async (paymentIntent) => {
+    // Send confirmation emails
+    try {
+      const supabase = getSupabase();
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", user.id)
+        .single();
+
+      await fetch("/api/bookings/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          guestEmail: profile?.email || user.email,
+          guestName: profile?.full_name || "Guest",
+          guideId: guide.id,
+          guideName: guide.name,
+          confirmCode: confirmCode,
+          packageTitle: pkg.title,
+          tripDate: selectedDate,
+          guests,
+          total,
+          deposit,
+          balance,
+          guideLocation: guide.location,
+        }),
+      });
+    } catch (emailErr) {
+      console.error("Email send failed (non-blocking):", emailErr);
+    }
+
+    setConfirmed(true);
   };
 
   // ── Auth redirect prompt ──
@@ -178,9 +284,12 @@ function BookingPanel({ guide, onClose }) {
       <div onClick={onClose} style={{flex:1,background:"rgba(0,0,0,0.75)"}}/>
       <div style={{width:500,background:T.carbon,height:"100vh",overflowY:"auto",borderLeft:`2px solid ${T.wire}`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,padding:40}}>
         <div style={{width:64,height:64,borderRadius:"50%",background:"#3a7a5428",border:"2px solid #3a7a54",display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,color:"#3a7a54"}}>✓</div>
-        <div style={{fontFamily:FONT_DISPLAY,fontSize:36,color:T.white,textAlign:"center"}}>Request Sent</div>
+        <div style={{fontFamily:FONT_DISPLAY,fontSize:36,color:T.white,textAlign:"center"}}>{clientSecret ? "Booking Confirmed" : "Request Sent"}</div>
         <p style={{fontFamily:FONT_BODY,fontSize:14,color:T.silver,textAlign:"center",lineHeight:1.75}}>
-          {guide.name} has received your booking request. Once confirmed, your ${deposit} deposit will be charged.
+          {clientSecret
+            ? `Your $${deposit} deposit has been charged. ${guide.name} has been notified and will confirm your trip details.`
+            : `${guide.name} has received your booking request. You'll be notified when it's confirmed.`
+          }
         </p>
         <div style={{width:"100%",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:20}}>
           {[
@@ -308,26 +417,56 @@ function BookingPanel({ guide, onClose }) {
               <div style={{background:T.goldGlow,border:`1px solid ${T.gold}`,borderRadius:8,padding:20}}>
                 <div style={{fontFamily:FONT_BODY,fontSize:30,fontWeight:700,color:T.gold}}>${deposit}</div>
                 <div style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:600,color:T.parchment,marginTop:2}}>due today — 25% deposit</div>
-                <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.silver,marginTop:8}}>Remaining ${balance} auto-charged 14 days before your trip.</div>
+                <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.silver,marginTop:8}}>Remaining ${balance} charged 14 days before your trip.</div>
               </div>
-              <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:16}}>
-                <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,lineHeight:1.6}}>
-                  💳 Payment powered by Stripe — coming soon. Your booking request will be held and confirmed when payment is enabled. No charge until your guide accepts.
+
+              {/* Stripe Payment Form */}
+              {clientSecret ? (
+                <Elements stripe={stripePromise} options={{ clientSecret, appearance: {
+                  theme: "night",
+                  variables: { colorPrimary: "#C9A55C", colorBackground: "#1A1A1A", colorText: "#E8E0D0", colorDanger: "#e74c3c", fontFamily: "Inter, system-ui, sans-serif", borderRadius: "6px" },
+                  rules: { ".Input": { border: "1px solid #2A2A2A", backgroundColor: "#111111" }, ".Input:focus": { border: "1px solid #C9A55C" }, ".Label": { color: "#999999" } }
+                }}}>
+                  <DepositPaymentForm deposit={deposit} onSuccess={handlePaymentSuccess} onError={(msg) => setPaymentError(msg)} />
+                </Elements>
+              ) : stripeNotReady ? (
+                <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:20}}>
+                  <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.silver,lineHeight:1.6}}>
+                    This guide hasn't finished setting up payments yet. Your booking request has been saved — {guide.name} will be notified and can accept your booking once their account is ready.
+                  </div>
+                  <button onClick={()=>setConfirmed(true)} style={{width:"100%",marginTop:16,padding:"14px",background:T.gold,border:"none",borderRadius:8,fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:T.ink,cursor:"pointer"}}>
+                    Continue Without Payment →
+                  </button>
                 </div>
+              ) : paymentError ? (
+                <div style={{background:"rgba(231,76,60,0.08)",border:"1px solid #e74c3c",borderRadius:8,padding:16}}>
+                  <div style={{fontFamily:FONT_BODY,fontSize:13,color:"#e74c3c",lineHeight:1.6}}>{paymentError}</div>
+                  <button onClick={handlePreparePayment} style={{marginTop:12,padding:"10px 20px",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:6,fontFamily:FONT_BODY,fontSize:13,color:T.parchment,cursor:"pointer"}}>Try Again</button>
+                </div>
+              ) : (
+                <div style={{display:"flex",justifyContent:"center",padding:20}}>
+                  <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.silver}}>Loading payment form…</div>
+                </div>
+              )}
+
+              <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.muted,textAlign:"center",lineHeight:1.5}}>
+                🔒 Payments secured by Stripe. Your card details never touch our servers.
               </div>
             </div>
           )}
         </div>
         <div style={{padding:"20px 28px",borderTop:`1px solid ${T.wire}`}}>
-          {step<4?(
-            <button onClick={()=>setStep(s=>s+1)} disabled={(step===1&&!selectedPkg)||(step===2&&!selectedDate)}
-              style={{width:"100%",padding:"15px",background:T.gold,border:"none",borderRadius:8,fontFamily:FONT_BODY,fontSize:15,fontWeight:700,color:T.ink,cursor:"pointer",opacity:(step===1&&!selectedPkg)||(step===2&&!selectedDate)?0.35:1}}>
-              {step===3?"Review & Pay →":"Continue →"}
+          {step<4&&(
+            <button
+              onClick={step===3 ? handlePreparePayment : ()=>setStep(s=>s+1)}
+              disabled={(step===1&&!selectedPkg)||(step===2&&!selectedDate)||submitting}
+              style={{width:"100%",padding:"15px",background:T.gold,border:"none",borderRadius:8,fontFamily:FONT_BODY,fontSize:15,fontWeight:700,color:T.ink,cursor:"pointer",opacity:(step===1&&!selectedPkg)||(step===2&&!selectedDate)||submitting?0.35:1}}>
+              {submitting ? "Setting up payment…" : step===3 ? "Review & Pay →" : "Continue →"}
             </button>
-          ):(
-            <button onClick={handleBooking} disabled={submitting}
-              style={{width:"100%",padding:"15px",background:T.gold,border:"none",borderRadius:8,fontFamily:FONT_BODY,fontSize:15,fontWeight:700,color:T.ink,cursor:"pointer",opacity:submitting?0.6:1}}>
-              {submitting ? "Submitting…" : `Request to Book — $${deposit} deposit`}
+          )}
+          {step>1&&step<4&&(
+            <button onClick={()=>setStep(s=>s-1)} style={{width:"100%",marginTop:8,padding:"10px",background:"transparent",border:"none",fontFamily:FONT_BODY,fontSize:13,color:T.muted,cursor:"pointer"}}>
+              ← Back
             </button>
           )}
         </div>
