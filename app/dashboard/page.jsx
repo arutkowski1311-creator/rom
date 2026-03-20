@@ -457,6 +457,7 @@ export default function GuestDashboard() {
   const [tripFilter, setTripFilter] = useState("all");
   const [guest, setGuest] = useState(GUEST);
   const [loading, setLoading] = useState(true);
+  const [tripPlans, setTripPlans] = useState([]);
 
   useEffect(() => { 
     fetchData(); 
@@ -486,6 +487,14 @@ export default function GuestDashboard() {
       // Fetch loyalty info
       const { data: loyalty } = await supabase
         .from("guest_loyalty").select("*").eq("profile_id", user.id).single();
+
+      // Fetch trip plans from concierge
+      const { data: plans } = await supabase
+        .from("trip_plans")
+        .select("id, destination, activity_types, date_start, date_end, itinerary, share_token, created_at, status")
+        .eq("guest_id", user.id)
+        .order("created_at", { ascending: false });
+      setTripPlans(plans || []);
 
       if (profile) {
         const now = new Date();
@@ -695,11 +704,41 @@ export default function GuestDashboard() {
                   ))}
                 </div>
 
-                {filteredBookings.length===0 && (
+                {filteredBookings.length===0 && tripPlans.length===0 && (
                   <div style={{textAlign:"center", padding:"72px 24px", background:T.steel, border:`1px solid ${T.wire}`, borderRadius:8}}>
                     <div style={{fontFamily:FONT_DISPLAY, fontSize:30, color:T.silver, fontWeight:300, marginBottom:10}}>No trips here</div>
                     <div style={{fontFamily:FONT_BODY, fontSize:14, color:T.muted, marginBottom:24}}>Time to plan your next adventure.</div>
-                    <GoldBtn onClick={()=>{}}>Browse Guides →</GoldBtn>
+                    <GoldBtn onClick={()=>window.location.href="/concierge"}>Plan a Trip →</GoldBtn>
+                  </div>
+                )}
+
+                {/* Trip Plans from Concierge */}
+                {tripPlans.length > 0 && (
+                  <div style={{marginTop:28}}>
+                    <div style={{fontFamily:FONT_BODY, fontSize:11, fontWeight:700, color:T.silver, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:14}}>My Trip Plans</div>
+                    <div style={{display:"flex", flexDirection:"column", gap:12}}>
+                      {tripPlans.map(plan => (
+                        <div key={plan.id}
+                          onClick={() => window.location.href = `/trip/${plan.share_token || plan.id}`}
+                          style={{background:T.steel, border:`1px solid ${T.wire}`, borderLeft:`3px solid ${T.gold}`, borderRadius:8, padding:"20px 22px", cursor:"pointer", transition:"all 0.15s"}}
+                          onMouseEnter={e=>e.currentTarget.style.background=T.lifted}
+                          onMouseLeave={e=>e.currentTarget.style.background=T.steel}>
+                          <div style={{fontFamily:FONT_DISPLAY, fontSize:20, color:T.white, fontWeight:400, marginBottom:6}}>
+                            {plan.itinerary?.title || plan.destination}
+                          </div>
+                          <div style={{fontFamily:FONT_BODY, fontSize:13, color:T.silver, marginBottom:8}}>
+                            {plan.destination}
+                            {plan.date_start ? ` · ${new Date(plan.date_start).toLocaleDateString("en-US",{month:"short",day:"numeric"})} – ${new Date(plan.date_end).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}` : " · Flexible dates"}
+                          </div>
+                          <div style={{display:"flex", gap:6, flexWrap:"wrap"}}>
+                            {plan.activity_types?.slice(0,3).map(a => (
+                              <span key={a} style={{fontFamily:FONT_BODY, fontSize:11, color:T.gold, background:T.goldGlow, borderRadius:10, padding:"2px 8px"}}>{a}</span>
+                            ))}
+                            <span style={{fontFamily:FONT_BODY, fontSize:11, color:T.muted}}>Planned {new Date(plan.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

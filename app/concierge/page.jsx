@@ -217,6 +217,58 @@ export default function ConciergePage() {
     setDownloadingCard(false);
   };
 
+  // Email itinerary
+  const handleEmailItinerary = () => {
+    if (!itinerary) return;
+    const subject = `Your ROM Trip — ${itinerary.title || destination}`;
+    let body = `${itinerary.title}\n${itinerary.summary}\n\n`;
+    if (itinerary.guide?.name) body += `Guide: ${itinerary.guide.name}\n${itinerary.guide.reason}\n\n`;
+    itinerary.days?.forEach(day => {
+      body += `--- Day ${day.dayNumber || ""}: ${day.title} ---\n`;
+      ["morning", "afternoon", "evening"].forEach(p => {
+        if (day[p]?.name) body += `${p.charAt(0).toUpperCase() + p.slice(1)}: ${day[p].name} — ${day[p].description || ""}\n`;
+      });
+      body += "\n";
+    });
+    if (itinerary.lodging?.length) { body += "LODGING:\n"; itinerary.lodging.forEach(l => { body += `• ${l.name} (${l.type}) — ${l.pricePerNight || ""}/night\n`; }); body += "\n"; }
+    if (itinerary.dining?.length) { body += "DINING:\n"; itinerary.dining.forEach(d => { body += `• ${d.name} — ${d.cuisine} (${d.priceRange || ""})\n`; }); body += "\n"; }
+    if (itinerary.budgetSummary?.total) body += `BUDGET TOTAL: ${itinerary.budgetSummary.total}\n\n`;
+    body += `View full trip: ${shareToken ? `${window.location.origin}/trip/${shareToken}` : window.location.href}\n\nBuilt with ROM — romlife.co/concierge`;
+    // Truncate if needed for mailto limit
+    if (body.length > 1800) body = body.substring(0, 1800) + `\n\n... View full itinerary: ${shareToken ? `${window.location.origin}/trip/${shareToken}` : window.location.href}`;
+    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
+
+  // Calendar .ics download
+  const handleDownloadCalendar = () => {
+    if (!itinerary?.days) return;
+    const formatDate = (dateStr) => dateStr.replace(/-/g, "");
+    const addDay = (dateStr, n) => {
+      const d = new Date(dateStr + "T12:00:00");
+      d.setDate(d.getDate() + n);
+      return d.toISOString().split("T")[0].replace(/-/g, "");
+    };
+    const startDate = dateStart || new Date().toISOString().split("T")[0];
+    let events = "";
+    itinerary.days.forEach((day, i) => {
+      const dayDate = formatDate(startDate).length === 8 ? addDay(startDate, i) : formatDate(startDate);
+      const nextDate = addDay(startDate, i + 1);
+      let desc = "";
+      ["morning", "afternoon", "evening"].forEach(p => {
+        if (day[p]?.name) desc += `${p.charAt(0).toUpperCase() + p.slice(1)}: ${day[p].name}\\n${day[p].description || ""}\\n\\n`;
+      });
+      events += `BEGIN:VEVENT\r\nDTSTART;VALUE=DATE:${dayDate}\r\nDTEND;VALUE=DATE:${nextDate}\r\nSUMMARY:Day ${day.dayNumber || i + 1} — ${day.title}\r\nDESCRIPTION:${desc.replace(/\n/g, "\\n")}\r\nLOCATION:${destination}\r\nEND:VEVENT\r\n`;
+    });
+    const ics = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//ROM//Trip//EN\r\nCALSCALE:GREGORIAN\r\n${events}END:VCALENDAR`;
+    const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `rom-trip-${destination.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase()}.ics`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   // When budget changes, recalculate allocation
   useEffect(() => {
     const budget = parseFloat(totalBudget) || 0;
@@ -327,7 +379,7 @@ export default function ConciergePage() {
   };
 
   // ─── ITINERARY VIEW ──────────────────────────────────────────────────────
-  if (itinerary) return <ItineraryView itinerary={itinerary} isMobile={isMobile} refineInput={refineInput} setRefineInput={setRefineInput} handleRefine={handleRefine} refining={refining} handleShare={handleShare} copied={copied} shareToken={shareToken} onStartOver={() => { setItinerary(null); setStep(0); setMode(""); }} destination={destination} dateStart={dateStart} dateEnd={dateEnd} adults={adults} children={children} socialCardRef={socialCardRef} handleDownloadCard={handleDownloadCard} downloadingCard={downloadingCard} vibes={vibes} />;
+  if (itinerary) return <ItineraryView itinerary={itinerary} isMobile={isMobile} refineInput={refineInput} setRefineInput={setRefineInput} handleRefine={handleRefine} refining={refining} handleShare={handleShare} copied={copied} shareToken={shareToken} onStartOver={() => { setItinerary(null); setStep(0); setMode(""); }} destination={destination} dateStart={dateStart} dateEnd={dateEnd} adults={adults} children={children} socialCardRef={socialCardRef} handleDownloadCard={handleDownloadCard} downloadingCard={downloadingCard} vibes={vibes} handleEmailItinerary={handleEmailItinerary} handleDownloadCalendar={handleDownloadCalendar} />;
 
   // ─── LOADING STATE ────────────────────────────────────────────────────────
   if (generating) return (
@@ -631,7 +683,7 @@ export default function ConciergePage() {
 }
 
 // ─── ITINERARY VIEW COMPONENT ───────────────────────────────────────────────
-function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handleRefine, refining, handleShare, copied, shareToken, onStartOver, destination, dateStart, dateEnd, adults, children, socialCardRef, handleDownloadCard, downloadingCard, vibes }) {
+function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handleRefine, refining, handleShare, copied, shareToken, onStartOver, destination, dateStart, dateEnd, adults, children, socialCardRef, handleDownloadCard, downloadingCard, vibes, handleEmailItinerary, handleDownloadCalendar }) {
   return (
     <div style={{ minHeight: "100vh", background: T.void, color: T.parchment }}>
       {/* Header */}
@@ -640,6 +692,12 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
         <div style={{ display: "flex", gap: 12 }}>
           <button onClick={handleDownloadCard} disabled={downloadingCard} style={{ background: T.gold, border: "none", borderRadius: 6, padding: "8px 16px", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, color: T.ink, cursor: "pointer", opacity: downloadingCard ? 0.6 : 1 }}>
             {downloadingCard ? "..." : "For The Gram"}
+          </button>
+          <button onClick={handleEmailItinerary} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "8px 16px", fontFamily: FONT_BODY, fontSize: 13, color: T.ash, cursor: "pointer" }}>
+            Email
+          </button>
+          <button onClick={handleDownloadCalendar} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "8px 16px", fontFamily: FONT_BODY, fontSize: 13, color: T.ash, cursor: "pointer" }}>
+            Calendar
           </button>
           <button onClick={handleShare} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "8px 16px", fontFamily: FONT_BODY, fontSize: 13, color: T.ash, cursor: "pointer" }}>
             {copied ? "Copied!" : "Share"}

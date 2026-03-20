@@ -215,6 +215,8 @@ export default function GuideDashboard() {
   const [uploadingPhoto, setUploadingPhoto] = useState(null); // 'profile' | 'cover' | 'gallery' | null
   const [photoUrls, setPhotoUrls] = useState({ profile: null, cover: null, gallery: [] });
   const [uploadError, setUploadError] = useState("");
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Check for Stripe redirect return
   useEffect(() => {
@@ -403,7 +405,33 @@ export default function GuideDashboard() {
         .eq("guide_id", g.id)
         .eq("status", "blocked");
       if (avail) setBlockedDatesDB(avail.map(a => a.date));
+
+      // Fetch notifications
+      const { data: notifs } = await supabase
+        .from("guide_notifications")
+        .select("*")
+        .eq("guide_id", g.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (notifs) {
+        setNotifications(notifs);
+        setUnreadCount(notifs.filter(n => !n.read_at).length);
+      }
     } catch(e) { console.error("Guide dashboard error:", e); }
+  };
+
+  const markNotificationsRead = async () => {
+    if (unreadCount === 0 || !guideId) return;
+    try {
+      const supabase = getSupabase();
+      await supabase
+        .from("guide_notifications")
+        .update({ read_at: new Date().toISOString() })
+        .eq("guide_id", guideId)
+        .is("read_at", null);
+      setNotifications(ns => ns.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() })));
+      setUnreadCount(0);
+    } catch(e) { console.error("Mark read error:", e); }
   };
 
   const pendingCount = bookings.filter(b=>b.status==="pending").length;
@@ -612,6 +640,31 @@ export default function GuideDashboard() {
                   ))}
                 </div>
               </div>
+
+              {/* Trip Match Notifications */}
+              {notifications.length > 0 && (
+                <div style={{gridColumn:"1 / -1",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,overflow:"hidden"}}>
+                  <div style={{background:T.void,padding:"14px 20px",borderBottom:`1px solid ${T.wire}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em"}}>Trip Matches</div>
+                      {unreadCount>0&&<span style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.ink,background:T.gold,borderRadius:10,padding:"2px 8px"}}>{unreadCount} new</span>}
+                    </div>
+                    {unreadCount>0&&<div onClick={markNotificationsRead} style={{fontFamily:FONT_BODY,fontSize:12,color:T.gold,cursor:"pointer",fontWeight:600}}>Mark all read</div>}
+                  </div>
+                  <div style={{padding:16}}>
+                    {notifications.slice(0,5).map(n=>(
+                      <div key={n.id} style={{padding:"12px 0",borderBottom:`1px solid ${T.rim}`,background:!n.read_at?"rgba(193,163,98,0.05)":"transparent",marginBottom:4,borderRadius:4,paddingLeft:8}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                          <div style={{fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:!n.read_at?T.gold:T.parchment}}>{n.title}</div>
+                          <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.muted}}>{new Date(n.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>
+                        </div>
+                        <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.ash}}>{n.body}</div>
+                        {n.metadata?.date_start && <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.silver,marginTop:4}}>Dates: {n.metadata.date_start} to {n.metadata.date_end}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Recent messages */}
               <div style={{gridColumn:"1 / -1",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,overflow:"hidden"}}>

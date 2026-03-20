@@ -279,6 +279,27 @@ ${dateStart ? `IMPORTANT: Research and include local events happening between ${
       .select()
       .single();
 
+    // Notify matched guide
+    if (itinerary.guide?.id && tripPlan?.id) {
+      const matchedGuide = guidesWithDetails.find((g: any) => g.id === itinerary.guide.id);
+      if (matchedGuide) {
+        await supabase.from("guide_notifications").insert({
+          guide_id: matchedGuide.id,
+          type: "trip_match",
+          title: `New trip match — ${destination}`,
+          body: `${totalParty} guest${totalParty > 1 ? "s" : ""} looking for ${activityStr} in ${destination}${dateStart ? ` (${dateStart} to ${dateEnd})` : ""}.`,
+          metadata: {
+            trip_plan_id: tripPlan.id,
+            destination,
+            activity_types: searchActivities.length > 0 ? searchActivities : [activityStr],
+            group_size: totalParty,
+            date_start: dateStart || null,
+            date_end: dateEnd || null,
+          },
+        }).then(() => {}).catch(() => {}); // Non-blocking, don't fail the request
+      }
+    }
+
     return NextResponse.json({
       tripPlanId: tripPlan?.id,
       shareToken: tripPlan?.share_token || null,
