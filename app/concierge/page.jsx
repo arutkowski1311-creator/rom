@@ -25,7 +25,42 @@ const VIBES = ["Adventure", "Cultural", "Foodie", "Relaxed", "Mixed"];
 const CUISINES = ["Italian", "Asian", "American", "Local", "Seafood", "Vegetarian", "Mexican", "French", "BBQ", "Farm-to-Table"];
 
 const LODGING_OPTIONS = ["Hotel", "Airbnb", "Either", "I have my own"];
-const TRANSPORT_OPTIONS = ["Rental Car", "Rideshare", "Public Transit", "Walking"];
+const TRANSPORT_OPTIONS = ["Own Car", "Rental Car", "Rideshare", "Public Transit", "Walking"];
+
+// ─── DESTINATION AUTOCOMPLETE LIST ────────────────────────────────────────
+const DESTINATIONS = [
+  "Bozeman, Montana", "Missoula, Montana", "Whitefish, Montana", "Big Sky, Montana", "Glacier National Park, Montana",
+  "Lake Placid, New York", "Adirondacks, New York", "Finger Lakes, New York", "Hudson Valley, New York", "Catskills, New York",
+  "Jackson Hole, Wyoming", "Yellowstone National Park, Wyoming", "Grand Teton National Park, Wyoming",
+  "Bend, Oregon", "Portland, Oregon", "Hood River, Oregon", "Crater Lake, Oregon",
+  "Park City, Utah", "Moab, Utah", "Zion National Park, Utah", "Bryce Canyon, Utah", "Salt Lake City, Utah",
+  "Aspen, Colorado", "Vail, Colorado", "Telluride, Colorado", "Boulder, Colorado", "Denver, Colorado", "Durango, Colorado", "Steamboat Springs, Colorado",
+  "Lake Tahoe, California", "Yosemite, California", "Big Sur, California", "Napa Valley, California", "Mammoth Lakes, California", "San Diego, California", "Joshua Tree, California",
+  "Sedona, Arizona", "Scottsdale, Arizona", "Grand Canyon, Arizona", "Flagstaff, Arizona",
+  "Maui, Hawaii", "Kauai, Hawaii", "Big Island, Hawaii", "Oahu, Hawaii",
+  "Key West, Florida", "Everglades, Florida", "Destin, Florida", "Amelia Island, Florida", "Naples, Florida",
+  "Charleston, South Carolina", "Hilton Head, South Carolina", "Kiawah Island, South Carolina",
+  "Savannah, Georgia", "Blue Ridge, Georgia",
+  "Asheville, North Carolina", "Outer Banks, North Carolina", "Smoky Mountains, North Carolina",
+  "Nashville, Tennessee", "Gatlinburg, Tennessee", "Chattanooga, Tennessee",
+  "Austin, Texas", "Fredericksburg, Texas", "Big Bend, Texas", "Marfa, Texas",
+  "New Orleans, Louisiana", "Baton Rouge, Louisiana",
+  "Traverse City, Michigan", "Mackinac Island, Michigan", "Upper Peninsula, Michigan",
+  "Door County, Wisconsin", "Madison, Wisconsin",
+  "Boundary Waters, Minnesota", "Duluth, Minnesota",
+  "Acadia National Park, Maine", "Portland, Maine", "Bar Harbor, Maine", "Kennebunkport, Maine",
+  "Cape Cod, Massachusetts", "Martha's Vineyard, Massachusetts", "Nantucket, Massachusetts", "Boston, Massachusetts",
+  "Stowe, Vermont", "Burlington, Vermont", "Killington, Vermont",
+  "White Mountains, New Hampshire", "Lake Winnipesaukee, New Hampshire",
+  "Newport, Rhode Island", "Block Island, Rhode Island",
+  "Sun Valley, Idaho", "Coeur d'Alene, Idaho", "McCall, Idaho",
+  "Glacier Bay, Alaska", "Denali, Alaska", "Anchorage, Alaska", "Sitka, Alaska",
+  "Taos, New Mexico", "Santa Fe, New Mexico",
+  "Tulum, Mexico", "Cabo San Lucas, Mexico", "Puerto Vallarta, Mexico", "Cancun, Mexico",
+  "Banff, Canada", "Whistler, Canada", "Tofino, Canada", "Jasper, Canada",
+  "Costa Rica", "Belize", "Patagonia, Argentina", "Iceland", "New Zealand",
+  "Whiteface Mountain, New York", "Saranac Lake, New York", "Tupper Lake, New York",
+];
 
 const DEFAULT_ALLOCATION = { flights: 0.20, lodging: 0.30, dining: 0.17, guide: 0.13, activities: 0.10, transportation: 0.07, buffer: 0.03 };
 const ALLOC_LABELS = { flights: "\u{2708}\u{FE0F} Flights", lodging: "\u{1F3E8} Lodging", dining: "\u{1F37D}\u{FE0F} Dining", guide: "\u{1F9ED} Guide", activities: "\u{1F3DF}\u{FE0F} Activities", transportation: "\u{1F697} Transportation", buffer: "\u{1F392} Buffer" };
@@ -86,6 +121,11 @@ export default function ConciergePage() {
   // Form state
   const [mode, setMode] = useState(""); // "standard" | "surprise"
   const [destination, setDestination] = useState("");
+  const [destSuggestions, setDestSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const destRef = useRef(null);
+  const socialCardRef = useRef(null);
+  const [downloadingCard, setDownloadingCard] = useState(false);
   const [dateStart, setDateStart] = useState("");
   const [dateEnd, setDateEnd] = useState("");
   const [adults, setAdults] = useState(2);
@@ -108,6 +148,55 @@ export default function ConciergePage() {
     const supabase = getSupabase();
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
   }, []);
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (destRef.current && !destRef.current.contains(e.target)) setShowSuggestions(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const filterDestinations = (query) => {
+    if (!query || query.length < 2) return [];
+    const q = query.toLowerCase();
+    return DESTINATIONS.filter(d => d.toLowerCase().includes(q)).slice(0, 8);
+  };
+
+  const handleDestChange = (val) => {
+    setDestination(val);
+    const matches = filterDestinations(val);
+    setDestSuggestions(matches);
+    setShowSuggestions(matches.length > 0);
+  };
+
+  const selectDestination = (dest) => {
+    setDestination(dest);
+    setShowSuggestions(false);
+  };
+
+  // Social card download
+  const handleDownloadCard = async () => {
+    if (!socialCardRef.current) return;
+    setDownloadingCard(true);
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(socialCardRef.current, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: null,
+      });
+      const link = document.createElement("a");
+      link.download = `rom-trip-${destination.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase()}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch (err) {
+      console.error("Card download error:", err);
+    }
+    setDownloadingCard(false);
+  };
 
   // When budget changes, recalculate allocation
   useEffect(() => {
@@ -219,7 +308,7 @@ export default function ConciergePage() {
   };
 
   // ─── ITINERARY VIEW ──────────────────────────────────────────────────────
-  if (itinerary) return <ItineraryView itinerary={itinerary} isMobile={isMobile} refineInput={refineInput} setRefineInput={setRefineInput} handleRefine={handleRefine} refining={refining} handleShare={handleShare} copied={copied} shareToken={shareToken} onStartOver={() => { setItinerary(null); setStep(0); setMode(""); }} />;
+  if (itinerary) return <ItineraryView itinerary={itinerary} isMobile={isMobile} refineInput={refineInput} setRefineInput={setRefineInput} handleRefine={handleRefine} refining={refining} handleShare={handleShare} copied={copied} shareToken={shareToken} onStartOver={() => { setItinerary(null); setStep(0); setMode(""); }} destination={destination} dateStart={dateStart} dateEnd={dateEnd} adults={adults} children={children} socialCardRef={socialCardRef} handleDownloadCard={handleDownloadCard} downloadingCard={downloadingCard} />;
 
   // ─── LOADING STATE ────────────────────────────────────────────────────────
   if (generating) return (
@@ -285,8 +374,28 @@ export default function ConciergePage() {
             <div>
               <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 42, color: T.white, marginBottom: 8 }}>Where are you headed?</div>
               <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.silver, marginBottom: 28 }}>A city, region, or landmark.</div>
-              <input autoFocus type="text" placeholder="e.g., Bozeman, Montana" value={destination} onChange={e => setDestination(e.target.value)} onKeyDown={e => e.key === "Enter" && canAdvance() && advance()}
-                style={{ width: "100%", background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 10, padding: "16px 20px", fontFamily: FONT_BODY, fontSize: 18, color: T.parchment, outline: "none", boxSizing: "border-box" }} />
+              <div ref={destRef} style={{ position: "relative" }}>
+                <input autoFocus type="text" placeholder="e.g., Bozeman, Montana" value={destination}
+                  onChange={e => handleDestChange(e.target.value)}
+                  onFocus={() => { if (destSuggestions.length > 0) setShowSuggestions(true); }}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && canAdvance()) advance();
+                    if (e.key === "Escape") setShowSuggestions(false);
+                  }}
+                  style={{ width: "100%", background: T.steel, border: `1px solid ${showSuggestions ? T.gold : T.wire}`, borderRadius: showSuggestions ? "10px 10px 0 0" : 10, padding: "16px 20px", fontFamily: FONT_BODY, fontSize: 18, color: T.parchment, outline: "none", boxSizing: "border-box" }} />
+                {showSuggestions && destSuggestions.length > 0 && (
+                  <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: T.steel, border: `1px solid ${T.gold}`, borderTop: "none", borderRadius: "0 0 10px 10px", zIndex: 50, overflow: "hidden" }}>
+                    {destSuggestions.map((d, i) => (
+                      <button key={d} onClick={() => selectDestination(d)}
+                        style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", borderTop: i > 0 ? `1px solid ${T.wire}` : "none", padding: "14px 20px", fontFamily: FONT_BODY, fontSize: 16, color: T.parchment, cursor: "pointer" }}
+                        onMouseEnter={e => e.target.style.background = T.lifted}
+                        onMouseLeave={e => e.target.style.background = "none"}>
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -503,13 +612,27 @@ export default function ConciergePage() {
 }
 
 // ─── ITINERARY VIEW COMPONENT ───────────────────────────────────────────────
-function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handleRefine, refining, handleShare, copied, shareToken, onStartOver }) {
+function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handleRefine, refining, handleShare, copied, shareToken, onStartOver, destination, dateStart, dateEnd, adults, children, socialCardRef, handleDownloadCard, downloadingCard }) {
+  const [cardPhotoUrl, setCardPhotoUrl] = useState(null);
+
+  // Fetch destination photo for social card
+  useEffect(() => {
+    if (destination) {
+      fetch(`/api/social-card?destination=${encodeURIComponent(destination)}`)
+        .then(r => r.json())
+        .then(d => setCardPhotoUrl(d.imageUrl))
+        .catch(() => {});
+    }
+  }, [destination]);
   return (
     <div style={{ minHeight: "100vh", background: T.void, color: T.parchment }}>
       {/* Header */}
       <div style={{ background: T.carbon, borderBottom: `1px solid ${T.wire}`, padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: T.gold, letterSpacing: "0.12em" }}>RŌM</div>
         <div style={{ display: "flex", gap: 12 }}>
+          <button onClick={handleDownloadCard} disabled={downloadingCard} style={{ background: T.gold, border: "none", borderRadius: 6, padding: "8px 16px", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, color: T.ink, cursor: "pointer", opacity: downloadingCard ? 0.6 : 1 }}>
+            {downloadingCard ? "..." : "Trip Card"}
+          </button>
           <button onClick={handleShare} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "8px 16px", fontFamily: FONT_BODY, fontSize: 13, color: T.ash, cursor: "pointer" }}>
             {copied ? "Copied!" : "Share"}
           </button>
@@ -588,13 +711,31 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
           </div>
         ))}
 
+        {/* Local Events */}
+        {itinerary.events?.length > 0 && (
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.silver, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>{"\u{1F389}"} Local Events</div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+              {itinerary.events.map((ev, i) => (
+                <div key={i} style={{ background: T.steel, border: `1px solid ${T.gold}`, borderRadius: 8, padding: 16 }}>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.white, fontWeight: 600 }}>{ev.name}</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 2 }}>{ev.date} {ev.cost ? `\u00B7 ${ev.cost}` : ""}</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, marginTop: 6, lineHeight: 1.5 }}>{ev.description}</div>
+                  {ev.ticketLink && <a href={ev.ticketLink} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 6, display: "inline-block" }}>Get tickets &rarr;</a>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Lodging */}
         {itinerary.lodging?.length > 0 && (
           <div style={{ marginBottom: 28 }}>
             <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.silver, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>Lodging Options</div>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
               {itinerary.lodging.map((l, i) => (
-                <div key={i} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 8, padding: 16 }}>
+                <div key={i} style={{ background: T.steel, border: `1px solid ${l.isPartner ? T.gold : T.wire}`, borderRadius: 8, padding: 16, position: "relative" }}>
+                  {l.isPartner && <div style={{ position: "absolute", top: 8, right: 8, fontFamily: FONT_BODY, fontSize: 10, fontWeight: 700, color: T.ink, background: T.gold, borderRadius: 4, padding: "2px 6px", textTransform: "uppercase", letterSpacing: "0.06em" }}>ROM Partner</div>}
                   <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.white, fontWeight: 600 }}>{l.name}</div>
                   <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 2 }}>{l.type} {l.pricePerNight ? `\u00B7 ${l.pricePerNight}/night` : l.priceRange ? `\u00B7 ${l.priceRange}` : ""}</div>
                   {l.totalEstimate && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver, marginTop: 2 }}>Est. total: {l.totalEstimate}</div>}
@@ -603,6 +744,14 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
                 </div>
               ))}
             </div>
+            {/* Airbnb fallback link */}
+            {destination && (
+              <a href={`https://www.airbnb.com/s/${encodeURIComponent(destination)}/homes${dateStart ? `?checkin=${dateStart}&checkout=${dateEnd}&adults=${adults || 2}${children ? `&children=${children}` : ""}` : ""}`}
+                target="_blank" rel="noopener noreferrer"
+                style={{ display: "inline-block", marginTop: 12, fontFamily: FONT_BODY, fontSize: 13, color: T.gold, opacity: 0.8 }}>
+                Browse more on Airbnb &rarr;
+              </a>
+            )}
           </div>
         )}
 
@@ -617,6 +766,7 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
                   <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 2 }}>{d.cuisine} {d.priceRange ? `\u00B7 ${d.priceRange}` : ""}</div>
                   <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.muted, marginTop: 2, textTransform: "capitalize" }}>{d.meal}</div>
                   <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, marginTop: 6 }}>{d.reason}</div>
+                  {d.mustTry && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 4, fontStyle: "italic" }}>Must try: {d.mustTry}</div>}
                   {d.reservationLink && <a href={d.reservationLink} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 6, display: "inline-block" }}>Reserve &rarr;</a>}
                 </div>
               ))}
@@ -698,6 +848,41 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
         <div style={{ textAlign: "center", padding: "20px 0 40px", opacity: 0.5 }}>
           <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, color: T.gold, letterSpacing: "0.12em" }}>Built with RŌM</div>
           <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.muted, marginTop: 4 }}>romlife.co</div>
+        </div>
+      </div>
+
+      {/* Social Card (hidden, for capture) */}
+      <div style={{ position: "fixed", left: "-9999px", top: 0 }}>
+        <div ref={socialCardRef} style={{
+          width: 1080, height: 1920, position: "relative", overflow: "hidden",
+          background: T.void, display: "flex", flexDirection: "column", justifyContent: "flex-end",
+        }}>
+          {/* Background photo */}
+          {cardPhotoUrl && (
+            <img src={cardPhotoUrl} crossOrigin="anonymous" alt="" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+          )}
+          {/* Gradient overlay */}
+          <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.85) 100%)" }} />
+          {/* ROM logo top-right */}
+          <div style={{ position: "absolute", top: 48, right: 48, fontFamily: FONT_DISPLAY, fontSize: 36, color: T.gold, letterSpacing: "0.14em", zIndex: 2 }}>RŌM</div>
+          {/* Content at bottom */}
+          <div style={{ position: "relative", zIndex: 2, padding: "0 64px 80px" }}>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 72, color: "#fff", lineHeight: 1.1, marginBottom: 16, textShadow: "0 2px 12px rgba(0,0,0,0.5)" }}>
+              {destination || itinerary.title}
+            </div>
+            {dateStart && dateEnd && (
+              <div style={{ fontFamily: FONT_BODY, fontSize: 28, color: "rgba(255,255,255,0.85)", marginBottom: 20, textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}>
+                {new Date(dateStart + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })} &ndash; {new Date(dateEnd + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+              </div>
+            )}
+            {itinerary.title && destination && (
+              <div style={{ fontFamily: FONT_BODY, fontSize: 24, color: "rgba(255,255,255,0.7)", lineHeight: 1.4 }}>
+                {itinerary.title}
+              </div>
+            )}
+            <div style={{ marginTop: 40, fontFamily: FONT_DISPLAY, fontSize: 22, color: T.gold, letterSpacing: "0.1em" }}>Built with RŌM</div>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 16, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>romlife.co/concierge</div>
+          </div>
         </div>
       </div>
 

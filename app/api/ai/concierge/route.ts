@@ -58,6 +58,13 @@ export async function POST(req: NextRequest) {
 
     const { data: matchingGuides } = await guideQuery.order("rating", { ascending: false }).limit(5);
 
+    // Find partner lodging near the destination
+    const { data: partnerLodging } = await supabase
+      .from("partner_lodging")
+      .select("name, location, type, description, price_per_night, max_guests, amenities, booking_url, photo_url")
+      .eq("active", true)
+      .ilike("location", `%${destination.split(",")[0].trim()}%`);
+
     // Get guide names and packages
     const guidesWithDetails = [];
     for (const guide of (matchingGuides || [])) {
@@ -112,10 +119,24 @@ ${isSurprise ? "The guest chose SURPRISE ME mode. Make every decision for them �
 PROCESSING PRIORITY ORDER:
 1. Rōm Guides — always surface matching ROM guides first. If none match, note the gap.
 2. Flights — only if flight origin is provided. Rank by price fit, rating, schedule.
-3. Lodging — minimum 4.5 star. Rank by proximity to main activity, budget fit, preference match.
-4. Dining — rank by review score, proximity, cuisine match, price fit. Include OpenTable/Resy links where applicable.
-5. Local Activities — things to do near destination on trip dates with booking links.
-6. Transportation — single recommendation based on destination type and preference.
+3. Partner Lodging — if ROM partner properties are provided, prioritize them over generic suggestions. These are verified properties from our network.
+4. Lodging — minimum 4.5 star. Rank by proximity to main activity, budget fit, preference match. Always include an Airbnb option.
+5. Dining — rank by review score, proximity, cuisine match, price fit. Include OpenTable/Resy links where applicable.
+6. Local Events — research and include local events happening during the trip dates: festivals, concerts, farmers markets, seasonal events, sporting events, fairs. These add authentic local flair. If specific dates are provided, tailor event recommendations to those exact dates.
+7. Local Activities — things to do near destination on trip dates with booking links.
+8. Transportation — single recommendation based on destination type and preference.
+
+QUALITY STANDARDS:
+- Only recommend places you would confidently tell a friend about. Prioritize places with strong reputations, local favorites, and high review scores. Never suggest generic chains unless they are genuinely the best option in the area.
+- For dining: recommend specific dishes when you know them. Mention what the restaurant is known for.
+- For lodging: mention specific room types, views, or features when relevant.
+- Research quality matters — specific, real recommendations that locals would endorse over tourist-trap generic suggestions.
+
+TRAVEL TIME AWARENESS:
+- Be realistic about travel time between locations. If two activities are 2+ hours apart, do NOT schedule them in the same half-day.
+- Account for driving time in rural/mountain areas where distances are deceptive.
+- When recommending activities across a region (not a single city), group geographically — morning activities near each other, don't zigzag across the region.
+- Include approximate drive times between locations when they exceed 30 minutes.
 
 You MUST return valid JSON matching this exact schema:
 {
@@ -136,12 +157,15 @@ You MUST return valid JSON matching this exact schema:
       "evening": { "name": "Activity name", "description": "1-2 sentences", "estimatedCost": "$X", "bookingLink": "URL or null" }
     }
   ],
+  "events": [
+    { "name": "Event name", "date": "Date or date range", "description": "1-2 sentences about the event", "ticketLink": "URL or null", "cost": "$X or Free" }
+  ],
   "flights": { "recommendation": "Flight recommendation or null if no origin", "estimatedCost": "$X", "bookingLink": "URL or null" },
   "lodging": [
-    { "name": "Place name", "type": "hotel|cabin|lodge|airbnb|camping", "pricePerNight": "$X", "totalEstimate": "$X", "reason": "Why (1 sentence)", "bookingLink": "URL or null" }
+    { "name": "Place name", "type": "hotel|cabin|lodge|airbnb|camping", "pricePerNight": "$X", "totalEstimate": "$X", "reason": "Why (1 sentence)", "bookingLink": "URL or null", "isPartner": false }
   ],
   "dining": [
-    { "name": "Restaurant name", "meal": "breakfast|lunch|dinner", "cuisine": "Type", "priceRange": "$|$$|$$$", "reason": "Why (1 sentence)", "reservationLink": "URL or null" }
+    { "name": "Restaurant name", "meal": "breakfast|lunch|dinner", "cuisine": "Type", "priceRange": "$|$$|$$$", "reason": "Why (1 sentence)", "mustTry": "Specific dish recommendation", "reservationLink": "URL or null" }
   ],
   "activities": [
     { "name": "Activity name", "description": "1-2 sentences", "cost": "$X", "bookingLink": "URL or null" }
@@ -186,7 +210,18 @@ ${guidesWithDetails.length > 0 ? guidesWithDetails.map((g, i) => `${i + 1}. ${g.
 
 ${guidesWithDetails.length > 0 ? "Pick the best-matched guide and build the trip around their packages." : ""}
 
-Include specific lodging, dining, and activity recommendations for the area. Be opinionated — recommend the best options, not every option. Include real restaurant names, real lodging properties, and real activity providers where possible.`;
+${(partnerLodging && partnerLodging.length > 0) ? `ROM Partner Properties (PRIORITIZE these over generic lodging):
+${partnerLodging.map((p: any, i: number) => `${i + 1}. ${p.name} (${p.location}) — ${p.type}
+   ${p.description || ""}
+   $${p.price_per_night}/night · Max ${p.max_guests} guests
+   ${p.amenities?.length ? `Amenities: ${p.amenities.join(", ")}` : ""}
+   Book: ${p.booking_url}
+`).join("\n")}
+Mark partner lodging with "isPartner": true in the lodging array.` : ""}
+
+Include specific lodging, dining, and activity recommendations for the area. Be opinionated — recommend the best options, not every option. Include real restaurant names, real lodging properties, and real activity providers where possible.
+
+${dateStart ? `IMPORTANT: Research and include local events happening between ${dateStart} and ${dateEnd} in the ${destination} area. Festivals, concerts, farmers markets, seasonal celebrations, sporting events — anything that adds authentic local flair to the trip.` : "Include any notable recurring events, seasonal happenings, or local traditions in the area."}`;
 
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
