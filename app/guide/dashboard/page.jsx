@@ -307,6 +307,7 @@ export default function GuideDashboard() {
         profilePhoto: g.profile_photo_url || null,
         coverPhoto: g.cover_photo_url || null,
         galleryPhotos: g.gallery_photos || [],
+        subscription_tier: g.subscription_tier || "spark",
       });
 
       // Fetch bookings for this guide
