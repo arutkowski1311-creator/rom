@@ -9,7 +9,6 @@ const FEATURED_GUIDES = [
   { id:1, name:"James Whitfield", location:"Bozeman, MT", category:"Fly Fishing", tagline:"14 years on the Madison, Gallatin, and Yellowstone.", rating:4.97, reviewCount:143, price:275, verified:true },
   { id:2, name:"Sasha Okafor", location:"Moab, UT", category:"Rock Climbing", tagline:"Sandstone, multipitch, and desert towers. All skill levels.", rating:4.99, reviewCount:201, price:225, verified:true },
   { id:3, name:"Anya Petrov", location:"Kenai, AK", category:"Fly Fishing", tagline:"Alaska salmon runs, remote float trips, and backcountry brook trout.", rating:4.93, reviewCount:72, price:650, verified:true },
-  { id:4, name:"Tomás Herrera", location:"Kauai, HI", category:"Diving", tagline:"Hawaiian reef diving, night dives, and free-diving instruction.", rating:4.96, reviewCount:118, price:185, verified:true },
 ];
 
 const CATEGORIES = [
@@ -56,7 +55,7 @@ function Nav({ scrolled, user, userRole }) {
         <div style={{fontFamily:FONT_DISPLAY,fontSize:28,color:T.gold,letterSpacing:"0.16em",fontWeight:500,cursor:"pointer"}} onClick={()=>window.location.href="/"}>RŌM</div>
         {!isMobile && (
           <div style={{display:"flex",gap:32,alignItems:"center"}}>
-            {[["Explore","/search"],["ROM Concierge","/concierge"],["How It Works","#how-it-works"]].map(([item,href])=>(
+            {[["Explore","/search"],["RŌM Concierge","/concierge"],["How It Works","#how-it-works"]].map(([item,href])=>(
               <span key={item} onClick={()=>window.location.href=href} style={{fontFamily:FONT_BODY,fontSize:16,color:scrolled?T.ash:T.parchment,cursor:"pointer"}}>{item}</span>
             ))}
             <div style={{width:1,height:18,background:T.wire}}/>
@@ -84,7 +83,7 @@ function Nav({ scrolled, user, userRole }) {
     </div>
     {isMobile && menuOpen && (
       <div style={{position:"fixed",top:64,left:0,right:0,background:T.void,borderBottom:`1px solid ${T.wire}`,padding:20,display:"flex",flexDirection:"column",gap:16,zIndex:99}}>
-        {[["Explore","/search"],["ROM Concierge","/concierge"],["How It Works","#how-it-works"]].map(([item,href])=>(
+        {[["Explore","/search"],["RŌM Concierge","/concierge"],["How It Works","#how-it-works"]].map(([item,href])=>(
           <span key={item} onClick={()=>{window.location.href=href;setMenuOpen(false);}} style={{fontFamily:FONT_BODY,fontSize:16,color:T.ash,cursor:"pointer",padding:"10px 0",borderBottom:`1px solid ${T.rim}`}}>{item}</span>
         ))}
         {user ? (
@@ -332,7 +331,7 @@ function TrustBar() {
   const items = [
     ["◬","Every guide is verified","We review insurance, licensing, and credentials before any guide goes live."],
     ["◉","Transparent pricing","The price you see is what you pay. No booking surprises, no inflated platform fees."],
-    ["◷","Fast response guarantee","Guides on Rōm respond within 2 hours or their listing is flagged."],
+    ["◷","Fast response guarantee","Guides on RŌM respond within 2 hours or their listing is flagged."],
     ["✦","Protected booking","25% deposit holds your date. We mediate any disputes — guests and guides both."],
   ];
   return (
@@ -363,14 +362,14 @@ function GuideCTA() {
             <span style={{color:T.gold, fontStyle:"italic"}}>Your business.</span>
           </div>
           <div style={{fontFamily:FONT_BODY, fontSize:16, color:T.ash, lineHeight:1.75, maxWidth:420}}>
-            Rōm was built around one idea: guides should keep everything they earn. We charge guests a 15% service fee — your listed price is your payout, every time.
+            RŌM was built around one idea: guides should keep everything they earn. We charge guests a 15% service fee — your listed price is your payout, every time.
           </div>
         </div>
       </div>
 
       {/* Right — reasons */}
       <div style={{background:T.steel, padding:"64px 56px", display:"flex", flexDirection:"column", justifyContent:"center"}}>
-        <div style={{fontFamily:FONT_BODY, fontSize:17, fontWeight:700, color:T.gold, textTransform:"uppercase", letterSpacing:"0.12em", marginBottom:16}}>Why guide with Rōm</div>
+        <div style={{fontFamily:FONT_BODY, fontSize:17, fontWeight:700, color:T.gold, textTransform:"uppercase", letterSpacing:"0.12em", marginBottom:16}}>Why guide with RŌM</div>
         <div style={{display:"flex", flexDirection:"column", gap:0}}>
           {[
             ["100% of your listed price","We never touch your earnings. The guest pays the fee — you keep every dollar you charge."],
@@ -427,8 +426,8 @@ function Testimonials() {
 function Footer() {
   const cols = [
     { title:"Explore", links:["All Guides","Destinations","Activity Types","Field Notes","Gift Cards"] },
-    { title:"For Guides", links:["Apply to Guide","Rōm Compass","Guide Dashboard","Pricing","Guide Resources"] },
-    { title:"Company", links:["About Rōm","How It Works","Trust & Safety","Careers","Press"] },
+    { title:"For Guides", links:["Apply to Guide","RŌM Compass","Guide Dashboard","Pricing","Guide Resources"] },
+    { title:"Company", links:["About RŌM","How It Works","Trust & Safety","Careers","Press"] },
     { title:"Support", links:["Help Center","Contact Us","Cancellation Policy","Terms of Service","Privacy Policy"] },
   ];
   return (
@@ -462,7 +461,7 @@ function Footer() {
         </div>
         {/* Bottom row */}
         <div style={{paddingTop:24, borderTop:`1px solid ${T.rim}`, display:"flex", justifyContent:"space-between", alignItems:"center"}}>
-          <span style={{fontFamily:FONT_BODY, fontSize:16, color:T.muted}}>© 2026 Rōm, Inc. All rights reserved.</span>
+          <span style={{fontFamily:FONT_BODY, fontSize:16, color:T.muted}}>© 2026 RŌM, Inc. All rights reserved.</span>
           <span style={{fontFamily:FONT_BODY, fontSize:16, color:T.muted}}>Built for guides. Trusted by guests.</span>
         </div>
       </div>
@@ -525,10 +524,10 @@ export default function HomePage() {
           price: priceMap[g.id] || 0,
           verified: g.verified,
         }));
-        // Pad with mock guides if fewer than 5 real ones
+        // Pad with mock guides if fewer than 3 real ones
         const combined = [...realGuides];
         const mocks = FEATURED_GUIDES.filter(m => !realGuides.find(r => r.slug === m.slug));
-        while (combined.length < 5 && mocks.length > 0) combined.push(mocks.shift());
+        while (combined.length < 3 && mocks.length > 0) combined.push(mocks.shift());
         setFeaturedGuides(combined);
       }
     } catch(e) { console.error("Homepage load error:", e); }
@@ -555,7 +554,7 @@ export default function HomePage() {
         <SectionHeader
           eyebrow="Hand-picked for this week"
           title="Featured guides"
-          sub="Every guide on Rōm is manually reviewed and approved. These are some of the best."
+          sub="Every guide on RŌM is manually reviewed and approved. These are some of the best."
           center
         />
         {isMobile ? (
@@ -580,18 +579,18 @@ export default function HomePage() {
 
       {/* How It Works */}
       <Section bg={T.gunmetal} id="how-it-works">
-        <SectionHeader eyebrow="Simple by design" title="How Rōm works" center/>
+        <SectionHeader eyebrow="Simple by design" title="How RŌM works" center/>
         <HowItWorks/>
       </Section>
 
-      {/* ROM Concierge */}
+      {/* RŌM Concierge */}
       <Section bg={T.carbon}>
         <div style={{display:"grid", gridTemplateColumns:isMobile?"1fr":"1fr 1fr", gap:0, borderRadius:12, overflow:"hidden", border:`1px solid ${T.wire}`}}>
           {/* Left — Visual */}
           <div style={{background:"linear-gradient(145deg, #0b1a24 0%, #152018 50%, #1a1206 100%)", position:"relative", padding:isMobile?"48px 32px":"64px 56px", display:"flex", flexDirection:"column", justifyContent:"center", minHeight:isMobile?300:440}}>
             <div style={{position:"absolute", inset:0, backgroundImage:`radial-gradient(ellipse at 70% 30%, ${T.gold}20 0%, transparent 50%), radial-gradient(ellipse at 20% 80%, #1a3a5025 0%, transparent 40%)`}}/>
             <div style={{position:"relative"}}>
-              <div style={{fontFamily:FONT_BODY, fontSize:13, fontWeight:700, color:T.gold, textTransform:"uppercase", letterSpacing:"0.14em", marginBottom:16}}>ROM Concierge</div>
+              <div style={{fontFamily:FONT_BODY, fontSize:13, fontWeight:700, color:T.gold, textTransform:"uppercase", letterSpacing:"0.14em", marginBottom:16}}>RŌM Concierge</div>
               <div style={{fontFamily:FONT_DISPLAY, fontSize:isMobile?36:48, color:T.white, fontWeight:400, lineHeight:1.05, marginBottom:20}}>
                 Don't search.<br/>
                 <span style={{color:T.gold, fontStyle:"italic"}}>Just tell us where.</span>
@@ -622,7 +621,7 @@ export default function HomePage() {
             </div>
             <div style={{marginTop:28}}>
               <button onClick={()=>window.location.href="/concierge"} style={{background:T.gold, border:"none", borderRadius:6, padding:"13px 28px", fontFamily:FONT_BODY, fontSize:15, fontWeight:700, color:T.ink, cursor:"pointer"}}>
-                Try ROM Concierge →
+                Try RŌM Concierge →
               </button>
             </div>
           </div>

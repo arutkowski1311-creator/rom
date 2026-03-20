@@ -512,7 +512,7 @@ export default function ConciergePage() {
               <div style={{ fontFamily: FONT_BODY, fontSize: 16, color: T.silver, marginBottom: 32 }}>How do you want to do this?</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 {[
-                  { id: "standard", title: "ROM Concierge", sub: "We'll handle the details. You set the direction." },
+                  { id: "standard", title: "RŌM Concierge", sub: "We'll handle the details. You set the direction." },
                   { id: "surprise", title: "Surprise Me", sub: "Just the basics. We handle everything else." },
                 ].map(m => (
                   <button key={m.id} onClick={() => { setMode(m.id); setStep(1); }}
@@ -886,7 +886,7 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
               {itinerary.lodging.map((l, i) => (
                 <div key={i} style={{ background: T.steel, border: `1px solid ${l.isPartner ? T.gold : T.wire}`, borderRadius: 8, padding: 16, position: "relative" }}>
-                  {l.isPartner && <div style={{ position: "absolute", top: 8, right: 8, fontFamily: FONT_BODY, fontSize: 10, fontWeight: 700, color: T.ink, background: T.gold, borderRadius: 4, padding: "2px 6px", textTransform: "uppercase", letterSpacing: "0.06em" }}>ROM Partner</div>}
+                  {l.isPartner && <div style={{ position: "absolute", top: 8, right: 8, fontFamily: FONT_BODY, fontSize: 10, fontWeight: 700, color: T.ink, background: T.gold, borderRadius: 4, padding: "2px 6px", textTransform: "uppercase", letterSpacing: "0.06em" }}>RŌM Partner</div>}
                   <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.white, fontWeight: 600 }}>{l.name}</div>
                   <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 2 }}>{l.type} {l.pricePerNight ? `\u00B7 ${l.pricePerNight}/night` : l.priceRange ? `\u00B7 ${l.priceRange}` : ""}</div>
                   {l.totalEstimate && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver, marginTop: 2 }}>Est. total: {l.totalEstimate}</div>}

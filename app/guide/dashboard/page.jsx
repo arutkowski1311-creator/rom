@@ -132,7 +132,7 @@ function BookingPanel({ booking, onClose, onAccept, onDecline }) {
                 <span style={{fontFamily:FONT_BODY, fontSize:13, color:l==="Your earnings"?T.gold:T.parchment, fontWeight:l==="Your earnings"?700:400}}>{v}</span>
               </div>
             ))}
-            <div style={{marginTop:4, fontFamily:FONT_BODY, fontSize:11, color:T.muted}}>Rōm charges guests a 15% service fee separately. Your listed price is your payout.</div>
+            <div style={{marginTop:4, fontFamily:FONT_BODY, fontSize:11, color:T.muted}}>RŌM charges guests a 15% service fee separately. Your listed price is your payout.</div>
           </div>
 
           {/* Review (if completed + reviewed) */}

@@ -67,7 +67,7 @@ function LoginForm({ onSwitch }) {
   return (
     <div>
       <div style={{fontFamily:FONT_DISPLAY, fontSize:36, color:T.white, fontWeight:400, marginBottom:6}}>Welcome back</div>
-      <div style={{fontFamily:FONT_BODY, fontSize:14, color:T.silver, marginBottom:32}}>Sign in to your Rōm account.</div>
+      <div style={{fontFamily:FONT_BODY, fontSize:14, color:T.silver, marginBottom:32}}>Sign in to your RŌM account.</div>
       {error && <div style={{background:T.redGlow, border:`1px solid ${T.red}`, borderRadius:6, padding:"12px 14px", marginBottom:20}}><div style={{fontFamily:FONT_BODY, fontSize:13, color:"#cc9090"}}>{error}</div></div>}
       <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com"/>
       <Field label="Password" type="password" value={password} onChange={setPassword} placeholder="Your password"/>
