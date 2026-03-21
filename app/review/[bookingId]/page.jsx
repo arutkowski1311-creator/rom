@@ -75,7 +75,7 @@ export default function ReviewPage({ params }) {
       // Insert review
       await supabase.from("reviews").insert({
         guide_id: booking.guide_id,
-        reviewer_id: user.id,
+        guest_id: user.id,
         booking_id: bookingId,
         rating,
         body: text,

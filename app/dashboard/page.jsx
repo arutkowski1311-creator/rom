@@ -725,7 +725,7 @@ export default function GuestDashboard() {
                           </div>
                         )}
                         {b.status==="completed" && !b.reviewed && (
-                          <div style={{marginTop:10}} onClick={e=>{e.stopPropagation();setReviewBooking(b);}}>
+                          <div style={{marginTop:10}} onClick={e=>{e.stopPropagation();window.location.href=`/review/${b.id}`;}}>
                             <span style={{fontFamily:FONT_BODY, fontSize:11, fontWeight:700, color:T.gold, background:T.goldGlow, border:`1px solid ${T.gold}`, borderRadius:4, padding:"4px 10px", cursor:"pointer"}}>✦ Leave a review</span>
                           </div>
                         )}

@@ -940,10 +940,18 @@ export default function GuideProfilePage({ params }) {
 
       const { data: reviews } = await supabase
         .from("reviews")
-        .select("*, profiles(full_name)")
+        .select("*")
         .eq("guide_id", g.id)
         .order("created_at", { ascending: false })
         .limit(10);
+
+      // Get reviewer names
+      const reviewerIds = (reviews || []).map(r => r.guest_id).filter(Boolean);
+      let reviewerNames = {};
+      if (reviewerIds.length > 0) {
+        const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", reviewerIds);
+        (profs || []).forEach(p => { reviewerNames[p.id] = p.full_name; });
+      }
 
       // Fetch licenses for credentials display
       const { data: licenses } = await supabase
@@ -987,7 +995,7 @@ export default function GuideProfilePage({ params }) {
         })),
         reviews: (reviews || []).map(r => ({
           id: r.id,
-          guest: r.profiles?.full_name || "Traveler",
+          guest: reviewerNames[r.guest_id] || "Traveler",
           rating: r.rating,
           date: new Date(r.created_at).toLocaleDateString("en-US", { month:"short", year:"numeric" }),
           trip: r.trip_label || "",
