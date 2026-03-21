@@ -519,6 +519,8 @@ export default function GuestDashboard() {
             includes: b.includes || "",
             meetingPoint: b.meeting_point || "",
             reviewed: false,
+            guideId: b.guide_id,
+            waiverSigned: b.waiver_signed || false,
           };
         });
 
@@ -552,13 +554,46 @@ export default function GuestDashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       const booking = bookings.find(b => b.id === bookingId);
       if (user && booking) {
+        const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
+
         await supabase.from("reviews").insert({
-          guide_id: null, // will need guide_id — skipping for now
+          guide_id: booking.guideId,
           reviewer_id: user.id,
           booking_id: bookingId,
           rating,
           body: text,
+          trip_label: booking.package || "",
+          solicited: true,
         });
+
+        // Update guide's rating and review count
+        const { data: allReviews } = await supabase
+          .from("reviews")
+          .select("rating")
+          .eq("guide_id", booking.guideId);
+        if (allReviews?.length) {
+          const avg = (allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length).toFixed(2);
+          await supabase.from("guides").update({
+            rating: avg,
+            review_count: allReviews.length,
+          }).eq("id", booking.guideId);
+        }
+
+        // Notify guide
+        await supabase.from("guide_notifications").insert({
+          guide_id: booking.guideId,
+          type: "review_received",
+          title: `${profile?.full_name || "A guest"} left you a ${rating}-star review`,
+          body: text.length > 100 ? text.substring(0, 100) + "…" : text,
+          metadata: { booking_id: bookingId, rating },
+        });
+
+        // Send review notification email
+        fetch("/api/reviews/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ guideId: booking.guideId, reviewerName: profile?.full_name || "Guest", rating, body: text, tripLabel: booking.package }),
+        }).catch(console.error);
       }
     } catch(e) { console.error("Review error:", e); }
     setBookings(bs => bs.map(b => b.id===bookingId ? {...b, reviewed:true} : b));

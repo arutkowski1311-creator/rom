@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
                 <p style="color: #555; font-size: 15px; margin: 0 0 24px; line-height: 1.6;">
                   Your ${booking.package_title || "trip"} with ${guideName} — we'd love to hear how it went. Your review helps other travelers find great experiences and helps ${guideName} grow their business.
                 </p>
-                <a href="https://romlife.co/dashboard" style="display: block; background: #c9a96e; color: #0d0d0d; text-decoration: none; text-align: center; padding: 14px; border-radius: 6px; font-weight: 700; font-size: 14px;">
+                <a href="https://romlife.co/review/${booking.id}" style="display: block; background: #c9a96e; color: #0d0d0d; text-decoration: none; text-align: center; padding: 14px; border-radius: 6px; font-weight: 700; font-size: 14px;">
                   Leave a Review →
                 </a>
                 <p style="color: #aaa; font-size: 12px; margin: 16px 0 0; text-align: center;">Takes less than a minute</p>
@@ -115,7 +115,7 @@ export async function GET(req: NextRequest) {
                 <p style="color: #555; font-size: 15px; margin: 0 0 24px; line-height: 1.6;">
                   A quick review of your ${booking.package_title || "trip"} helps future guests make confident decisions. Even a sentence or two makes a difference.
                 </p>
-                <a href="https://romlife.co/dashboard" style="display: block; background: #c9a96e; color: #0d0d0d; text-decoration: none; text-align: center; padding: 14px; border-radius: 6px; font-weight: 700; font-size: 14px;">
+                <a href="https://romlife.co/review/${booking.id}" style="display: block; background: #c9a96e; color: #0d0d0d; text-decoration: none; text-align: center; padding: 14px; border-radius: 6px; font-weight: 700; font-size: 14px;">
                   Leave a Review →
                 </a>
               </div>
