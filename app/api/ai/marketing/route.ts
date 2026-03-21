@@ -65,11 +65,13 @@ ${context?.topic ? `Focus topic: ${context.topic}` : ""}
 Return your response as JSON with this structure:
 {
   "options": [
-    { "title": "Option 1 label", "content": "The actual content", "hashtags": ["if applicable"] },
-    { "title": "Option 2 label", "content": "The actual content", "hashtags": ["if applicable"] },
-    { "title": "Option 3 label", "content": "The actual content", "hashtags": ["if applicable"] }
+    { "title": "Option 1 label", "content": "The actual content", "hashtags": ["if applicable"], "headline": "Short bold headline for image overlay (max 8 words)", "subline": "One supporting sentence for image overlay" },
+    { "title": "Option 2 label", "content": "The actual content", "hashtags": ["if applicable"], "headline": "Short bold headline for image overlay (max 8 words)", "subline": "One supporting sentence for image overlay" },
+    { "title": "Option 3 label", "content": "The actual content", "hashtags": ["if applicable"], "headline": "Short bold headline for image overlay (max 8 words)", "subline": "One supporting sentence for image overlay" }
   ]
-}`;
+}
+
+The headline and subline will be overlaid on the guide's real photos as a branded content card. Keep the headline punchy and visual — it needs to stop someone scrolling.`;
 
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
@@ -91,6 +93,14 @@ Return your response as JSON with this structure:
     } catch {
       parsed = { options: [{ title: "Generated", content: text, hashtags: [] }] };
     }
+
+    // Include guide photos for branded card generation
+    parsed.guidePhotos = guide.gallery_photos || [];
+    parsed.coverPhoto = guide.cover_photo_url || null;
+    parsed.profilePhoto = guide.profile_photo_url || null;
+    parsed.guideName = guideName;
+    parsed.guideLocation = guide.location || "";
+    parsed.guideActivity = guide.categories?.[0] || "Adventure";
 
     return NextResponse.json(parsed);
   } catch (err: any) {
