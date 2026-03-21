@@ -624,7 +624,7 @@ export default function GuestDashboard() {
       {/* ── NAV — void ── */}
       <div style={{position:"sticky", top:0, zIndex:100, background:T.void, borderBottom:`1px solid ${T.wire}`, height:64, display:"flex", alignItems:"center"}}>
         <div style={{maxWidth:1200, margin:"0 auto", padding:"0 40px", width:"100%", display:"flex", justifyContent:"space-between", alignItems:"center"}}>
-          <div style={{fontFamily:FONT_DISPLAY, fontSize:26, color:T.gold, letterSpacing:"0.14em", fontWeight:500}}>RŌM</div>
+          <div style={{fontFamily:FONT_DISPLAY, fontSize:26, color:T.gold, letterSpacing:"0.14em", fontWeight:500, cursor:"pointer"}} onClick={()=>window.location.href="/"}>RŌM</div>
           <div style={{display:"flex", gap:24, alignItems:"center"}}>
             <span style={{fontFamily:FONT_BODY, fontSize:14, color:T.ash, cursor:"pointer"}}>Explore</span>
             <div style={{display:"flex", alignItems:"center", gap:10}}>

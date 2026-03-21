@@ -620,7 +620,7 @@ function GuideProfile({ guide=GUIDE }) {
       {/* ── NAV — void (darkest) ── */}
       <div style={{position:"fixed",top:0,left:0,right:0,zIndex:100,height:64,background:T.void,borderBottom:`1px solid ${T.wire}`,display:"flex",alignItems:"center"}}>
         <div style={{maxWidth:1160,margin:"0 auto",padding:"0 36px",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{fontFamily:FONT_DISPLAY,fontSize:26,color:T.gold,letterSpacing:"0.14em",fontWeight:500}}>RŌM</div>
+          <div style={{fontFamily:FONT_DISPLAY,fontSize:26,color:T.gold,letterSpacing:"0.14em",fontWeight:500,cursor:"pointer"}} onClick={()=>window.location.href="/"}>RŌM</div>
           <div style={{display:"flex",gap:28,alignItems:"center"}}>
             <span style={{fontFamily:FONT_BODY,fontSize:14,color:T.ash,cursor:"pointer"}}>Explore</span>
             <span style={{fontFamily:FONT_BODY,fontSize:14,color:T.ash,cursor:"pointer"}}>Become a Guide</span>

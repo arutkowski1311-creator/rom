@@ -205,6 +205,220 @@ function BookingPanel({ booking, onClose, onAccept, onDecline, onComplete, onCan
   );
 }
 
+// ─── POST-TRIP EXPENSE INTERVIEW ──────────────────────────────────────────────
+const EXPENSE_PRESETS_BY_TYPE = {
+  "Fly Fishing": [
+    { emoji:"🚗", label:"Drove to the spot?", category:"Fuel", defaultAmount:45 },
+    { emoji:"⛽", label:"Buy gas?", category:"Fuel", defaultAmount:50 },
+    { emoji:"🪱", label:"Bait, flies, or tackle?", category:"Supplies", defaultAmount:30 },
+    { emoji:"🍔", label:"Food or meals for guests?", category:"Food & Meals", defaultAmount:35 },
+    { emoji:"🚤", label:"Launch or access fees?", category:"License & Permits", defaultAmount:20 },
+    { emoji:"🔧", label:"Gear or equipment?", category:"Gear", defaultAmount:50 },
+  ],
+  "Hunting": [
+    { emoji:"🚗", label:"Drove to the spot?", category:"Fuel", defaultAmount:55 },
+    { emoji:"⛽", label:"Buy gas?", category:"Fuel", defaultAmount:60 },
+    { emoji:"🔫", label:"Ammo or supplies?", category:"Supplies", defaultAmount:40 },
+    { emoji:"🍔", label:"Food or meals?", category:"Food & Meals", defaultAmount:35 },
+    { emoji:"📋", label:"Permits or access fees?", category:"License & Permits", defaultAmount:25 },
+    { emoji:"🔧", label:"Gear or equipment?", category:"Gear", defaultAmount:50 },
+  ],
+  "default": [
+    { emoji:"🚗", label:"Drove to the spot?", category:"Fuel", defaultAmount:45 },
+    { emoji:"⛽", label:"Buy gas?", category:"Fuel", defaultAmount:50 },
+    { emoji:"🍔", label:"Food or meals for guests?", category:"Food & Meals", defaultAmount:30 },
+    { emoji:"🎒", label:"Gear, bait, or supplies?", category:"Supplies", defaultAmount:30 },
+    { emoji:"🅿️", label:"Parking or access fees?", category:"Other", defaultAmount:15 },
+    { emoji:"🔧", label:"Any other expenses?", category:"Other", defaultAmount:25 },
+  ],
+};
+
+function ExpenseInterview({ booking, guideId, guideCategories, onDone, onSkip }) {
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState([]); // { category, amount, label }
+  const [currentAmount, setCurrentAmount] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [done, setDone] = useState(false);
+  const [customDesc, setCustomDesc] = useState("");
+  const [customAmount, setCustomAmount] = useState("");
+
+  const activityType = guideCategories?.[0] || "default";
+  const presets = EXPENSE_PRESETS_BY_TYPE[activityType] || EXPENSE_PRESETS_BY_TYPE["default"];
+  const isLastPreset = step >= presets.length;
+  const isSummary = step > presets.length;
+
+  const handleYes = (preset) => {
+    const amt = currentAmount ? parseFloat(currentAmount) : preset.defaultAmount;
+    setAnswers(a => [...a, { category: preset.category, amount: amt, label: preset.label }]);
+    setCurrentAmount("");
+    setStep(s => s + 1);
+  };
+
+  const handleNo = () => {
+    setCurrentAmount("");
+    setStep(s => s + 1);
+  };
+
+  const handleAddCustom = () => {
+    if (customAmount && parseFloat(customAmount) > 0) {
+      setAnswers(a => [...a, { category: "Other", amount: parseFloat(customAmount), label: customDesc || "Other expense" }]);
+      setCustomDesc("");
+      setCustomAmount("");
+    }
+    setStep(s => s + 1);
+  };
+
+  const handleLogAll = async () => {
+    if (answers.length === 0) { onDone(); return; }
+    setSaving(true);
+    try {
+      for (const exp of answers) {
+        await fetch("/api/expenses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            guideId,
+            category: exp.category,
+            amount: exp.amount,
+            description: exp.label.replace("?", ""),
+            date: booking.date || new Date().toISOString().slice(0, 10),
+            bookingId: booking.id,
+            taxDeductible: true,
+          }),
+        });
+      }
+      setDone(true);
+      setTimeout(() => onDone(), 2000);
+    } catch (e) {
+      console.error("Expense save error:", e);
+      setSaving(false);
+    }
+  };
+
+  const totalDeductions = answers.reduce((s, a) => s + a.amount, 0);
+
+  return (
+    <div style={{position:"fixed", inset:0, zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(0,0,0,0.75)", backdropFilter:"blur(4px)"}}>
+      <div style={{background:T.carbon, border:`1px solid ${T.wire}`, borderRadius:14, width:"100%", maxWidth:440, maxHeight:"90vh", overflow:"auto", padding:0}}>
+        {/* Header */}
+        <div style={{padding:"24px 28px 16px", borderBottom:`1px solid ${T.wire}`}}>
+          <div style={{fontFamily:FONT_DISPLAY, fontSize:22, color:T.white, marginBottom:4}}>Log trip expenses</div>
+          <div style={{fontFamily:FONT_BODY, fontSize:13, color:T.silver}}>{booking.package} · {booking.guest}</div>
+        </div>
+
+        <div style={{padding:"24px 28px"}}>
+          {done ? (
+            /* Success */
+            <div style={{textAlign:"center", padding:"32px 0"}}>
+              <div style={{fontSize:48, marginBottom:16}}>✓</div>
+              <div style={{fontFamily:FONT_DISPLAY, fontSize:24, color:T.gold, marginBottom:8}}>
+                ${totalDeductions.toFixed(0)} logged
+              </div>
+              <div style={{fontFamily:FONT_BODY, fontSize:14, color:T.silver}}>
+                {answers.length} expense{answers.length !== 1 ? "s" : ""} linked to this trip
+              </div>
+            </div>
+          ) : isSummary || isLastPreset ? (
+            /* Summary / Anything else step */
+            isLastPreset && !isSummary ? (
+              <div>
+                <div style={{fontFamily:FONT_BODY, fontSize:16, color:T.parchment, marginBottom:16}}>
+                  Anything else?
+                </div>
+                <div style={{display:"flex", gap:8, marginBottom:16}}>
+                  <input value={customDesc} onChange={e=>setCustomDesc(e.target.value)} placeholder="What for?" style={{flex:1, background:T.steel, border:`1px solid ${T.wire}`, borderRadius:6, padding:"10px 12px", fontFamily:FONT_BODY, fontSize:14, color:T.parchment, outline:"none"}}/>
+                  <div style={{position:"relative", width:100}}>
+                    <span style={{position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", fontFamily:FONT_BODY, fontSize:14, color:T.muted}}>$</span>
+                    <input type="number" value={customAmount} onChange={e=>setCustomAmount(e.target.value)} placeholder="0" style={{width:"100%", background:T.steel, border:`1px solid ${T.wire}`, borderRadius:6, padding:"10px 12px 10px 22px", fontFamily:FONT_BODY, fontSize:14, color:T.parchment, outline:"none", boxSizing:"border-box"}}/>
+                  </div>
+                </div>
+                <div style={{display:"flex", gap:10}}>
+                  {customAmount && parseFloat(customAmount) > 0 ? (
+                    <GoldBtn full onClick={handleAddCustom}>Add & Continue</GoldBtn>
+                  ) : (
+                    <GoldBtn full onClick={()=>setStep(s=>s+1)}>
+                      {answers.length > 0 ? "Review & Log" : "Skip — no expenses"}
+                    </GoldBtn>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* Final summary */
+              <div>
+                {answers.length > 0 ? (
+                  <>
+                    <div style={{fontFamily:FONT_BODY, fontSize:13, color:T.silver, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:14}}>Trip Expenses</div>
+                    {answers.map((a, i) => (
+                      <div key={i} style={{display:"flex", justifyContent:"space-between", padding:"10px 0", borderBottom:i < answers.length - 1 ? `1px solid ${T.rim}` : "none"}}>
+                        <span style={{fontFamily:FONT_BODY, fontSize:14, color:T.parchment}}>{a.label.replace("?","")}</span>
+                        <span style={{fontFamily:FONT_BODY, fontSize:14, color:T.gold, fontWeight:700}}>${a.amount.toFixed(2)}</span>
+                      </div>
+                    ))}
+                    <div style={{display:"flex", justifyContent:"space-between", padding:"14px 0 0", marginTop:8, borderTop:`2px solid ${T.wire}`}}>
+                      <span style={{fontFamily:FONT_BODY, fontSize:15, fontWeight:700, color:T.parchment}}>Total deductions</span>
+                      <span style={{fontFamily:FONT_DISPLAY, fontSize:22, color:T.gold}}>${totalDeductions.toFixed(2)}</span>
+                    </div>
+                    <div style={{marginTop:20}}>
+                      <GoldBtn full onClick={handleLogAll} disabled={saving}>
+                        {saving ? "Saving…" : `Log ${answers.length} Expense${answers.length !== 1 ? "s" : ""}`}
+                      </GoldBtn>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{textAlign:"center", padding:"20px 0"}}>
+                    <div style={{fontFamily:FONT_BODY, fontSize:15, color:T.silver, marginBottom:16}}>No expenses for this trip.</div>
+                    <GoldBtn full onClick={onDone}>Done</GoldBtn>
+                  </div>
+                )}
+              </div>
+            )
+          ) : (
+            /* Question step */
+            <div>
+              <div style={{display:"flex", alignItems:"center", gap:4, marginBottom:20}}>
+                {presets.map((_, i) => (
+                  <div key={i} style={{flex:1, height:3, borderRadius:2, background:i <= step ? T.gold : T.wire, transition:"background 0.2s"}}/>
+                ))}
+              </div>
+              <div style={{textAlign:"center", marginBottom:24}}>
+                <div style={{fontSize:40, marginBottom:12}}>{presets[step].emoji}</div>
+                <div style={{fontFamily:FONT_DISPLAY, fontSize:20, color:T.white, marginBottom:8}}>
+                  {presets[step].label}
+                </div>
+              </div>
+              {/* Amount input (shown but pre-filled) */}
+              <div style={{display:"flex", justifyContent:"center", marginBottom:24}}>
+                <div style={{position:"relative", width:140}}>
+                  <span style={{position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", fontFamily:FONT_DISPLAY, fontSize:22, color:T.muted}}>$</span>
+                  <input
+                    type="number"
+                    value={currentAmount || presets[step].defaultAmount}
+                    onChange={e => setCurrentAmount(e.target.value)}
+                    style={{width:"100%", textAlign:"center", background:T.steel, border:`1px solid ${T.wire}`, borderRadius:8, padding:"14px 14px 14px 28px", fontFamily:FONT_DISPLAY, fontSize:24, color:T.gold, outline:"none", boxSizing:"border-box"}}
+                  />
+                </div>
+              </div>
+              <div style={{display:"flex", gap:10}}>
+                <GoldBtn full onClick={() => handleYes(presets[step])}>Yes</GoldBtn>
+                <button onClick={handleNo} style={{flex:1, background:"none", border:`1px solid ${T.wire}`, borderRadius:6, padding:"13px", fontFamily:FONT_BODY, fontSize:14, fontWeight:700, color:T.ash, cursor:"pointer"}}>No</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Skip */}
+        {!done && (
+          <div style={{padding:"0 28px 20px", textAlign:"center"}}>
+            <button onClick={onSkip} style={{background:"none", border:"none", fontFamily:FONT_BODY, fontSize:13, color:T.muted, cursor:"pointer", padding:"8px 16px"}}>
+              Skip for now
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── TABS ─────────────────────────────────────────────────────────────────────
 const TABS = ["Overview","Bookings","Calendar","Packages","Messages","Earnings","Finances","Marketing","Analytics","Guests","Licenses","Profile"];
 
@@ -236,6 +450,7 @@ export default function GuideDashboard() {
   const [pkgSaving, setPkgSaving] = useState(false);
   const [healthScore, setHealthScore] = useState(null); // { health_score, health_action, health_components }
   const [contentQueue, setContentQueue] = useState([]); // pending content_pieces
+  const [expenseInterview, setExpenseInterview] = useState(null); // booking object to show interview for
 
   // Check for Stripe redirect return
   useEffect(() => {
@@ -350,6 +565,7 @@ export default function GuideDashboard() {
         coverPhoto: g.cover_photo_url || null,
         galleryPhotos: g.gallery_photos || [],
         subscription_tier: g.subscription_tier || "spark",
+        categories: g.categories || [],
       });
 
       // Fetch bookings for this guide
@@ -520,8 +736,11 @@ export default function GuideDashboard() {
       });
       if (!res.ok) throw new Error("Failed to complete");
     } catch(e) { console.error(e); }
+    const completedBooking = bookings.find(b => b.id === id);
     setBookings(bs=>bs.map(b=>b.id===id?{...b,status:"completed"}:b));
     setActiveBooking(null);
+    // Show expense interview
+    if (completedBooking) setExpenseInterview(completedBooking);
   };
 
   const cancelBooking = async (id, reason) => {
@@ -617,7 +836,7 @@ export default function GuideDashboard() {
       {/* ── NAV — void ── */}
       <div style={{position:"sticky",top:0,zIndex:100,background:T.void,borderBottom:`1px solid ${T.wire}`,height:64,display:"flex",alignItems:"center"}}>
         <div style={{maxWidth:1280,margin:"0 auto",padding:"0 40px",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{fontFamily:FONT_DISPLAY,fontSize:26,color:T.gold,letterSpacing:"0.14em",fontWeight:500}}>RŌM</div>
+          <div style={{fontFamily:FONT_DISPLAY,fontSize:26,color:T.gold,letterSpacing:"0.14em",fontWeight:500,cursor:"pointer"}} onClick={()=>window.location.href="/"}>RŌM</div>
           <div style={{display:"flex",gap:20,alignItems:"center"}}>
             {pendingCount>0 && (
               <div onClick={()=>{setTab("Bookings");setBookingFilter("pending");}} style={{display:"flex",alignItems:"center",gap:8,background:T.goldGlow,border:`1px solid ${T.gold}`,borderRadius:20,padding:"5px 12px",cursor:"pointer"}}>
@@ -1281,7 +1500,7 @@ export default function GuideDashboard() {
           {/* ── MARKETING ── */}
           {tab==="Marketing" && (
             <FeatureGate tier={guide?.subscription_tier} feature="Marketing">
-              <MarketingTab guide={guide} contentQueue={contentQueue} />
+              <MarketingTab guide={{...guide, id: guideId}} contentQueue={contentQueue} />
             </FeatureGate>
           )}
 
@@ -1422,6 +1641,16 @@ export default function GuideDashboard() {
 
       {activeBooking && (
         <BookingPanel booking={activeBooking} onClose={()=>setActiveBooking(null)} onAccept={accept} onDecline={decline} onComplete={completeTrip} onCancel={cancelBooking}/>
+      )}
+
+      {expenseInterview && (
+        <ExpenseInterview
+          booking={expenseInterview}
+          guideId={guideId}
+          guideCategories={guide.categories || []}
+          onDone={() => setExpenseInterview(null)}
+          onSkip={() => setExpenseInterview(null)}
+        />
       )}
     </>
   );

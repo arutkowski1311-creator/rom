@@ -305,7 +305,7 @@ export default function SearchPage() {
 
       <div style={{position:"fixed",top:0,left:0,right:0,zIndex:100,height:64,background:T.void,borderBottom:`1px solid ${T.wire}`,display:"flex",alignItems:"center"}}>
         <div style={{width:"100%",padding:"0 28px",display:"flex",alignItems:"center",gap:20}}>
-          <div style={{fontFamily:FONT_DISPLAY,fontSize:24,color:T.gold,letterSpacing:"0.14em",fontWeight:500,flexShrink:0}}>RŌM</div>
+          <div style={{fontFamily:FONT_DISPLAY,fontSize:24,color:T.gold,letterSpacing:"0.14em",fontWeight:500,flexShrink:0,cursor:"pointer"}} onClick={()=>window.location.href="/"}>RŌM</div>
           <div style={{flex:1,maxWidth:500,position:"relative"}}>
             <span style={{position:"absolute",left:13,top:"50%",transform:"translateY(-50%)",color:T.muted,fontSize:16}}>⌕</span>
             <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search by guide, destination, or activity…"
