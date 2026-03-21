@@ -11,6 +11,17 @@ export default function LicensesTab({ guideId }) {
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
 
+  // Insurance state
+  const [insurance, setInsurance] = useState({ provider: "", policyNumber: "", expiryDate: "", documentUrl: "" });
+  const [insuranceSaving, setInsuranceSaving] = useState(false);
+  const [insuranceLoaded, setInsuranceLoaded] = useState(false);
+
+  // Waiver template state
+  const [waiverTemplate, setWaiverTemplate] = useState(null);
+  const [waiverContent, setWaiverContent] = useState("");
+  const [waiverSaving, setWaiverSaving] = useState(false);
+  const [showWaiverEditor, setShowWaiverEditor] = useState(false);
+
   // Form state
   const [name, setName] = useState("");
   const [licenseNumber, setLicenseNumber] = useState("");
@@ -33,6 +44,35 @@ export default function LicensesTab({ guideId }) {
         .eq("guide_id", guideId)
         .order("expiry_date", { ascending: true });
       setLicenses(data || []);
+
+      // Load insurance info
+      const { data: guide } = await supabase
+        .from("guides")
+        .select("insurance_provider, insurance_policy_number, insurance_expiry_date, insurance_document_url, insurance_verified")
+        .eq("id", guideId)
+        .single();
+      if (guide) {
+        setInsurance({
+          provider: guide.insurance_provider || "",
+          policyNumber: guide.insurance_policy_number || "",
+          expiryDate: guide.insurance_expiry_date || "",
+          documentUrl: guide.insurance_document_url || "",
+          verified: guide.insurance_verified || false,
+        });
+        setInsuranceLoaded(true);
+      }
+
+      // Load waiver template
+      const { data: templates } = await supabase
+        .from("waiver_templates")
+        .select("*")
+        .eq("guide_id", guideId)
+        .eq("active", true)
+        .limit(1);
+      if (templates?.length > 0) {
+        setWaiverTemplate(templates[0]);
+        setWaiverContent(templates[0].content);
+      }
     } catch (e) {
       console.error("License load error:", e);
     }
@@ -90,6 +130,42 @@ export default function LicensesTab({ guideId }) {
     } catch (e) {
       console.error("Delete license error:", e);
     }
+  };
+
+  const saveInsurance = async () => {
+    setInsuranceSaving(true);
+    try {
+      const supabase = getSupabase();
+      await supabase.from("guides").update({
+        insurance_provider: insurance.provider || null,
+        insurance_policy_number: insurance.policyNumber || null,
+        insurance_expiry_date: insurance.expiryDate || null,
+        insurance_document_url: insurance.documentUrl || null,
+      }).eq("id", guideId);
+    } catch (e) { console.error("Insurance save error:", e); }
+    setInsuranceSaving(false);
+  };
+
+  const saveWaiverTemplate = async () => {
+    setWaiverSaving(true);
+    try {
+      const res = await fetch("/api/waivers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          guideId,
+          name: "Standard Liability Waiver",
+          content: waiverContent,
+          templateId: waiverTemplate?.id || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.template) {
+        setWaiverTemplate(data.template);
+        setShowWaiverEditor(false);
+      }
+    } catch (e) { console.error("Waiver save error:", e); }
+    setWaiverSaving(false);
   };
 
   // Expiry status helper
@@ -203,6 +279,113 @@ export default function LicensesTab({ guideId }) {
           })}
         </div>
       )}
+
+      {/* ── INSURANCE SECTION ── */}
+      <div style={{ marginTop: 40 }}>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, color: T.white, fontWeight: 400, marginBottom: 8 }}>Insurance</div>
+        <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.silver, marginBottom: 20 }}>Your liability insurance details. Verified guides get a badge on their profile.</div>
+
+        <div style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 10, padding: 24 }}>
+          {insurance.verified && (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: T.greenGlow, border: `1px solid ${T.green}`, borderRadius: 4, padding: "4px 12px", marginBottom: 16 }}>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.green }}>✓ INSURANCE VERIFIED</span>
+            </div>
+          )}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 600, color: T.ash, display: "block", marginBottom: 6 }}>Insurance Provider</label>
+              <input value={insurance.provider} onChange={e => setInsurance(prev => ({ ...prev, provider: e.target.value }))} placeholder="e.g. State Farm, NICA"
+                style={{ width: "100%", background: T.lifted, border: `1px solid ${T.rim}`, borderRadius: 6, padding: "10px 12px", fontFamily: FONT_BODY, fontSize: 14, color: T.parchment, outline: "none" }} />
+            </div>
+            <div>
+              <label style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 600, color: T.ash, display: "block", marginBottom: 6 }}>Policy Number</label>
+              <input value={insurance.policyNumber} onChange={e => setInsurance(prev => ({ ...prev, policyNumber: e.target.value }))} placeholder="Policy #"
+                style={{ width: "100%", background: T.lifted, border: `1px solid ${T.rim}`, borderRadius: 6, padding: "10px 12px", fontFamily: FONT_BODY, fontSize: 14, color: T.parchment, outline: "none" }} />
+            </div>
+            <div>
+              <label style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 600, color: T.ash, display: "block", marginBottom: 6 }}>Expiry Date</label>
+              <input type="date" value={insurance.expiryDate} onChange={e => setInsurance(prev => ({ ...prev, expiryDate: e.target.value }))}
+                style={{ width: "100%", background: T.lifted, border: `1px solid ${T.rim}`, borderRadius: 6, padding: "10px 12px", fontFamily: FONT_BODY, fontSize: 14, color: T.parchment, outline: "none" }} />
+            </div>
+            <div>
+              <label style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 600, color: T.ash, display: "block", marginBottom: 6 }}>Certificate URL (optional)</label>
+              <input value={insurance.documentUrl} onChange={e => setInsurance(prev => ({ ...prev, documentUrl: e.target.value }))} placeholder="Link to your certificate"
+                style={{ width: "100%", background: T.lifted, border: `1px solid ${T.rim}`, borderRadius: 6, padding: "10px 12px", fontFamily: FONT_BODY, fontSize: 14, color: T.parchment, outline: "none" }} />
+            </div>
+          </div>
+          <div style={{ marginTop: 16 }}>
+            <GoldBtn small onClick={saveInsurance} disabled={insuranceSaving}>{insuranceSaving ? "Saving…" : "Save Insurance"}</GoldBtn>
+          </div>
+        </div>
+      </div>
+
+      {/* ── WAIVER TEMPLATE SECTION ── */}
+      <div style={{ marginTop: 40 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, color: T.white, fontWeight: 400 }}>Liability Waiver</div>
+          {!showWaiverEditor && <GoldBtn small onClick={() => { setShowWaiverEditor(true); if (!waiverContent) setWaiverContent(DEFAULT_WAIVER_TEXT); }}>{waiverTemplate ? "Edit Waiver" : "Set Up Waiver"}</GoldBtn>}
+        </div>
+        <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.silver, marginBottom: 20 }}>Guests sign this before each trip. We include a standard template — customize it for your activity.</div>
+
+        {waiverTemplate && !showWaiverEditor && (
+          <div style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 10, padding: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <span style={{ fontFamily: FONT_BODY, fontSize: 14, fontWeight: 600, color: T.parchment }}>{waiverTemplate.name}</span>
+                <span style={{ fontFamily: FONT_BODY, fontSize: 10, fontWeight: 700, color: T.green, background: T.greenGlow, borderRadius: 3, padding: "2px 8px" }}>ACTIVE</span>
+              </div>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.muted }}>Updated {new Date(waiverTemplate.updated_at).toLocaleDateString()}</span>
+            </div>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, lineHeight: 1.6, maxHeight: 120, overflow: "hidden", whiteSpace: "pre-wrap" }}>{waiverTemplate.content.substring(0, 300)}…</div>
+          </div>
+        )}
+
+        {showWaiverEditor && (
+          <div style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 10, padding: 24 }}>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.silver, marginBottom: 12 }}>Edit your waiver text below. Guests will see this before signing.</div>
+            <textarea value={waiverContent} onChange={e => setWaiverContent(e.target.value)} rows={16}
+              style={{ width: "100%", boxSizing: "border-box", background: T.lifted, border: `1px solid ${T.rim}`, borderRadius: 6, padding: "14px 16px", fontFamily: FONT_BODY, fontSize: 13, color: T.parchment, outline: "none", resize: "vertical", lineHeight: 1.7, marginBottom: 16 }} />
+            <div style={{ display: "flex", gap: 10 }}>
+              <GoldBtn small onClick={saveWaiverTemplate} disabled={waiverSaving}>{waiverSaving ? "Saving…" : "Save Waiver"}</GoldBtn>
+              <button onClick={() => setShowWaiverEditor(false)} style={{ background: "none", border: `1px solid ${T.wire}`, borderRadius: 6, padding: "9px 20px", fontFamily: FONT_BODY, fontSize: 13, color: T.ash, cursor: "pointer" }}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {!waiverTemplate && !showWaiverEditor && (
+          <div style={{ textAlign: "center", padding: "40px 20px", background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 10 }}>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.muted, marginBottom: 16 }}>No waiver set up yet. We'll use a standard template until you customize one.</div>
+            <GoldBtn small onClick={() => { setShowWaiverEditor(true); setWaiverContent(DEFAULT_WAIVER_TEXT); }}>Customize Waiver</GoldBtn>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
+
+const DEFAULT_WAIVER_TEXT = `ASSUMPTION OF RISK AND LIABILITY WAIVER
+
+I, the undersigned participant, acknowledge and agree to the following:
+
+1. ASSUMPTION OF RISK
+I understand that outdoor adventure activities involve inherent risks including but not limited to: physical injury, property damage, exposure to weather, wildlife encounters, water hazards, uneven terrain, and other natural conditions. I voluntarily assume all risks associated with my participation.
+
+2. RELEASE OF LIABILITY
+I hereby release, waive, and discharge the guide, their business, RŌM Inc., and their respective officers, agents, and employees from any and all liability, claims, demands, or causes of action arising from my participation in the guided experience, except in cases of gross negligence or willful misconduct.
+
+3. MEDICAL ACKNOWLEDGMENT
+I confirm that I am physically capable of participating in the planned activity. I have disclosed any relevant medical conditions, allergies, or physical limitations.
+
+4. MINOR PARTICIPANTS
+If signing on behalf of a minor participant (under 18), I am their parent or legal guardian and accept these terms on their behalf.
+
+5. PHOTO/VIDEO RELEASE
+I grant the guide and RŌM permission to use photographs and video taken during the experience for promotional purposes, unless I opt out in writing before the trip.
+
+6. CANCELLATION & WEATHER
+Trips may be rescheduled due to unsafe conditions at the guide's discretion.
+
+7. GOVERNING LAW
+This waiver shall be governed by the laws of the state in which the activity takes place.
+
+By signing below, I confirm that I have read and understand this waiver, that I am at least 18 years old (or signing as parent/guardian of a minor), and that I agree to all terms.`;

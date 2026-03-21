@@ -8,6 +8,7 @@
     { "path": "/api/cron/repeat-guest", "schedule": "0 7 * * *" },
     { "path": "/api/cron/health-score", "schedule": "0 6 * * 0" },
     { "path": "/api/cron/weekly-content", "schedule": "0 6 * * 1" },
-    { "path": "/api/cron/calendar-fill", "schedule": "0 6 * * 3" }
+    { "path": "/api/cron/calendar-fill", "schedule": "0 6 * * 3" },
+    { "path": "/api/cron/waiver-reminders", "schedule": "0 8 * * *" }
   ]
 }

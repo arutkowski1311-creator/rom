@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 
   const { data: bookings48 } = await supabase
     .from("bookings")
-    .select("id, guide_id, guest_id, guest_name, guest_email, trip_date, package_title, message, guests")
+    .select("id, guide_id, guest_id, guest_name, guest_email, trip_date, package_title, message, guests, waiver_signed")
     .eq("status", "confirmed")
     .eq("trip_date", dateStr48)
     .is("itinerary_sent_at", null);
@@ -118,6 +118,14 @@ export async function GET(req: NextRequest) {
                 ${gv.anticipation_builder ? `<div style="background: #f0ece4; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
                   <p style="font-size: 14px; color: #555; line-height: 1.7; margin: 0; font-style: italic;">${gv.anticipation_builder}</p>
                 </div>` : ""}
+
+                ${!booking.waiver_signed ? `<div style="background: #fff3e0; border: 1px solid #e8a840; border-radius: 8px; padding: 20px; margin-bottom: 16px; text-align: center;">
+                  <div style="font-size: 14px; font-weight: 700; color: #8a6520; margin-bottom: 8px;">⚠️ Waiver Required</div>
+                  <p style="font-size: 13px; color: #8a6520; margin: 0 0 12px;">Please sign your liability waiver before the trip.</p>
+                  <a href="https://romlife.co/waiver/${booking.id}" style="display: inline-block; background: #c9a96e; color: #0d0d0d; text-decoration: none; padding: 10px 24px; border-radius: 6px; font-weight: 700; font-size: 13px;">Sign Waiver →</a>
+                </div>` : `<div style="background: #e8f5e9; border: 1px solid #4caf50; border-radius: 8px; padding: 12px; margin-bottom: 16px; text-align: center;">
+                  <span style="font-size: 13px; color: #2e7d32; font-weight: 600;">✓ Waiver signed — you're all set</span>
+                </div>`}
 
                 <p style="color: #888; font-size: 13px; line-height: 1.6; margin: 0;">
                   Questions? Reply to this email or message ${guideName} through your <a href="https://romlife.co/dashboard" style="color: #c9a96e;">RŌM dashboard</a>.
