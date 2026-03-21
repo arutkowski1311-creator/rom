@@ -1493,7 +1493,7 @@ export default function GuideDashboard() {
           {/* ── FINANCES ── */}
           {tab==="Finances" && (
             <FeatureGate tier={guide?.subscription_tier} feature="Finances">
-              <FinancesTab guide={guide} />
+              <FinancesTab guide={{...guide, id: guideId}} />
             </FeatureGate>
           )}
 
@@ -1507,7 +1507,7 @@ export default function GuideDashboard() {
           {/* ── ANALYTICS ── */}
           {tab==="Analytics" && (
             <FeatureGate tier={guide?.subscription_tier} feature="Analytics">
-              <AnalyticsTab guide={guide} />
+              <AnalyticsTab guide={{...guide, id: guideId}} />
             </FeatureGate>
           )}
 
