@@ -77,6 +77,104 @@ function EarningsChart({ data }) {
   );
 }
 
+// ─── ITINERARY PANEL (inside BookingPanel) ───────────────────────────────────
+function ItineraryPanel({ bookingId, guideId }) {
+  const [itinerary, setItinerary] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/itineraries?booking_id=${bookingId}`).then(r => r.json()).then(d => {
+      if (d && !d.error) setItinerary(d);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [bookingId]);
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    try {
+      await fetch("/api/ai/itinerary", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId }),
+      });
+      const res = await fetch(`/api/itineraries?booking_id=${bookingId}`);
+      const d = await res.json();
+      if (d && !d.error) setItinerary(d);
+    } catch (e) { console.error(e); }
+    setGenerating(false);
+  };
+
+  const handlePublish = async () => {
+    if (!itinerary) return;
+    setPublishing(true);
+    try {
+      await fetch("/api/itineraries", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: itinerary.id, status: "published" }),
+      });
+      setItinerary(i => ({ ...i, status: "published" }));
+    } catch (e) { console.error(e); }
+    setPublishing(false);
+  };
+
+  if (loading) return <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.muted,padding:"12px 0"}}>Loading itinerary…</div>;
+
+  const content = itinerary?.content;
+  const status = itinerary?.status;
+
+  return (
+    <div style={{background:T.steel, border:`1px solid ${T.wire}`, borderRadius:8, padding:20}}>
+      <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12}}>
+        <div style={{fontFamily:FONT_BODY, fontSize:11, fontWeight:700, color:T.silver, textTransform:"uppercase", letterSpacing:"0.08em"}}>Trip Itinerary</div>
+        {status && (
+          <span style={{fontFamily:FONT_BODY, fontSize:10, fontWeight:700, padding:"2px 8px", borderRadius:3,
+            background: status === "published" ? "rgba(74,222,128,0.15)" : "rgba(201,151,58,0.15)",
+            color: status === "published" ? "#4ade80" : T.gold,
+            border: `1px solid ${status === "published" ? "#4ade80" : T.gold}`,
+          }}>{status === "published" ? "PUBLISHED" : "DRAFT"}</span>
+        )}
+      </div>
+
+      {!itinerary ? (
+        <div>
+          <div style={{fontFamily:FONT_BODY, fontSize:13, color:T.ash, marginBottom:12}}>No itinerary generated yet. Create a personalized trip plan for your guest.</div>
+          <GoldBtn small onClick={handleGenerate} disabled={generating}>
+            {generating ? "Generating…" : "Generate Itinerary"}
+          </GoldBtn>
+        </div>
+      ) : (
+        <div>
+          {/* Preview */}
+          {content?.header?.title && (
+            <div style={{fontFamily:FONT_DISPLAY, fontSize:16, color:T.white, marginBottom:4}}>{content.header.title}</div>
+          )}
+          {content?.header?.vibe_statement && (
+            <div style={{fontFamily:FONT_BODY, fontSize:12, color:T.silver, fontStyle:"italic", marginBottom:8}}>{content.header.vibe_statement}</div>
+          )}
+          {content?.timeline?.length > 0 && (
+            <div style={{fontFamily:FONT_BODY, fontSize:11, color:T.muted, marginBottom:12}}>{content.timeline.length} timeline blocks · {content.what_to_bring?.length || 0} gear items</div>
+          )}
+
+          <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
+            {status === "draft" && (
+              <GoldBtn small onClick={handlePublish} disabled={publishing}>
+                {publishing ? "Publishing…" : "Publish to Guest"}
+              </GoldBtn>
+            )}
+            <button onClick={() => window.open(`/itinerary/${bookingId}`, "_blank")} style={{background:"none", border:`1px solid ${T.wire}`, borderRadius:5, padding:"6px 14px", fontFamily:FONT_BODY, fontSize:11, fontWeight:700, color:T.ash, cursor:"pointer"}}>
+              Preview
+            </button>
+            <button onClick={handleGenerate} disabled={generating} style={{background:"none", border:`1px solid ${T.wire}`, borderRadius:5, padding:"6px 14px", fontFamily:FONT_BODY, fontSize:11, fontWeight:700, color:T.muted, cursor:"pointer"}}>
+              {generating ? "Regenerating…" : "Regenerate"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── BOOKING DETAIL PANEL ─────────────────────────────────────────────────────
 function BookingPanel({ booking, onClose, onAccept, onDecline, onComplete, onCancel }) {
   const [replyText, setReplyText] = useState("");
@@ -148,6 +246,11 @@ function BookingPanel({ booking, onClose, onAccept, onDecline, onComplete, onCan
               <p style={{fontFamily:FONT_BODY, fontSize:13, color:T.ash, lineHeight:1.65, fontStyle:"italic"}}>"{booking.reviewText}"</p>
               <div style={{fontFamily:FONT_BODY, fontSize:12, color:"#6aaa84", marginTop:10}}>— {booking.guest}</div>
             </div>
+          )}
+
+          {/* Itinerary */}
+          {(booking.status==="confirmed" || booking.status==="completed") && (
+            <ItineraryPanel bookingId={booking.id} guideId={booking.guideId || booking.guide_id}/>
           )}
 
           {/* Quick reply */}
@@ -713,6 +816,11 @@ export default function GuideDashboard() {
     try {
       const supabase = getSupabase();
       await supabase.from("bookings").update({ status: "confirmed" }).eq("id", id);
+      // Auto-generate itinerary in background
+      fetch("/api/ai/itinerary", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId: id }),
+      }).catch(console.error);
     } catch(e) { console.error(e); }
     setBookings(bs=>bs.map(b=>b.id===id?{...b,status:"confirmed"}:b));
     setActiveBooking(null);
