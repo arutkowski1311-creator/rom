@@ -684,7 +684,7 @@ function GuideProfile({ guide=GUIDE }) {
                 {activeTab==="about"&&(
                   <div style={{paddingTop:36}}>
                     <h2 style={{fontFamily:FONT_DISPLAY,fontSize:38,color:T.white,fontWeight:400,marginBottom:22}}>About {guide.name.split(" ")[0]}</h2>
-                    {guide.bio.split("\\n\\n").map((p,i)=>(
+                    {(guide.bio || "").split(/\n\n|\r\n\r\n/).map((p,i)=>(
                       <p key={i} style={{fontFamily:FONT_BODY,fontSize:16,color:T.ash,lineHeight:1.85,marginBottom:20}}>{p}</p>
                     ))}
                     {/* Stat cards */}
@@ -714,107 +714,21 @@ function GuideProfile({ guide=GUIDE }) {
                       </div>
                     )}
 
-                    {/* Gallery */}
-                    {guide.galleryPhotos && guide.galleryPhotos.length > 0 && (
-                      <div style={{marginTop:40}}>
-                        <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:16}}>Trip Gallery</div>
-                        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-                          {guide.galleryPhotos.filter(Boolean).map((url,i)=>(
-                            <div key={i} style={{aspectRatio:"1",borderRadius:8,overflow:"hidden"}}>
-                              <img src={url} alt={`Trip photo ${i+1}`} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Credentials */}
-                    {guide.slug==="rich-garfield" && (
-                      <>
+                    {/* Credentials — from licenses table + verified/insured flags */}
+                    {((guide.licenses && guide.licenses.length > 0) || guide.verified || guide.insured || guide.licensed) && (
                       <div style={{marginTop:48,marginBottom:20}}>
                         <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:16}}>Credentials & Certifications</div>
                         <div style={{display:"flex",flexWrap:"wrap",gap:10}}>
-                          {["NYS Licensed Professional Guide","30 Years Experience","Fully Insured","Adirondack Native","Independent Operator"].map(c=>(
-                            <span key={c} style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment,background:T.steel,border:`1px solid ${T.gold}`,borderRadius:20,padding:"6px 14px",display:"flex",alignItems:"center",gap:6}}>
-                              <span style={{color:T.gold,fontSize:11}}>✓</span> {c}
+                          {guide.licenses.map(lic=>(
+                            <span key={lic.id} style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment,background:T.steel,border:`1px solid ${T.gold}`,borderRadius:20,padding:"6px 14px",display:"flex",alignItems:"center",gap:6}}>
+                              <span style={{color:T.gold,fontSize:11}}>✓</span> {lic.name}
                             </span>
                           ))}
+                          {guide.verified && <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment,background:T.steel,border:`1px solid ${T.gold}`,borderRadius:20,padding:"6px 14px",display:"flex",alignItems:"center",gap:6}}><span style={{color:T.gold,fontSize:11}}>✓</span> Verified</span>}
+                          {guide.insured && <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment,background:T.steel,border:`1px solid ${T.gold}`,borderRadius:20,padding:"6px 14px",display:"flex",alignItems:"center",gap:6}}><span style={{color:T.gold,fontSize:11}}>✓</span> Insured</span>}
+                          {guide.yearsExperience && <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment,background:T.steel,border:`1px solid ${T.gold}`,borderRadius:20,padding:"6px 14px",display:"flex",alignItems:"center",gap:6}}><span style={{color:T.gold,fontSize:11}}>✓</span> {guide.yearsExperience} Years Experience</span>}
                         </div>
                       </div>
-
-                      {/* Waters */}
-                      <div style={{marginTop:40}}>
-                        <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:16}}>Waters Rich Guides</div>
-                        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                          {[
-                            ["West Branch Ausable River","Lake Placid · Wilmington · Jay","The crown jewel of Adirondack fly fishing. World-class spring hatches, wild browns and brookies."],
-                            ["East Branch Ausable River","Keene Valley area","Remote and wild. Less pressure, big fish. Rich knows every pool."],
-                            ["Saranac River","Saranac Lake · Plattsburgh","Diverse water from freestone rapids to slow pools. Excellent brown trout fishery."],
-                            ["Backcountry Ponds","Northern Adirondacks","Remote brook trout ponds most anglers never find. Accessible only by foot or canoe."],
-                            ["Salmon River","Malone area","Landlocked Atlantic salmon and trophy browns in overlooked water."],
-                          ].map(([name,loc,desc])=>(
-                            <div key={name} style={{background:T.steel,border:`1px solid ${T.wire}`,borderLeft:`3px solid ${T.gold}`,borderRadius:8,padding:"18px 20px"}}>
-                              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
-                                <div style={{fontFamily:FONT_BODY,fontSize:15,fontWeight:700,color:T.white}}>{name}</div>
-                                <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,textAlign:"right",flexShrink:0,marginLeft:12}}>📍 {loc}</div>
-                              </div>
-                              <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.ash,lineHeight:1.65}}>{desc}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Best times */}
-                      <div style={{marginTop:40}}>
-                        <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:16}}>Best Times to Book</div>
-                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                          {[
-                            ["🌱 Spring (Apr–Jun)","Prime hatch season. Hendricksons, Cahills, and Green Drakes bring the biggest fish up. Book early."],
-                            ["☀️ Summer (Jul–Aug)","Early morning and evening sessions. Terrestrials and hoppers on warm afternoons."],
-                            ["🍂 Fall (Sep–Oct)","Brown trout pre-spawn. Some of the biggest fish of the year on the swing."],
-                            ["❄️ Winter (Dec–Mar)","Ice fishing available. Backcountry brook trout through the ice."],
-                          ].map(([season,desc])=>(
-                            <div key={season} style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:"16px 18px"}}>
-                              <div style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:T.parchment,marginBottom:8}}>{season}</div>
-                              <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash,lineHeight:1.6}}>{desc}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* What to expect */}
-                      <div style={{marginTop:40,background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:"28px 24px"}}>
-                        <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:20}}>What to Bring</div>
-                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                          {["Valid NY fishing license","Wading boots (felt or rubber sole)","Polarized sunglasses","Rain jacket","Lunch and water","Camera — you'll want it"].map(item=>(
-                            <div key={item} style={{display:"flex",alignItems:"center",gap:8,fontFamily:FONT_BODY,fontSize:14,color:T.ash}}>
-                              <span style={{color:T.gold,fontSize:12}}>✦</span> {item}
-                            </div>
-                          ))}
-                        </div>
-                        <div style={{marginTop:20,paddingTop:16,borderTop:`1px solid ${T.rim}`,fontFamily:FONT_BODY,fontSize:13,color:T.silver,lineHeight:1.65}}>
-                          Rich provides all flies, leaders, and tippet. Loaner rods available on request. All skill levels welcome — beginners will leave as better anglers.
-                        </div>
-                      </div>
-
-                      {/* Reviews highlight */}
-                      <div style={{marginTop:40}}>
-                        <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:16}}>What Guests Say</div>
-                        <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                          {[
-                            ["Rich is the standard against which all fly guides should be measured. Full day, pulled 30+ trout.","Mark D."],
-                            ["Shakespeare lost sleep wishing he could write like Rick Garfield reads water.","James K."],
-                            ["Rich is an incredible guide. World class experience fly fishing for small stream Brook trout.","Sarah M."],
-                            ["Found him highly knowledgeable and no-nonsense. Got on fish and learned a ton. Will be back.","Tom R."],
-                          ].map(([quote,author])=>(
-                            <div key={author} style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:"18px 20px"}}>
-                              <div style={{fontFamily:FONT_DISPLAY,fontSize:17,color:T.parchment,fontStyle:"italic",lineHeight:1.65,marginBottom:10}}>"{quote}"</div>
-                              <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.gold,fontWeight:700}}>— {author}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      </>
                     )}
                   </div>
                 )}
@@ -868,37 +782,49 @@ function GuideProfile({ guide=GUIDE }) {
                         <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,marginTop:4}}>{guide.reviewCount} reviews</div>
                       </div>
                       <div style={{flex:1}}>
-                        {[5,4,3].map(n=>(
-                          <div key={n} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                            <span style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,width:8}}>{n}</span>
-                            <span style={{fontSize:11,color:T.gold}}>★</span>
-                            <div style={{flex:1,height:6,background:T.lifted,borderRadius:3,overflow:"hidden"}}>
-                              <div style={{height:"100%",width:n===5?"96%":n===4?"3%":"1%",background:T.gold,borderRadius:3}}/>
+                        {[5,4,3,2,1].map(n=>{
+                          const count = guide.reviews.filter(r=>r.rating===n).length;
+                          const pct = guide.reviews.length > 0 ? Math.round((count/guide.reviews.length)*100) : 0;
+                          return (
+                            <div key={n} style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+                              <span style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,width:8}}>{n}</span>
+                              <span style={{fontSize:11,color:T.gold}}>★</span>
+                              <div style={{flex:1,height:6,background:T.lifted,borderRadius:3,overflow:"hidden"}}>
+                                <div style={{height:"100%",width:`${pct}%`,background:T.gold,borderRadius:3}}/>
+                              </div>
+                              <span style={{fontFamily:FONT_BODY,fontSize:11,color:T.muted,width:24,textAlign:"right"}}>{count}</span>
                             </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    {guide.reviews.length === 0 ? (
+                      <div style={{textAlign:"center",padding:"48px 20px",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10}}>
+                        <div style={{fontFamily:FONT_DISPLAY,fontSize:24,color:T.silver,marginBottom:8}}>No reviews yet</div>
+                        <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.muted}}>Be the first to book with {guide.name.split(" ")[0]} and leave a review.</div>
+                      </div>
+                    ) : (
+                      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                        {guide.reviews.map(r=>(
+                          <div key={r.id} style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:24}}>
+                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,paddingBottom:14,borderBottom:`1px solid ${T.rim}`}}>
+                              <div style={{display:"flex",gap:12,alignItems:"center"}}>
+                                <div style={{width:40,height:40,borderRadius:"50%",background:T.lifted,border:`1px solid ${T.wire}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FONT_BODY,fontSize:15,fontWeight:700,color:T.ash}}>{(r.guest||"T")[0]}</div>
+                                <div>
+                                  <div style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:T.parchment}}>{r.guest}</div>
+                                  {r.trip && <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,marginTop:2}}>{r.trip}</div>}
+                                </div>
+                              </div>
+                              <div style={{textAlign:"right"}}>
+                                <Stars rating={r.rating} size={13}/>
+                                <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,marginTop:3}}>{r.date}</div>
+                              </div>
+                            </div>
+                            <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.ash,lineHeight:1.78}}>{r.text}</p>
                           </div>
                         ))}
                       </div>
-                    </div>
-                    <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                      {guide.reviews.map(r=>(
-                        <div key={r.id} style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:24}}>
-                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,paddingBottom:14,borderBottom:`1px solid ${T.rim}`}}>
-                            <div style={{display:"flex",gap:12,alignItems:"center"}}>
-                              <div style={{width:40,height:40,borderRadius:"50%",background:T.lifted,border:`1px solid ${T.wire}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FONT_BODY,fontSize:15,fontWeight:700,color:T.ash}}>{r.guest[0]}</div>
-                              <div>
-                                <div style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:T.parchment}}>{r.guest}</div>
-                                <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,marginTop:2}}>{r.trip}</div>
-                              </div>
-                            </div>
-                            <div style={{textAlign:"right"}}>
-                              <Stars rating={r.rating} size={13}/>
-                              <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,marginTop:3}}>{r.date}</div>
-                            </div>
-                          </div>
-                          <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.ash,lineHeight:1.78}}>{r.text}</p>
-                        </div>
-                      ))}
-                    </div>
+                    )}
                   </div>
                 )}
 
@@ -907,16 +833,23 @@ function GuideProfile({ guide=GUIDE }) {
                   <div style={{paddingTop:36}}>
                     <h2 style={{fontFamily:FONT_DISPLAY,fontSize:38,color:T.white,fontWeight:400,marginBottom:8}}>Field Notes</h2>
                     <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver,marginBottom:32}}>Stories, observations, and honest writing from the water.</p>
-                    <div style={{display:"flex",flexDirection:"column",gap:14}}>
-                      {guide.fieldNotes.map(n=>(
-                        <div key={n.title} style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:28,cursor:"pointer"}}>
-                          <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,marginBottom:10,letterSpacing:"0.1em",textTransform:"uppercase"}}>{n.date}</div>
-                          <h3 style={{fontFamily:FONT_DISPLAY,fontSize:26,color:T.white,fontWeight:400,marginBottom:12,lineHeight:1.2}}>{n.title}</h3>
-                          <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.ash,lineHeight:1.75,marginBottom:14}}>{n.preview}</p>
-                          <div style={{fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:T.gold}}>Read more →</div>
-                        </div>
-                      ))}
-                    </div>
+                    {(!guide.fieldNotes || guide.fieldNotes.length === 0) ? (
+                      <div style={{textAlign:"center",padding:"48px 20px",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10}}>
+                        <div style={{fontFamily:FONT_DISPLAY,fontSize:24,color:T.silver,marginBottom:8}}>Coming soon</div>
+                        <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.muted}}>{guide.name.split(" ")[0]} hasn't published any field notes yet.</div>
+                      </div>
+                    ) : (
+                      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+                        {guide.fieldNotes.map(n=>(
+                          <div key={n.title} style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:28,cursor:"pointer"}}>
+                            <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,marginBottom:10,letterSpacing:"0.1em",textTransform:"uppercase"}}>{n.date}</div>
+                            <h3 style={{fontFamily:FONT_DISPLAY,fontSize:26,color:T.white,fontWeight:400,marginBottom:12,lineHeight:1.2}}>{n.title}</h3>
+                            <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.ash,lineHeight:1.75,marginBottom:14}}>{n.preview}</p>
+                            <div style={{fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:T.gold}}>Read more →</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1012,6 +945,12 @@ export default function GuideProfilePage({ params }) {
         .order("created_at", { ascending: false })
         .limit(10);
 
+      // Fetch licenses for credentials display
+      const { data: licenses } = await supabase
+        .from("licenses")
+        .select("id, name")
+        .eq("guide_id", g.id);
+
       await supabase.rpc("increment_guide_views", { guide_id: g.id }).maybeSingle();
 
       const shaped = {
@@ -1055,6 +994,7 @@ export default function GuideProfilePage({ params }) {
           text: r.body,
         })),
         fieldNotes: [],
+        licenses: licenses || [],
       };
 
       setGuide(shaped);
