@@ -10,13 +10,18 @@ const CONTENT_TYPES = [
   { id: "review_spotlight", label: "Review Spotlight", icon: "RS" },
 ];
 
-export default function MarketingTab({ guide }) {
+const PLATFORM_ICONS = { instagram: "IG", facebook: "FB", email: "✉", tiktok: "TT" };
+
+export default function MarketingTab({ guide, contentQueue: initialQueue = [] }) {
   const [selectedType, setSelectedType] = useState("instagram");
   const [topic, setTopic] = useState("");
   const [generating, setGenerating] = useState(false);
   const [results, setResults] = useState(null);
   const [copied, setCopied] = useState(null);
   const [history, setHistory] = useState([]);
+  const [queue, setQueue] = useState(initialQueue);
+  const [editingContent, setEditingContent] = useState(null);
+  const [editText, setEditText] = useState("");
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -48,8 +53,90 @@ export default function MarketingTab({ guide }) {
     setTimeout(() => setCopied(null), 2000);
   };
 
+  const handleContentAction = async (contentId, action, edited) => {
+    try {
+      await fetch("/api/content/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contentId, action, editedContent: edited }),
+      });
+      setQueue(q => q.filter(c => c.id !== contentId));
+      setEditingContent(null);
+      setEditText("");
+    } catch (e) {
+      console.error("Content action error:", e);
+    }
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* Content Queue */}
+      {queue.length > 0 && (
+        <SectionCard>
+          <SectionHeader>Content Queue — {queue.length} piece{queue.length !== 1 ? "s" : ""} ready</SectionHeader>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.silver, marginBottom: 16 }}>
+            Your weekly content is ready. Approve to use, edit to customize, or skip.
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {queue.map(piece => {
+              const isEditing = editingContent === piece.id;
+              const displayContent = piece.type === "email" ? (() => {
+                try { const p = JSON.parse(piece.content); return `Subject: ${p.subject}\n\n${p.body}`; } catch { return piece.content; }
+              })() : piece.content;
+
+              return (
+                <div key={piece.id} style={{ background: T.lifted, border: `1px solid ${T.wire}`, borderRadius: 8, padding: 16 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <span style={{ fontFamily: FONT_BODY, fontSize: 10, fontWeight: 700, color: T.gold, background: T.goldGlow, borderRadius: 3, padding: "2px 8px" }}>
+                        {PLATFORM_ICONS[piece.platform] || piece.platform}
+                      </span>
+                      <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.muted }}>
+                        {new Date(piece.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </span>
+                    </div>
+                  </div>
+
+                  {isEditing ? (
+                    <div>
+                      <textarea value={editText} onChange={e => setEditText(e.target.value)} rows={5}
+                        style={{ width: "100%", boxSizing: "border-box", background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "10px 12px", fontFamily: FONT_BODY, fontSize: 13, color: T.parchment, outline: "none", resize: "vertical", lineHeight: 1.6, marginBottom: 10 }} />
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button onClick={() => handleContentAction(piece.id, "edit", editText)}
+                          style={{ background: T.gold, border: "none", borderRadius: 5, padding: "6px 16px", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: T.ink, cursor: "pointer" }}>Save & Approve</button>
+                        <button onClick={() => { setEditingContent(null); setEditText(""); }}
+                          style={{ background: "none", border: `1px solid ${T.wire}`, borderRadius: 5, padding: "6px 16px", fontFamily: FONT_BODY, fontSize: 12, color: T.ash, cursor: "pointer" }}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.parchment, lineHeight: 1.6, whiteSpace: "pre-wrap", marginBottom: 8, maxHeight: 120, overflow: "hidden" }}>
+                        {displayContent}
+                      </div>
+                      {piece.hashtags?.length > 0 && (
+                        <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.gold, marginBottom: 10 }}>
+                          {piece.hashtags.map(h => `#${h}`).join(" ")}
+                        </div>
+                      )}
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button onClick={() => handleContentAction(piece.id, "approve")}
+                          style={{ background: T.gold, border: "none", borderRadius: 5, padding: "6px 16px", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: T.ink, cursor: "pointer" }}>Approve ✓</button>
+                        <button onClick={() => { setEditingContent(piece.id); setEditText(displayContent); }}
+                          style={{ background: "none", border: `1px solid ${T.wire}`, borderRadius: 5, padding: "6px 16px", fontFamily: FONT_BODY, fontSize: 12, color: T.ash, cursor: "pointer" }}>Edit</button>
+                        <button onClick={() => { navigator.clipboard.writeText(displayContent + (piece.hashtags?.length ? "\n\n" + piece.hashtags.map(h => `#${h}`).join(" ") : "")); }}
+                          style={{ background: "none", border: `1px solid ${T.wire}`, borderRadius: 5, padding: "6px 16px", fontFamily: FONT_BODY, fontSize: 12, color: T.ash, cursor: "pointer" }}>Copy</button>
+                        <button onClick={() => handleContentAction(piece.id, "skip")}
+                          style={{ background: "none", border: `1px solid ${T.rim}`, borderRadius: 5, padding: "6px 16px", fontFamily: FONT_BODY, fontSize: 12, color: T.muted, cursor: "pointer" }}>Skip</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </SectionCard>
+      )}
+
       {/* Content Type Selector */}
       <SectionCard>
         <SectionHeader>Generate Content</SectionHeader>

@@ -234,6 +234,8 @@ export default function GuideDashboard() {
   const [earningsMonthly, setEarningsMonthly] = useState([]);
   const [editingPkg, setEditingPkg] = useState(null); // package object being edited, or {} for new
   const [pkgSaving, setPkgSaving] = useState(false);
+  const [healthScore, setHealthScore] = useState(null); // { health_score, health_action, health_components }
+  const [contentQueue, setContentQueue] = useState([]); // pending content_pieces
 
   // Check for Stripe redirect return
   useEffect(() => {
@@ -453,6 +455,24 @@ export default function GuideDashboard() {
         setNotifications(notifs);
         setUnreadCount(notifs.filter(n => !n.read_at).length);
       }
+
+      // Fetch health score
+      const { data: intel } = await supabase
+        .from("guide_intelligence")
+        .select("health_score, health_action, health_components")
+        .eq("guide_id", g.id)
+        .single();
+      if (intel) setHealthScore(intel);
+
+      // Fetch pending content pieces
+      const { data: content } = await supabase
+        .from("content_pieces")
+        .select("*")
+        .eq("guide_id", g.id)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(10);
+      if (content) setContentQueue(content);
     } catch(e) { console.error("Guide dashboard error:", e); }
   };
 
@@ -684,6 +704,38 @@ export default function GuideDashboard() {
                 <EarningsChart data={earningsMonthly}/>
               </div>
 
+              {/* Health Score */}
+              {healthScore && (
+                <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:24,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+                  <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:16}}>Business Health</div>
+                  {/* Circular gauge */}
+                  <div style={{position:"relative",width:100,height:100,marginBottom:14}}>
+                    <svg width="100" height="100" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="42" fill="none" stroke={T.wire} strokeWidth="6"/>
+                      <circle cx="50" cy="50" r="42" fill="none"
+                        stroke={healthScore.health_score >= 75 ? T.green : healthScore.health_score >= 50 ? T.gold : T.red}
+                        strokeWidth="6" strokeLinecap="round"
+                        strokeDasharray={`${(healthScore.health_score / 100) * 264} 264`}
+                        transform="rotate(-90 50 50)"/>
+                    </svg>
+                    <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column"}}>
+                      <div style={{fontFamily:FONT_DISPLAY,fontSize:32,color:T.white,fontWeight:300,lineHeight:1}}>{healthScore.health_score}</div>
+                      <div style={{fontFamily:FONT_BODY,fontSize:10,color:T.muted}}>/ 100</div>
+                    </div>
+                  </div>
+                  <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash,textAlign:"center",lineHeight:1.5,maxWidth:220}}>{healthScore.health_action}</div>
+                  {healthScore.health_components && (
+                    <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"center",marginTop:12}}>
+                      {Object.entries(healthScore.health_components).map(([key, val]) => (
+                        <span key={key} style={{fontFamily:FONT_BODY,fontSize:9,color:val >= 70 ? T.green : val >= 40 ? T.gold : T.red,background:val >= 70 ? T.greenGlow : val >= 40 ? T.goldGlow : T.redGlow,borderRadius:3,padding:"2px 6px"}}>
+                          {key.replace(/_/g," ")} {val}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Pending bookings */}
               <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,overflow:"hidden"}}>
                 <div style={{background:T.void,padding:"14px 18px",borderBottom:`1px solid ${T.wire}`,display:"flex",justifyContent:"space-between"}}>
@@ -703,27 +755,72 @@ export default function GuideDashboard() {
                 </div>
               </div>
 
-              {/* Trip Match Notifications */}
+              {/* Notifications — Priority Queue */}
               {notifications.length > 0 && (
                 <div style={{gridColumn:"1 / -1",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,overflow:"hidden"}}>
                   <div style={{background:T.void,padding:"14px 20px",borderBottom:`1px solid ${T.wire}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em"}}>Trip Matches</div>
+                      <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em"}}>Notifications</div>
                       {unreadCount>0&&<span style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.ink,background:T.gold,borderRadius:10,padding:"2px 8px"}}>{unreadCount} new</span>}
                     </div>
                     {unreadCount>0&&<div onClick={markNotificationsRead} style={{fontFamily:FONT_BODY,fontSize:12,color:T.gold,cursor:"pointer",fontWeight:600}}>Mark all read</div>}
                   </div>
                   <div style={{padding:16}}>
-                    {notifications.slice(0,5).map(n=>(
-                      <div key={n.id} style={{padding:"12px 0",borderBottom:`1px solid ${T.rim}`,background:!n.read_at?"rgba(193,163,98,0.05)":"transparent",marginBottom:4,borderRadius:4,paddingLeft:8}}>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                          <div style={{fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:!n.read_at?T.gold:T.parchment}}>{n.title}</div>
-                          <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.muted}}>{new Date(n.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>
+                    {notifications
+                      .sort((a,b) => {
+                        // Unread first, then high priority, then by date
+                        if (!a.read_at && b.read_at) return -1;
+                        if (a.read_at && !b.read_at) return 1;
+                        if (a.priority === "high" && b.priority !== "high") return -1;
+                        if (a.priority !== "high" && b.priority === "high") return 1;
+                        return new Date(b.created_at) - new Date(a.created_at);
+                      })
+                      .slice(0,5).map(n=>{
+                      const NTYPE_ICONS = {
+                        trip_match: "🎯", booking_request: "📩", booking_cancelled: "❌", trip_completed: "✓",
+                        vip_detected: "✦", itinerary_generated: "📋", guest_briefing: "📌", lead_response_sent: "💬",
+                        content_ready: "✍️", business_health_weekly: "📊", calendar_fill_activated: "📈",
+                        repeat_guest_sent: "🔄", license_expiring: "⚠️", balance_charged: "💰", balance_charge_failed: "⚠️",
+                      };
+                      const icon = NTYPE_ICONS[n.type] || "◉";
+                      const isAutoExec = !!n.auto_executed_at;
+                      return (
+                        <div key={n.id} style={{padding:"12px 14px",borderBottom:`1px solid ${T.rim}`,background:!n.read_at?(n.priority==="high"?"rgba(180,60,60,0.06)":"rgba(193,163,98,0.05)"):"transparent",marginBottom:4,borderRadius:6,display:"flex",gap:12,alignItems:"flex-start"}}>
+                          <span style={{fontSize:16,flexShrink:0,marginTop:2}}>{icon}</span>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                              <div style={{fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:!n.read_at?T.gold:T.parchment}}>{n.title}</div>
+                              <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
+                                {n.priority==="high"&&<span style={{fontFamily:FONT_BODY,fontSize:9,fontWeight:700,color:T.red,background:T.redGlow,borderRadius:3,padding:"1px 5px"}}>URGENT</span>}
+                                {isAutoExec&&<span style={{fontFamily:FONT_BODY,fontSize:9,fontWeight:700,color:T.green,background:T.greenGlow,borderRadius:3,padding:"1px 5px"}}>AUTO</span>}
+                                <span style={{fontFamily:FONT_BODY,fontSize:11,color:T.muted}}>{new Date(n.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>
+                              </div>
+                            </div>
+                            <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.ash,lineHeight:1.5}}>{n.body}</div>
+                            {n.metadata?.date_start && <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.silver,marginTop:4}}>Dates: {n.metadata.date_start} to {n.metadata.date_end}</div>}
+                            {/* Action buttons for actionable notification types */}
+                            {!n.read_at && !isAutoExec && ["content_ready","calendar_fill_activated","license_expiring"].includes(n.type) && (
+                              <div style={{display:"flex",gap:8,marginTop:8}}>
+                                <button onClick={async()=>{
+                                  await fetch("/api/notifications",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({notificationId:n.id,action:"read"})});
+                                  setNotifications(ns=>ns.map(x=>x.id===n.id?{...x,read_at:new Date().toISOString()}:x));
+                                  setUnreadCount(c=>Math.max(0,c-1));
+                                  if (n.type==="content_ready") setTab("Marketing");
+                                  if (n.type==="license_expiring") setTab("Licenses");
+                                }} style={{background:T.gold,border:"none",borderRadius:5,padding:"5px 14px",fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.ink,cursor:"pointer"}}>
+                                  {n.type==="content_ready"?"Review Content":n.type==="license_expiring"?"View License":"View Details"}
+                                </button>
+                                <button onClick={async()=>{
+                                  await fetch("/api/notifications",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({notificationId:n.id,action:"dismiss"})});
+                                  setNotifications(ns=>ns.map(x=>x.id===n.id?{...x,dismissed_at:new Date().toISOString(),read_at:new Date().toISOString()}:x));
+                                  setUnreadCount(c=>Math.max(0,c-1));
+                                }} style={{background:"none",border:`1px solid ${T.wire}`,borderRadius:5,padding:"5px 14px",fontFamily:FONT_BODY,fontSize:11,color:T.muted,cursor:"pointer"}}>Dismiss</button>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.ash}}>{n.body}</div>
-                        {n.metadata?.date_start && <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.silver,marginTop:4}}>Dates: {n.metadata.date_start} to {n.metadata.date_end}</div>}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1184,7 +1281,7 @@ export default function GuideDashboard() {
           {/* ── MARKETING ── */}
           {tab==="Marketing" && (
             <FeatureGate tier={guide?.subscription_tier} feature="Marketing">
-              <MarketingTab guide={guide} />
+              <MarketingTab guide={guide} contentQueue={contentQueue} />
             </FeatureGate>
           )}
 
