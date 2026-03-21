@@ -9,8 +9,8 @@ const CATEGORIES = [
   "Snowshoeing","Ice Fishing","Backpacking","Mountain Biking",
 ];
 
-const STEPS = ["Account","Profile","Activities","Packages","Plan","Payments","Done"];
-const PROGRESS_STEPS = STEPS.slice(0, 6); // progress bar shows first 6
+const STEPS = ["Account","Interview","Profile","Activities","Packages","Plan","Payments","Done"];
+const PROGRESS_STEPS = STEPS.slice(0, 7); // progress bar shows first 7
 
 function Input({ label, value, onChange, placeholder, type="text", multiline=false, required=false }) {
   return (
@@ -53,7 +53,26 @@ export default function GuideOnboarding() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
 
-  // Step 1 — Profile
+  // Step 1 — Interview
+  const INTERVIEW_QUESTIONS = [
+    { id: "origin", q: "How did you become a guide? Was there a moment you knew this was it?" },
+    { id: "knowledge", q: "What do you know about your craft that most people don't?" },
+    { id: "favorite_spot", q: "Describe your favorite spot — you don't have to give away coordinates." },
+    { id: "perfect_day", q: "What does a perfect day with a client look like?" },
+    { id: "surprise_guest", q: "Tell me about a guest who surprised you." },
+    { id: "ideal_client", q: "What kind of clients do you do your best work with?" },
+    { id: "busiest_month", q: "What's your busiest month and why do you think that is?" },
+    { id: "keeps_up_at_night", q: "What keeps you up at night about your business?" },
+    { id: "running_perfectly", q: "If your business was running perfectly, what would be different from today?" },
+  ];
+  const [interviewIdx, setInterviewIdx] = useState(0);
+  const [interviewAnswers, setInterviewAnswers] = useState({});
+  const [currentAnswer, setCurrentAnswer] = useState("");
+  const [interviewDone, setInterviewDone] = useState(false);
+  const [generatedProfile, setGeneratedProfile] = useState(null);
+  const [generatingProfile, setGeneratingProfile] = useState(false);
+
+  // Step 2 — Profile
   const [tagline, setTagline] = useState("");
   const [bio, setBio] = useState("");
   const [location, setLocation] = useState("");
@@ -92,7 +111,7 @@ export default function GuideOnboarding() {
     if (params.get("stripe") === "refresh") {
       const gId = params.get("guide_id");
       if (gId) setGuideId(gId);
-      setStep(5);
+      setStep(6);
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
@@ -107,9 +126,9 @@ export default function GuideOnboarding() {
       const data = await res.json();
       if (data.complete) {
         setStripeConnected(true);
-        setStep(6);
+        setStep(7); // → Done
       } else {
-        setStep(5); // Not complete, show retry
+        setStep(6); // Not complete, show retry
       }
     } catch(e) {
       setStep(5);
@@ -152,19 +171,58 @@ export default function GuideOnboarding() {
         id: data.user.id, full_name: fullName, role: "guide", email
       });
       if (profError) { setError(profError.message); setLoading(false); return; }
-      setStep(1);
+      setStep(1); // → Interview
     } catch(e) { setError("Something went wrong. Please try again."); }
     setLoading(false);
   };
 
+  const handleInterviewNext = () => {
+    if (!currentAnswer.trim()) return;
+    const q = INTERVIEW_QUESTIONS[interviewIdx];
+    const updated = { ...interviewAnswers, [q.q]: currentAnswer.trim() };
+    setInterviewAnswers(updated);
+    setCurrentAnswer("");
+    if (interviewIdx < INTERVIEW_QUESTIONS.length - 1) {
+      setInterviewIdx(interviewIdx + 1);
+    } else {
+      // All questions answered — generate profile
+      setInterviewDone(true);
+      generateVoiceProfile(updated);
+    }
+  };
+
+  const generateVoiceProfile = async (answers) => {
+    setGeneratingProfile(true);
+    try {
+      const supabase = getSupabase();
+      const { data: { user } } = await supabase.auth.getUser();
+      // We don't have guideId yet, so we'll save the answers and generate after guide creation
+      // For now, just show the AI-generated preview
+      const res = await fetch("/api/ai/voice-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ guideId: "preview", answers, saveToProfile: false }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setGeneratedProfile(data);
+        setBio(data.bio || "");
+        setTagline(data.headline || "");
+      }
+    } catch (e) {
+      console.error("Profile generation error:", e);
+    }
+    setGeneratingProfile(false);
+  };
+
   const handleProfileSubmit = async () => {
     if (!tagline || !bio || !location) { setError("Tagline, bio, and location are required."); return; }
-    setError(""); setStep(2);
+    setError(""); setStep(3); // → Activities
   };
 
   const handleCategoriesSubmit = async () => {
     if (selectedCats.length === 0) { setError("Select at least one activity type."); return; }
-    setError(""); setStep(3);
+    setError(""); setStep(4); // → Packages
   };
 
   const handlePackagesSubmit = async () => {
@@ -210,7 +268,18 @@ export default function GuideOnboarding() {
       }));
       await supabase.from("packages").insert(pkgInserts);
 
-      setStep(4); // → Choose Plan
+      // Save voice profile and interview data to guide record
+      if (generatedProfile && guide) {
+        await supabase.from("guides").update({
+          voice_profile: generatedProfile.voice_profile || null,
+          ai_headline: generatedProfile.headline || null,
+          ai_bio: generatedProfile.bio || null,
+          specialty_keywords: generatedProfile.specialty_keywords || [],
+          onboarding_interview: interviewAnswers,
+        }).eq("id", guide.id);
+      }
+
+      setStep(5); // → Choose Plan
     } catch(e) { setError("Something went wrong. Please try again."); }
     setLoading(false);
   };
@@ -221,8 +290,7 @@ export default function GuideOnboarding() {
     try {
       const supabase = getSupabase();
       await supabase.from("guides").update({ subscription_tier: selectedTier }).eq("id", guideId);
-      // Core tier is free — skip Stripe subscription, go straight to payment setup
-      setStep(5); // → Connect Stripe (for payouts, not subscription)
+      setStep(6); // → Connect Stripe (for payouts, not subscription)
     } catch(e) { setError("Failed to save plan. Please try again."); }
     setLoading(false);
   };
@@ -248,7 +316,7 @@ export default function GuideOnboarding() {
     setStripeLoading(false);
   };
 
-  const progressPct = (Math.min(step, 5) / 5) * 100;
+  const progressPct = (Math.min(step, 6) / 6) * 100;
   const tier = TIERS[selectedTier];
 
   return (
@@ -271,10 +339,10 @@ export default function GuideOnboarding() {
       </div>
 
       <div style={{minHeight:"100vh",paddingTop:64,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"100px 24px 60px"}}>
-        <div style={{width:"100%",maxWidth:step===4?800:600}}>
+        <div style={{width:"100%",maxWidth:step===5?800:600}}>
 
           {/* Progress bar */}
-          {step < 6 && (
+          {step < 7 && (
             <div style={{marginBottom:40,maxWidth:600,margin:"0 auto 40px"}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
                 {PROGRESS_STEPS.map((s,i)=>(
@@ -308,8 +376,96 @@ export default function GuideOnboarding() {
             </div>
           )}
 
-          {/* Step 1 — Profile */}
+          {/* Step 1 — Interview */}
           {step === 1 && (
+            <div style={{maxWidth:600,margin:"0 auto"}}>
+              {!interviewDone ? (
+                <>
+                  <div style={{fontFamily:FONT_DISPLAY,fontSize:42,color:T.white,fontWeight:400,marginBottom:8}}>Tell us about yourself</div>
+                  <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver,marginBottom:28,lineHeight:1.6}}>
+                    {interviewIdx < 5 ? "A few questions so we can write your profile." : "Last few questions about the business side — this helps us work for you."}
+                  </p>
+
+                  {/* Chat history */}
+                  <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:24,maxHeight:320,overflowY:"auto"}}>
+                    {Object.entries(interviewAnswers).map(([q, a], i) => (
+                      <div key={i}>
+                        <div style={{display:"flex",gap:10,marginBottom:8}}>
+                          <div style={{width:28,height:28,borderRadius:"50%",background:T.goldGlow,border:`1px solid ${T.gold}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FONT_BODY,fontSize:11,color:T.gold,flexShrink:0}}>R</div>
+                          <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:"4px 12px 12px 12px",padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.ash,lineHeight:1.5,maxWidth:"85%"}}>{q}</div>
+                        </div>
+                        <div style={{display:"flex",justifyContent:"flex-end"}}>
+                          <div style={{background:T.goldGlow,border:`1px solid rgba(193,163,98,0.3)`,borderRadius:"12px 4px 12px 12px",padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,lineHeight:1.5,maxWidth:"85%"}}>{a}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Current question */}
+                  <div style={{display:"flex",gap:10,marginBottom:16}}>
+                    <div style={{width:28,height:28,borderRadius:"50%",background:T.goldGlow,border:`1px solid ${T.gold}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FONT_BODY,fontSize:11,color:T.gold,flexShrink:0}}>R</div>
+                    <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:"4px 12px 12px 12px",padding:"10px 14px",fontFamily:FONT_BODY,fontSize:15,color:T.white,lineHeight:1.5,maxWidth:"85%"}}>{INTERVIEW_QUESTIONS[interviewIdx].q}</div>
+                  </div>
+
+                  {/* Answer input */}
+                  <textarea value={currentAnswer} onChange={e=>setCurrentAnswer(e.target.value)} rows={3}
+                    placeholder="Your answer…"
+                    onKeyDown={e=>{ if (e.key==="Enter" && !e.shiftKey) { e.preventDefault(); handleInterviewNext(); } }}
+                    style={{width:"100%",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:"14px 16px",fontFamily:FONT_BODY,fontSize:15,color:T.parchment,outline:"none",resize:"none",lineHeight:1.6,marginBottom:12}}/>
+
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontFamily:FONT_BODY,fontSize:12,color:T.muted}}>{interviewIdx + 1} of {INTERVIEW_QUESTIONS.length}</span>
+                    <GoldBtn onClick={handleInterviewNext} disabled={!currentAnswer.trim()}>
+                      {interviewIdx < INTERVIEW_QUESTIONS.length - 1 ? "Next →" : "Finish →"}
+                    </GoldBtn>
+                  </div>
+                </>
+              ) : generatingProfile ? (
+                <div style={{textAlign:"center",padding:"60px 0"}}>
+                  <div style={{fontFamily:FONT_DISPLAY,fontSize:32,color:T.white,marginBottom:12}}>Writing your profile…</div>
+                  <div style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver}}>Our AI is crafting your bio and voice from your answers.</div>
+                  <div style={{marginTop:24,width:40,height:40,border:`3px solid ${T.wire}`,borderTop:`3px solid ${T.gold}`,borderRadius:"50%",margin:"24px auto 0",animation:"spin 1s linear infinite"}}/>
+                  <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                </div>
+              ) : generatedProfile ? (
+                <div>
+                  <div style={{fontFamily:FONT_DISPLAY,fontSize:42,color:T.white,fontWeight:400,marginBottom:8}}>Your profile is ready</div>
+                  <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver,marginBottom:28}}>We wrote this from your interview answers. Edit anything you'd like.</p>
+
+                  <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:24,marginBottom:16}}>
+                    <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Headline</div>
+                    <input value={tagline} onChange={e=>setTagline(e.target.value)}
+                      style={{width:"100%",background:T.lifted,border:`1px solid ${T.rim}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:15,color:T.white,outline:"none",marginBottom:16}}/>
+
+                    <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Bio</div>
+                    <textarea value={bio} onChange={e=>setBio(e.target.value)} rows={6}
+                      style={{width:"100%",background:T.lifted,border:`1px solid ${T.rim}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none",resize:"vertical",lineHeight:1.6}}/>
+                  </div>
+
+                  {generatedProfile.specialty_keywords?.length > 0 && (
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:24}}>
+                      {generatedProfile.specialty_keywords.map(kw => (
+                        <span key={kw} style={{fontFamily:FONT_BODY,fontSize:11,color:T.ash,background:T.lifted,border:`1px solid ${T.rim}`,borderRadius:4,padding:"3px 10px"}}>{kw}</span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{display:"flex",gap:16}}>
+                    <GoldBtn onClick={()=>setStep(2)}>Looks good — continue →</GoldBtn>
+                    <GoldBtn outline small onClick={()=>{setInterviewDone(false);setInterviewIdx(0);setInterviewAnswers({});setCurrentAnswer("");setGeneratedProfile(null);}}>Start over</GoldBtn>
+                  </div>
+                </div>
+              ) : (
+                <div style={{textAlign:"center",padding:"40px 0"}}>
+                  <div style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver}}>Something went wrong. Try again.</div>
+                  <GoldBtn onClick={()=>{setInterviewDone(false);setInterviewIdx(0);setInterviewAnswers({});}}>Retry</GoldBtn>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 2 — Profile */}
+          {step === 2 && (
             <div style={{maxWidth:600,margin:"0 auto"}}>
               <div style={{fontFamily:FONT_DISPLAY,fontSize:42,color:T.white,fontWeight:400,marginBottom:8}}>Your guide profile</div>
               <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver,marginBottom:36,lineHeight:1.6}}>This is what guests will see when they find you.</p>
@@ -319,14 +475,14 @@ export default function GuideOnboarding() {
               <Input label="Years of experience" value={yearsExp} onChange={setYearsExp} placeholder="e.g. 12" type="number"/>
               <Input label="Website (optional)" value={website} onChange={setWebsite} placeholder="https://yoursite.com"/>
               <div style={{marginTop:32,display:"flex",gap:16}}>
-                <GoldBtn outline small onClick={()=>setStep(0)}>← Back</GoldBtn>
+                <GoldBtn outline small onClick={()=>setStep(1)}>← Back</GoldBtn>
                 <GoldBtn onClick={handleProfileSubmit}>Continue →</GoldBtn>
               </div>
             </div>
           )}
 
-          {/* Step 2 — Categories */}
-          {step === 2 && (
+          {/* Step 3 — Categories */}
+          {step === 3 && (
             <div style={{maxWidth:600,margin:"0 auto"}}>
               <div style={{fontFamily:FONT_DISPLAY,fontSize:42,color:T.white,fontWeight:400,marginBottom:8}}>What do you guide?</div>
               <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver,marginBottom:36,lineHeight:1.6}}>Select all activity types that apply.</p>
@@ -349,14 +505,14 @@ export default function GuideOnboarding() {
                 })}
               </div>
               <div style={{display:"flex",gap:16}}>
-                <GoldBtn outline small onClick={()=>setStep(1)}>← Back</GoldBtn>
+                <GoldBtn outline small onClick={()=>setStep(2)}>← Back</GoldBtn>
                 <GoldBtn onClick={handleCategoriesSubmit}>Continue →</GoldBtn>
               </div>
             </div>
           )}
 
-          {/* Step 3 — Packages */}
-          {step === 3 && (
+          {/* Step 4 — Packages */}
+          {step === 4 && (
             <div style={{maxWidth:600,margin:"0 auto"}}>
               <div style={{fontFamily:FONT_DISPLAY,fontSize:42,color:T.white,fontWeight:400,marginBottom:8}}>Your packages</div>
               <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver,marginBottom:36,lineHeight:1.6}}>Add your trip offerings. You can edit these anytime from your dashboard.</p>
@@ -394,14 +550,14 @@ export default function GuideOnboarding() {
               )}
 
               <div style={{display:"flex",gap:16}}>
-                <GoldBtn outline small onClick={()=>setStep(2)}>← Back</GoldBtn>
+                <GoldBtn outline small onClick={()=>setStep(3)}>← Back</GoldBtn>
                 <GoldBtn onClick={handlePackagesSubmit} disabled={loading}>{loading?"Saving…":"Continue →"}</GoldBtn>
               </div>
             </div>
           )}
 
-          {/* Step 4 — Choose Plan */}
-          {step === 4 && (
+          {/* Step 5 — Choose Plan */}
+          {step === 5 && (
             <div>
               <div style={{textAlign:"center",marginBottom:40}}>
                 <div style={{fontFamily:FONT_DISPLAY,fontSize:42,color:T.white,fontWeight:400,marginBottom:8}}>Choose your plan</div>
@@ -466,15 +622,15 @@ export default function GuideOnboarding() {
                   </div>
                 </div>
                 <div style={{display:"flex",gap:16}}>
-                  <GoldBtn outline small onClick={()=>setStep(3)}>← Back</GoldBtn>
+                  <GoldBtn outline small onClick={()=>setStep(4)}>← Back</GoldBtn>
                   <GoldBtn onClick={handleTierSelect} disabled={loading}>{loading?"Saving…":`Continue with ${TIERS[selectedTier].name} →`}</GoldBtn>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Step 5 — Connect Stripe */}
-          {step === 5 && (
+          {/* Step 6 — Connect Stripe */}
+          {step === 6 && (
             <div style={{maxWidth:600,margin:"0 auto",textAlign:"center"}}>
               <div style={{width:80,height:80,borderRadius:"50%",background:T.steel,border:`2px solid ${T.gold}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 24px",fontSize:36}}>
                 💳
@@ -506,14 +662,14 @@ export default function GuideOnboarding() {
                 {stripeLoading ? "Connecting…" : "Connect with Stripe →"}
               </GoldBtn>
 
-              <button onClick={()=>setStep(6)} style={{display:"block",margin:"16px auto 0",background:"none",border:"none",fontFamily:FONT_BODY,fontSize:13,color:T.muted,cursor:"pointer"}}>
+              <button onClick={()=>setStep(7)} style={{display:"block",margin:"16px auto 0",background:"none",border:"none",fontFamily:FONT_BODY,fontSize:13,color:T.muted,cursor:"pointer"}}>
                 Skip for now — I'll set this up later
               </button>
             </div>
           )}
 
-          {/* Step 6 — Done */}
-          {step === 6 && (
+          {/* Step 7 — Done */}
+          {step === 7 && (
             <div style={{textAlign:"center",padding:"40px 0",maxWidth:600,margin:"0 auto"}}>
               <div style={{width:80,height:80,borderRadius:"50%",background:"#3a7a5420",border:`2px solid #3a7a54`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 24px",fontSize:36,color:"#3a7a54"}}>
                 ✓

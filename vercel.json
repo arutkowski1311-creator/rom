@@ -1,0 +1,9 @@
+{
+  "crons": [
+    { "path": "/api/cron/balance-charges", "schedule": "0 9 * * *" },
+    { "path": "/api/cron/pre-trip", "schedule": "0 8 * * *" },
+    { "path": "/api/cron/review-requests", "schedule": "0 10 * * *" },
+    { "path": "/api/cron/license-check", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/post-trip", "schedule": "0 11 * * *" }
+  ]
+}

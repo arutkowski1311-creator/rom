@@ -6,6 +6,8 @@ import { Stars, StatusPill, GoldBtn, TierBadge, FeatureGate } from "@/app/compon
 import FinancesTab from "./tabs/FinancesTab";
 import MarketingTab from "./tabs/MarketingTab";
 import AnalyticsTab from "./tabs/AnalyticsTab";
+import GuestCRMTab from "./tabs/GuestCRMTab";
+import LicensesTab from "./tabs/LicensesTab";
 
 // ─── DEFAULT STATE (overwritten by fetchData) ────────────────────────────────
 const GUIDE_DEFAULT = {
@@ -76,8 +78,12 @@ function EarningsChart({ data }) {
 }
 
 // ─── BOOKING DETAIL PANEL ─────────────────────────────────────────────────────
-function BookingPanel({ booking, onClose, onAccept, onDecline }) {
+function BookingPanel({ booking, onClose, onAccept, onDecline, onComplete, onCancel }) {
   const [replyText, setReplyText] = useState("");
+  const [cancelConfirm, setCancelConfirm] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [completing, setCompleting] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   return (
     <div style={{position:"fixed", inset:0, zIndex:200, display:"flex", justifyContent:"flex-end"}}>
       <div onClick={onClose} style={{flex:1, background:"rgba(0,0,0,0.7)"}}/>
@@ -160,13 +166,47 @@ function BookingPanel({ booking, onClose, onAccept, onDecline }) {
             <button onClick={()=>onDecline(booking.id)} style={{flex:1, background:"none", border:`1px solid ${T.red}`, borderRadius:6, padding:"11px", fontFamily:FONT_BODY, fontSize:13, fontWeight:700, color:"#aa7a7a", cursor:"pointer"}}>Decline</button>
           </div>
         )}
+
+        {/* Complete Trip */}
+        {booking.status==="confirmed" && (
+          <div style={{padding:"20px 28px", borderTop:`1px solid ${T.wire}`, display:"flex", flexDirection:"column", gap:12}}>
+            {!cancelConfirm ? (
+              <div style={{display:"flex", gap:12}}>
+                <GoldBtn full onClick={async ()=>{
+                  setCompleting(true);
+                  await onComplete(booking.id);
+                  setCompleting(false);
+                }} disabled={completing}>{completing ? "Completing…" : "Complete Trip ✓"}</GoldBtn>
+                <button onClick={()=>setCancelConfirm(true)} style={{flex:1, background:"none", border:`1px solid ${T.red}`, borderRadius:6, padding:"11px", fontFamily:FONT_BODY, fontSize:13, fontWeight:700, color:"#aa7a7a", cursor:"pointer"}}>Cancel Booking</button>
+              </div>
+            ) : (
+              <div style={{background:T.steel, border:`1px solid ${T.wire}`, borderRadius:8, padding:16}}>
+                <div style={{fontFamily:FONT_BODY, fontSize:13, fontWeight:700, color:T.parchment, marginBottom:10}}>Cancel this booking?</div>
+                <div style={{fontFamily:FONT_BODY, fontSize:12, color:T.silver, marginBottom:12}}>The guest's deposit will be refunded automatically.</div>
+                <textarea value={cancelReason} onChange={e=>setCancelReason(e.target.value)} rows={2} placeholder="Reason (optional)"
+                  style={{width:"100%", boxSizing:"border-box", background:T.lifted, border:`1px solid ${T.rim}`, borderRadius:6, padding:"10px 12px", fontFamily:FONT_BODY, fontSize:13, color:T.parchment, outline:"none", resize:"none", marginBottom:12}}/>
+                <div style={{display:"flex", gap:10}}>
+                  <button onClick={async ()=>{
+                    setCancelling(true);
+                    await onCancel(booking.id, cancelReason);
+                    setCancelling(false);
+                    setCancelConfirm(false);
+                  }} disabled={cancelling} style={{flex:1, background:T.red, border:"none", borderRadius:6, padding:"11px", fontFamily:FONT_BODY, fontSize:13, fontWeight:700, color:T.white, cursor:"pointer", opacity:cancelling?0.6:1}}>
+                    {cancelling ? "Cancelling…" : "Confirm Cancellation"}
+                  </button>
+                  <button onClick={()=>{setCancelConfirm(false);setCancelReason("");}} style={{flex:1, background:"none", border:`1px solid ${T.wire}`, borderRadius:6, padding:"11px", fontFamily:FONT_BODY, fontSize:13, fontWeight:600, color:T.ash, cursor:"pointer"}}>Never mind</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 // ─── TABS ─────────────────────────────────────────────────────────────────────
-const TABS = ["Overview","Bookings","Calendar","Packages","Messages","Earnings","Finances","Marketing","Analytics","Profile"];
+const TABS = ["Overview","Bookings","Calendar","Packages","Messages","Earnings","Finances","Marketing","Analytics","Guests","Licenses","Profile"];
 
 export default function GuideDashboard() {
   const [tab, setTab] = useState("Overview");
@@ -446,6 +486,32 @@ export default function GuideDashboard() {
     try {
       const supabase = getSupabase();
       await supabase.from("bookings").update({ status: "cancelled" }).eq("id", id);
+    } catch(e) { console.error(e); }
+    setBookings(bs=>bs.map(b=>b.id===id?{...b,status:"cancelled"}:b));
+    setActiveBooking(null);
+  };
+
+  const completeTrip = async (id) => {
+    try {
+      const res = await fetch("/api/bookings/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId: id }),
+      });
+      if (!res.ok) throw new Error("Failed to complete");
+    } catch(e) { console.error(e); }
+    setBookings(bs=>bs.map(b=>b.id===id?{...b,status:"completed"}:b));
+    setActiveBooking(null);
+  };
+
+  const cancelBooking = async (id, reason) => {
+    try {
+      const res = await fetch("/api/bookings/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId: id, reason, initiatedBy: "guide" }),
+      });
+      if (!res.ok) throw new Error("Failed to cancel");
     } catch(e) { console.error(e); }
     setBookings(bs=>bs.map(b=>b.id===id?{...b,status:"cancelled"}:b));
     setActiveBooking(null);
@@ -1129,6 +1195,20 @@ export default function GuideDashboard() {
             </FeatureGate>
           )}
 
+          {/* ── GUESTS CRM ── */}
+          {tab==="Guests" && (
+            <FeatureGate tier={guide?.subscription_tier} feature="Guests">
+              <GuestCRMTab guideId={guideId} />
+            </FeatureGate>
+          )}
+
+          {/* ── LICENSES ── */}
+          {tab==="Licenses" && (
+            <FeatureGate tier={guide?.subscription_tier} feature="Licenses">
+              <LicensesTab guideId={guideId} />
+            </FeatureGate>
+          )}
+
           {/* ── PROFILE ── */}
           {tab==="Profile" && (
             <div style={{maxWidth:700}}>
@@ -1244,7 +1324,7 @@ export default function GuideDashboard() {
       </div>
 
       {activeBooking && (
-        <BookingPanel booking={activeBooking} onClose={()=>setActiveBooking(null)} onAccept={accept} onDecline={decline}/>
+        <BookingPanel booking={activeBooking} onClose={()=>setActiveBooking(null)} onAccept={accept} onDecline={decline} onComplete={completeTrip} onCancel={cancelBooking}/>
       )}
     </>
   );
