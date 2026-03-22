@@ -491,8 +491,8 @@ export default function ConciergePage() {
       {/* Cinematic background — only on mode screen */}
       {s === "mode" && (
         <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
-          <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1920&q=80&fit=crop" alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "blur(1.5px)", opacity: 0.18 }} />
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(8,10,12,0.7) 0%, rgba(8,10,12,0.85) 40%, rgba(8,10,12,0.95) 100%)" }} />
+          <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1920&q=80&fit=crop" alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "blur(1px)", opacity: 0.35 }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(8,10,12,0.55) 0%, rgba(8,10,12,0.75) 50%, rgba(8,10,12,0.92) 100%)" }} />
         </div>
       )}
 
@@ -516,10 +516,38 @@ export default function ConciergePage() {
           {/* Step: Mode — Premium Gateway */}
           {s === "mode" && (
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 36 : 56, color: T.white, marginBottom: 10, lineHeight: 1.05, fontWeight: 400 }}>
+              {/* Compass Star Logo */}
+              <div style={{ marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                <span style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 28 : 36, color: T.gold, letterSpacing: "0.08em" }}>R</span>
+                <svg width={isMobile ? 28 : 36} height={isMobile ? 28 : 36} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {/* Main 4-point star */}
+                  <polygon points="50,2 56,40 50,35 44,40" fill="url(#starGrad)"/>
+                  <polygon points="50,98 56,60 50,65 44,60" fill="url(#starGrad)"/>
+                  <polygon points="2,50 40,44 35,50 40,56" fill="url(#starGrad)"/>
+                  <polygon points="98,50 60,44 65,50 60,56" fill="url(#starGrad)"/>
+                  {/* Diagonal points */}
+                  <polygon points="15,15 42,42 38,46 46,38" fill="url(#starGrad)" opacity="0.7"/>
+                  <polygon points="85,15 58,42 54,38 62,46" fill="url(#starGrad)" opacity="0.7"/>
+                  <polygon points="15,85 42,58 46,62 38,54" fill="url(#starGrad)" opacity="0.7"/>
+                  <polygon points="85,85 58,58 62,54 54,62" fill="url(#starGrad)" opacity="0.7"/>
+                  {/* Center circle */}
+                  <circle cx="50" cy="50" r="6" fill="url(#starGrad)"/>
+                  <circle cx="50" cy="50" r="3" fill="#1a1206"/>
+                  <defs>
+                    <linearGradient id="starGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#d4af5a"/>
+                      <stop offset="50%" stopColor="#C9A55C"/>
+                      <stop offset="100%" stopColor="#a08030"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <span style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 28 : 36, color: T.gold, letterSpacing: "0.08em" }}>M</span>
+              </div>
+
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 34 : 52, color: T.white, marginBottom: 10, lineHeight: 1.05, fontWeight: 400 }}>
                 Let's build something<br/><span style={{ color: T.gold, fontStyle: "italic" }}>unforgettable.</span>
               </div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.silver, marginBottom: 40 }}>Choose how you want to explore.</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.silver, marginBottom: 36 }}>Choose how you want to explore.</div>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 14 : 20, maxWidth: 620, margin: "0 auto" }}>
                 {/* Concierge — premium, slightly larger */}
                 <button onClick={() => { setMode("standard"); setStep(1); }}
