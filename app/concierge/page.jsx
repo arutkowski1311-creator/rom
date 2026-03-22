@@ -487,22 +487,30 @@ export default function ConciergePage() {
   const s = steps[step];
 
   return (
-    <div style={{ minHeight: "100vh", background: T.void, display: "flex", flexDirection: "column" }}>
+    <div style={{ minHeight: "100vh", background: T.void, display: "flex", flexDirection: "column", position: "relative" }}>
+      {/* Cinematic background — only on mode screen */}
+      {s === "mode" && (
+        <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
+          <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1920&q=80&fit=crop" alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "blur(1.5px)", opacity: 0.18 }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(8,10,12,0.7) 0%, rgba(8,10,12,0.85) 40%, rgba(8,10,12,0.95) 100%)" }} />
+        </div>
+      )}
+
       {/* Nav */}
-      <div style={{ padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative", zIndex: 1 }}>
         <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: T.gold, letterSpacing: "0.12em", cursor: "pointer" }} onClick={() => window.location.href = "/"}>RŌM</div>
         {step > 0 && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.muted }}>{step} of {steps.length - 1}</div>}
       </div>
 
       {/* Progress bar */}
       {step > 0 && (
-        <div style={{ height: 2, background: T.wire, margin: "0 24px" }}>
+        <div style={{ height: 2, background: T.wire, margin: "0 24px", position: "relative", zIndex: 1 }}>
           <div style={{ height: "100%", background: T.gold, width: `${(step / (steps.length - 1)) * 100}%`, transition: "width 0.3s", borderRadius: 1 }} />
         </div>
       )}
 
       {/* Card */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: isMobile ? "40px 20px" : "60px 24px" }}>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: isMobile ? "40px 20px" : "60px 24px", position: "relative", zIndex: 1 }}>
         <div style={{ maxWidth: 640, width: "100%" }}>
 
           {/* Step: Mode — Premium Gateway */}
@@ -512,7 +520,7 @@ export default function ConciergePage() {
                 Let's build something<br/><span style={{ color: T.gold, fontStyle: "italic" }}>unforgettable.</span>
               </div>
               <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.silver, marginBottom: 40 }}>Choose how you want to explore.</div>
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.15fr 1fr", gap: isMobile ? 14 : 20, maxWidth: 620, margin: "0 auto" }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 14 : 20, maxWidth: 620, margin: "0 auto" }}>
                 {/* Concierge — premium, slightly larger */}
                 <button onClick={() => { setMode("standard"); setStep(1); }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = T.gold; e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = `0 12px 40px rgba(0,0,0,0.4), 0 0 0 1px ${T.gold}`; }}
