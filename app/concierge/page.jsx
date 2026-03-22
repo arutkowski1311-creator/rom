@@ -505,23 +505,52 @@ export default function ConciergePage() {
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: isMobile ? "40px 20px" : "60px 24px" }}>
         <div style={{ maxWidth: 640, width: "100%" }}>
 
-          {/* Step: Mode */}
+          {/* Step: Mode — Premium Gateway */}
           {s === "mode" && (
-            <div>
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 48, color: T.white, marginBottom: 8, lineHeight: 1.1 }}>Where to next.</div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 16, color: T.silver, marginBottom: 32 }}>How do you want to do this?</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                {[
-                  { id: "standard", title: "RŌM Concierge", sub: "We'll handle the details. You set the direction." },
-                  { id: "surprise", title: "Surprise Me", sub: "Just the basics. We handle everything else." },
-                ].map(m => (
-                  <button key={m.id} onClick={() => { setMode(m.id); setStep(1); }}
-                    style={{ background: mode === m.id ? T.goldGlow : T.steel, border: `1.5px solid ${mode === m.id ? T.gold : T.wire}`, borderRadius: 12, padding: isMobile ? "24px 16px" : "32px 24px", cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}>
-                    <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: mode === m.id ? T.gold : T.white, marginBottom: 8 }}>{m.title}</div>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.silver, lineHeight: 1.5 }}>{m.sub}</div>
-                  </button>
-                ))}
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 36 : 56, color: T.white, marginBottom: 10, lineHeight: 1.05, fontWeight: 400 }}>
+                Let's build something<br/><span style={{ color: T.gold, fontStyle: "italic" }}>unforgettable.</span>
               </div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.silver, marginBottom: 40 }}>Choose how you want to explore.</div>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.15fr 1fr", gap: isMobile ? 14 : 20, maxWidth: 620, margin: "0 auto" }}>
+                {/* Concierge — premium, slightly larger */}
+                <button onClick={() => { setMode("standard"); setStep(1); }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = T.gold; e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = `0 12px 40px rgba(0,0,0,0.4), 0 0 0 1px ${T.gold}`; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = T.wire; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.3)"; }}
+                  style={{ background: `linear-gradient(145deg, ${T.steel} 0%, ${T.carbon} 100%)`, border: `1.5px solid ${T.wire}`, borderTop: `3px solid ${T.gold}`, borderRadius: 14, padding: isMobile ? "28px 20px" : "36px 28px", cursor: "pointer", textAlign: "left", transition: "all 0.25s", boxShadow: "0 4px 20px rgba(0,0,0,0.3)" }}>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 10, fontWeight: 700, color: T.gold, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 10 }}>Recommended</div>
+                  <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 24 : 28, color: T.white, marginBottom: 8, lineHeight: 1.1 }}>RŌM Concierge</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.ash, lineHeight: 1.6, marginBottom: 18 }}>A custom-built itinerary, designed around you.</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+                    {["Tailored day-by-day plans", "Handpicked guides & stays", "Seamless logistics"].map(f => (
+                      <div key={f} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <span style={{ color: T.gold, fontSize: 12 }}>✦</span>
+                        <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.silver }}>{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 14, fontWeight: 700, color: T.gold }}>Start Planning →</div>
+                </button>
+
+                {/* Surprise Me — playful */}
+                <button onClick={() => { setMode("surprise"); setStep(1); }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = T.ash; e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 12px 40px rgba(0,0,0,0.4)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = T.wire; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.3)"; }}
+                  style={{ background: T.steel, border: `1.5px solid ${T.wire}`, borderRadius: 14, padding: isMobile ? "28px 20px" : "36px 28px", cursor: "pointer", textAlign: "left", transition: "all 0.25s", boxShadow: "0 4px 20px rgba(0,0,0,0.3)" }}>
+                  <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 24 : 28, color: T.white, marginBottom: 8, lineHeight: 1.1, marginTop: isMobile ? 0 : 28 }}>Surprise Me</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.ash, lineHeight: 1.6, marginBottom: 18 }}>Discover something you didn't know you needed.</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+                    {["Hidden gems & local secrets", "Smart AI recommendations", "Instant trip ideas"].map(f => (
+                      <div key={f} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <span style={{ color: T.silver, fontSize: 12 }}>◈</span>
+                        <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.silver }}>{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 14, fontWeight: 700, color: T.ash }}>Explore →</div>
+                </button>
+              </div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.muted, marginTop: 28 }}>Trips designed by real guides. Powered by AI that knows the places.</div>
             </div>
           )}
 
