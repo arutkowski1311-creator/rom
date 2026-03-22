@@ -65,6 +65,13 @@ export default function ItineraryPage({ params }) {
   const addOns = content.add_ons || [];
   const after = content.after_experience || {};
 
+  // Section overrides from vertical config
+  const overrides = content._section_overrides || {};
+  const renames = overrides.rename || {};
+  const hideSections = overrides.hide_sections || [];
+  const conditionsLabel = content._conditions_label || "Current Conditions";
+  const label = (section, fallback) => renames[section] || fallback;
+
   return (
     <>
       <style>{`
@@ -96,14 +103,18 @@ export default function ItineraryPage({ params }) {
           {h.vibe_statement && <p style={{ fontFamily: FONT_D, fontSize: 20, color: "#3a3a3a", fontStyle: "italic", lineHeight: 1.5 }}>{h.vibe_statement}</p>}
         </div>
 
-        {/* ── WEATHER ── */}
+        {/* ── CONDITIONS / WEATHER ── */}
         {weather && (
-          <div style={{ padding: "20px 0", borderBottom: "1px solid #e8e5df", display: "flex", alignItems: "center", gap: 16 }}>
-            <span style={{ fontSize: 32 }}>{weatherIcons[weather.condition] || "🌤"}</span>
-            <div>
-              <div style={{ fontFamily: FONT_B, fontSize: 14, fontWeight: 600, color: "#1a1a1a" }}>{weather.condition}</div>
-              <div style={{ fontFamily: FONT_B, fontSize: 13, color: "#6a6a6a" }}>
-                High {weather.high}°F · Low {weather.low}°F · Wind {weather.windSpeed}mph
+          <div style={{ padding: "20px 0", borderBottom: "1px solid #e8e5df" }}>
+            <div style={{ fontFamily: FONT_B, fontSize: 10, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 12 }}>{label("conditions", conditionsLabel)}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <span style={{ fontSize: 32 }}>{weatherIcons[weather.condition] || "🌤"}</span>
+              <div>
+                <div style={{ fontFamily: FONT_B, fontSize: 14, fontWeight: 600, color: "#1a1a1a" }}>{weather.condition}</div>
+                <div style={{ fontFamily: FONT_B, fontSize: 13, color: "#6a6a6a" }}>
+                  High {weather.high}°F · Low {weather.low}°F · Wind {weather.windSpeed}mph
+                  {weather.sunrise && ` · Sunrise ${new Date(weather.sunrise).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`}
+                </div>
               </div>
             </div>
           </div>
@@ -127,7 +138,7 @@ export default function ItineraryPage({ params }) {
         {/* ── TIMELINE ── */}
         {timeline.length > 0 && (
           <div style={{ padding: "36px 0 32px", borderBottom: "1px solid #e8e5df" }}>
-            <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 20 }}>Your Day</div>
+            <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 20 }}>{label("timeline", overrides.timeline_label || "Your Day")}</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
               {timeline.map((block, i) => (
                 <div key={i} style={{ display: "flex", gap: 20, paddingBottom: 24, position: "relative" }}>
@@ -148,9 +159,9 @@ export default function ItineraryPage({ params }) {
         )}
 
         {/* ── WHAT TO EXPECT ── */}
-        {(expect.effort_level || expect.pace || expect.environment) && (
+        {!hideSections.includes("what_to_expect") && (expect.effort_level || expect.pace || expect.environment) && (
           <div style={{ padding: "36px 0 32px", borderBottom: "1px solid #e8e5df" }}>
-            <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 16 }}>What to Expect</div>
+            <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 16 }}>{label("what_to_expect", "What to Expect")}</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16 }}>
               {expect.effort_level && (
                 <div style={{ background: "#f4f1ec", borderRadius: 8, padding: 16 }}>
@@ -177,7 +188,7 @@ export default function ItineraryPage({ params }) {
         {/* ── WHAT TO BRING ── */}
         {bring.length > 0 && (
           <div style={{ padding: "36px 0 32px", borderBottom: "1px solid #e8e5df" }}>
-            <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 16 }}>What to Bring</div>
+            <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 16 }}>{label("what_to_bring", "What to Bring")}</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {bring.map((item, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0" }}>
@@ -192,7 +203,7 @@ export default function ItineraryPage({ params }) {
         {/* ── NOTES FROM GUIDE ── */}
         {notes && (
           <div style={{ padding: "36px 0 32px", borderBottom: "1px solid #e8e5df" }}>
-            <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 16 }}>A Note from Your Guide</div>
+            <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 16 }}>{label("notes_from_guide", "A Note from Your Guide")}</div>
             <div style={{ background: "#f4f1ec", borderRadius: 10, padding: 24, borderLeft: `3px solid ${GOLD}` }}>
               <p style={{ fontFamily: FONT_D, fontSize: 18, color: "#2a2a2a", lineHeight: 1.65, fontStyle: "italic" }}>{notes}</p>
             </div>
@@ -200,7 +211,7 @@ export default function ItineraryPage({ params }) {
         )}
 
         {/* ── ADD-ONS ── */}
-        {addOns.length > 0 && (
+        {!hideSections.includes("add_ons") && addOns.length > 0 && (
           <div style={{ padding: "36px 0 32px", borderBottom: "1px solid #e8e5df" }}>
             <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 16 }}>Optional Add-Ons</div>
             {addOns.map((addon, i) => (
