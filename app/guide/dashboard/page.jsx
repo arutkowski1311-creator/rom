@@ -78,11 +78,39 @@ function EarningsChart({ data }) {
 }
 
 // ─── ITINERARY PANEL (inside BookingPanel) ───────────────────────────────────
+// ── Editable field component ──
+function EditField({ label, value, onChange, multiline, placeholder }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(value || "");
+  useEffect(() => setVal(value || ""), [value]);
+  const save = () => { setEditing(false); if (val !== value) onChange(val); };
+  if (editing) {
+    return multiline ? (
+      <textarea value={val} onChange={e => setVal(e.target.value)} onBlur={save} autoFocus
+        style={{width:"100%",minHeight:80,background:T.carbon,border:`1px solid ${T.gold}`,borderRadius:6,padding:10,fontFamily:FONT_BODY,fontSize:13,color:T.parchment,resize:"vertical",outline:"none"}}/>
+    ) : (
+      <input value={val} onChange={e => setVal(e.target.value)} onBlur={save} onKeyDown={e => e.key==="Enter"&&save()} autoFocus
+        style={{width:"100%",background:T.carbon,border:`1px solid ${T.gold}`,borderRadius:6,padding:"8px 10px",fontFamily:FONT_BODY,fontSize:13,color:T.parchment,outline:"none"}}/>
+    );
+  }
+  return (
+    <div onClick={() => setEditing(true)} style={{cursor:"pointer",padding:"6px 8px",borderRadius:6,border:`1px solid transparent`,transition:"all 0.15s",":hover":{borderColor:T.wire}}}>
+      <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.muted,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:3}}>{label}</div>
+      <div style={{fontFamily:FONT_BODY,fontSize:13,color:val?T.parchment:T.muted,fontStyle:val?"normal":"italic",lineHeight:1.5,whiteSpace:"pre-wrap"}}>
+        {val || placeholder || "Click to edit…"}
+      </div>
+    </div>
+  );
+}
+
 function ItineraryPanel({ bookingId, guideId }) {
   const [itinerary, setItinerary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveFlash, setSaveFlash] = useState(false);
 
   useEffect(() => {
     fetch(`/api/itineraries?booking_id=${bookingId}`).then(r => r.json()).then(d => {
@@ -92,6 +120,7 @@ function ItineraryPanel({ bookingId, guideId }) {
   }, [bookingId]);
 
   const handleGenerate = async () => {
+    if (itinerary?.status === "published" && !confirm("This will overwrite the published itinerary. Continue?")) return;
     setGenerating(true);
     try {
       await fetch("/api/ai/itinerary", {
@@ -118,6 +147,82 @@ function ItineraryPanel({ bookingId, guideId }) {
     setPublishing(false);
   };
 
+  const updateContent = async (path, value) => {
+    if (!itinerary) return;
+    const content = JSON.parse(JSON.stringify(itinerary.content));
+    // Navigate to nested path like "header.title" or "guide_logistics.meeting_point"
+    const keys = path.split(".");
+    let obj = content;
+    for (let i = 0; i < keys.length - 1; i++) {
+      if (!obj[keys[i]]) obj[keys[i]] = {};
+      obj = obj[keys[i]];
+    }
+    obj[keys[keys.length - 1]] = value;
+    setItinerary(prev => ({ ...prev, content }));
+    setSaving(true);
+    try {
+      await fetch("/api/itineraries", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: itinerary.id, content }),
+      });
+      setSaveFlash(true);
+      setTimeout(() => setSaveFlash(false), 1500);
+    } catch (e) { console.error(e); }
+    setSaving(false);
+  };
+
+  const updateTimelineBlock = async (idx, field, value) => {
+    const content = JSON.parse(JSON.stringify(itinerary.content));
+    if (!content.timeline) return;
+    content.timeline[idx][field] = value;
+    setItinerary(prev => ({ ...prev, content }));
+    setSaving(true);
+    try {
+      await fetch("/api/itineraries", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: itinerary.id, content }),
+      });
+    } catch (e) { console.error(e); }
+    setSaving(false);
+  };
+
+  const updateBringItem = async (idx, value) => {
+    const content = JSON.parse(JSON.stringify(itinerary.content));
+    content.what_to_bring[idx] = value;
+    setItinerary(prev => ({ ...prev, content }));
+    try {
+      await fetch("/api/itineraries", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: itinerary.id, content }),
+      });
+    } catch (e) { console.error(e); }
+  };
+
+  const removeBringItem = async (idx) => {
+    const content = JSON.parse(JSON.stringify(itinerary.content));
+    content.what_to_bring.splice(idx, 1);
+    setItinerary(prev => ({ ...prev, content }));
+    try {
+      await fetch("/api/itineraries", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: itinerary.id, content }),
+      });
+    } catch (e) { console.error(e); }
+  };
+
+  const addBringItem = async () => {
+    const content = JSON.parse(JSON.stringify(itinerary.content));
+    if (!content.what_to_bring) content.what_to_bring = [];
+    content.what_to_bring.push("New item — click to edit");
+    setItinerary(prev => ({ ...prev, content }));
+    try {
+      await fetch("/api/itineraries", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: itinerary.id, content }),
+      });
+    } catch (e) { console.error(e); }
+  };
+
   if (loading) return <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.muted,padding:"12px 0"}}>Loading itinerary…</div>;
 
   const content = itinerary?.content;
@@ -126,14 +231,20 @@ function ItineraryPanel({ bookingId, guideId }) {
   return (
     <div style={{background:T.steel, border:`1px solid ${T.wire}`, borderRadius:8, padding:20}}>
       <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12}}>
-        <div style={{fontFamily:FONT_BODY, fontSize:11, fontWeight:700, color:T.silver, textTransform:"uppercase", letterSpacing:"0.08em"}}>Trip Itinerary</div>
-        {status && (
-          <span style={{fontFamily:FONT_BODY, fontSize:10, fontWeight:700, padding:"2px 8px", borderRadius:3,
-            background: status === "published" ? "rgba(74,222,128,0.15)" : "rgba(201,151,58,0.15)",
-            color: status === "published" ? "#4ade80" : T.gold,
-            border: `1px solid ${status === "published" ? "#4ade80" : T.gold}`,
-          }}>{status === "published" ? "PUBLISHED" : "DRAFT"}</span>
-        )}
+        <div style={{fontFamily:FONT_BODY, fontSize:11, fontWeight:700, color:T.silver, textTransform:"uppercase", letterSpacing:"0.08em"}}>
+          Trip Itinerary
+          {saveFlash && <span style={{marginLeft:8,fontSize:10,color:"#4ade80"}}>✓ Saved</span>}
+          {saving && !saveFlash && <span style={{marginLeft:8,fontSize:10,color:T.muted}}>Saving…</span>}
+        </div>
+        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+          {status && (
+            <span style={{fontFamily:FONT_BODY, fontSize:10, fontWeight:700, padding:"2px 8px", borderRadius:3,
+              background: status === "published" ? "rgba(74,222,128,0.15)" : "rgba(201,151,58,0.15)",
+              color: status === "published" ? "#4ade80" : T.gold,
+              border: `1px solid ${status === "published" ? "#4ade80" : T.gold}`,
+            }}>{status === "published" ? "PUBLISHED" : "DRAFT"}</span>
+          )}
+        </div>
       </div>
 
       {!itinerary ? (
@@ -143,9 +254,87 @@ function ItineraryPanel({ bookingId, guideId }) {
             {generating ? "Generating…" : "Generate Itinerary"}
           </GoldBtn>
         </div>
+      ) : editing ? (
+        /* ═══ INLINE EDITOR ═══ */
+        <div style={{display:"flex",flexDirection:"column",gap:16}}>
+          {/* Header */}
+          <div style={{background:T.carbon,borderRadius:8,padding:16,border:`1px solid ${T.rim}`}}>
+            <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:10}}>Header</div>
+            <EditField label="Title" value={content?.header?.title} onChange={v => updateContent("header.title", v)} />
+            <EditField label="Vibe Statement" value={content?.header?.vibe_statement} onChange={v => updateContent("header.vibe_statement", v)} placeholder="One evocative sentence…" />
+          </div>
+
+          {/* Why This Plan */}
+          <div style={{background:T.carbon,borderRadius:8,padding:16,border:`1px solid ${T.rim}`}}>
+            <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:10}}>Why This Plan</div>
+            <EditField label="Personalized reason" value={content?.why_this_plan} onChange={v => updateContent("why_this_plan", v)} multiline placeholder="Why this plan was built for this guest…" />
+          </div>
+
+          {/* Overview */}
+          <div style={{background:T.carbon,borderRadius:8,padding:16,border:`1px solid ${T.rim}`}}>
+            <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:10}}>Overview</div>
+            <EditField label="Description" value={content?.overview?.description} onChange={v => updateContent("overview.description", v)} multiline />
+          </div>
+
+          {/* About the Area */}
+          <div style={{background:T.carbon,borderRadius:8,padding:16,border:`1px solid ${T.rim}`}}>
+            <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:10}}>About the Area</div>
+            <EditField label="Area Title" value={content?.about_the_area?.title} onChange={v => updateContent("about_the_area.title", v)} />
+            <EditField label="Area Description" value={content?.about_the_area?.description} onChange={v => updateContent("about_the_area.description", v)} multiline />
+          </div>
+
+          {/* Timeline */}
+          <div style={{background:T.carbon,borderRadius:8,padding:16,border:`1px solid ${T.rim}`}}>
+            <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:10}}>Timeline</div>
+            {(content?.timeline || []).map((block, i) => (
+              <div key={i} style={{borderBottom:i < content.timeline.length - 1 ? `1px solid ${T.rim}` : "none", paddingBottom:10, marginBottom:10}}>
+                <div style={{display:"flex",gap:8,marginBottom:4}}>
+                  <div style={{flex:"0 0 90px"}}><EditField label="Time" value={block.time} onChange={v => updateTimelineBlock(i, "time", v)} /></div>
+                  <div style={{flex:1}}><EditField label="Title" value={block.title} onChange={v => updateTimelineBlock(i, "title", v)} /></div>
+                </div>
+                <EditField label="Description" value={block.description} onChange={v => updateTimelineBlock(i, "description", v)} multiline />
+              </div>
+            ))}
+          </div>
+
+          {/* What to Bring */}
+          <div style={{background:T.carbon,borderRadius:8,padding:16,border:`1px solid ${T.rim}`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.1em"}}>What to Bring</div>
+              <button onClick={addBringItem} style={{background:"none",border:`1px solid ${T.wire}`,borderRadius:4,padding:"3px 10px",fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.ash,cursor:"pointer"}}>+ Add</button>
+            </div>
+            {(content?.what_to_bring || []).map((item, i) => (
+              <div key={i} style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+                <div style={{flex:1}}><EditField label="" value={item} onChange={v => updateBringItem(i, v)} /></div>
+                <button onClick={() => removeBringItem(i)} style={{background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:14,padding:4}}>×</button>
+              </div>
+            ))}
+          </div>
+
+          {/* Notes from Guide */}
+          <div style={{background:T.carbon,borderRadius:8,padding:16,border:`1px solid ${T.rim}`}}>
+            <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:10}}>Notes from Guide ✦</div>
+            <EditField label="Your personal note to the guest" value={content?.notes_from_guide} onChange={v => updateContent("notes_from_guide", v)} multiline placeholder="Write as yourself — this is the most important section…" />
+          </div>
+
+          {/* Logistics */}
+          <div style={{background:T.carbon,borderRadius:8,padding:16,border:`1px solid ${T.gold}40`}}>
+            <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>Meeting Details (You Fill In)</div>
+            <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.muted,marginBottom:10}}>These details are only shown to the guest after you fill them in.</div>
+            <EditField label="Meeting Point" value={content?.guide_logistics?.meeting_point?.includes("[Guide will add") ? "" : content?.guide_logistics?.meeting_point} onChange={v => updateContent("guide_logistics.meeting_point", v)} placeholder="e.g. Parking lot at the trailhead on Hwy 89…" />
+            <EditField label="Parking Notes" value={content?.guide_logistics?.parking_notes?.includes("[Guide will add") ? "" : content?.guide_logistics?.parking_notes} onChange={v => updateContent("guide_logistics.parking_notes", v)} placeholder="e.g. Free gravel lot, arrive 10 min early…" />
+            <EditField label="Your Phone" value={content?.guide_logistics?.guide_phone?.includes("[Guide will add") ? "" : content?.guide_logistics?.guide_phone} onChange={v => updateContent("guide_logistics.guide_phone", v)} placeholder="e.g. (406) 555-1234 — call or text" />
+          </div>
+
+          {/* Editor actions */}
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            <GoldBtn small onClick={() => setEditing(false)}>Done Editing</GoldBtn>
+            <button onClick={() => window.open(`/itinerary/${bookingId}`, "_blank")} style={{background:"none",border:`1px solid ${T.wire}`,borderRadius:5,padding:"6px 14px",fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.ash,cursor:"pointer"}}>Preview as Guest</button>
+          </div>
+        </div>
       ) : (
+        /* ═══ SUMMARY VIEW ═══ */
         <div>
-          {/* Preview */}
           {content?.header?.title && (
             <div style={{fontFamily:FONT_DISPLAY, fontSize:16, color:T.white, marginBottom:4}}>{content.header.title}</div>
           )}
@@ -157,6 +346,7 @@ function ItineraryPanel({ bookingId, guideId }) {
           )}
 
           <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
+            <GoldBtn small onClick={() => setEditing(true)}>Edit</GoldBtn>
             {status === "draft" && (
               <GoldBtn small onClick={handlePublish} disabled={publishing}>
                 {publishing ? "Publishing…" : "Publish to Guest"}
