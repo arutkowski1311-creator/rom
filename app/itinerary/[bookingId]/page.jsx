@@ -120,6 +120,31 @@ export default function ItineraryPage({ params }) {
           </div>
         )}
 
+        {/* ── ABOUT THE AREA ── */}
+        {content.about_the_area && (
+          <div style={{ padding: "36px 0 32px", borderBottom: "1px solid #e8e5df" }}>
+            <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 14 }}>
+              {content.about_the_area.title || "About the Area"}
+            </div>
+            <p style={{ fontFamily: FONT_B, fontSize: 15, color: "#2a2a2a", lineHeight: 1.7, marginBottom: 20 }}>
+              {content.about_the_area.description}
+            </p>
+            {content.about_the_area.details?.length > 0 && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
+                {content.about_the_area.details.map((d, i) => (
+                  <div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start", background: "#f4f1ec", borderRadius: 10, padding: "16px 18px" }}>
+                    <span style={{ fontSize: 24, flexShrink: 0, marginTop: 2 }}>{d.icon}</span>
+                    <div>
+                      <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>{d.label}</div>
+                      <div style={{ fontFamily: FONT_B, fontSize: 14, color: "#3a3a3a", lineHeight: 1.55 }}>{d.value}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── OVERVIEW ── */}
         {overview.description && (
           <div style={{ padding: "36px 0 32px", borderBottom: "1px solid #e8e5df" }}>
@@ -164,20 +189,23 @@ export default function ItineraryPage({ params }) {
             <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 16 }}>{label("what_to_expect", "What to Expect")}</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16 }}>
               {expect.effort_level && (
-                <div style={{ background: "#f4f1ec", borderRadius: 8, padding: 16 }}>
-                  <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: "#8a8a8a", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Effort</div>
+                <div style={{ background: "#f4f1ec", borderRadius: 10, padding: 18, textAlign: "center" }}>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>💪</div>
+                  <div style={{ fontFamily: FONT_B, fontSize: 10, fontWeight: 700, color: "#8a8a8a", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Effort</div>
                   <div style={{ fontFamily: FONT_D, fontSize: 18, color: "#1a1a1a" }}>{expect.effort_level}</div>
                 </div>
               )}
               {expect.pace && (
-                <div style={{ background: "#f4f1ec", borderRadius: 8, padding: 16 }}>
-                  <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: "#8a8a8a", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Pace</div>
+                <div style={{ background: "#f4f1ec", borderRadius: 10, padding: 18, textAlign: "center" }}>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>⏱️</div>
+                  <div style={{ fontFamily: FONT_B, fontSize: 10, fontWeight: 700, color: "#8a8a8a", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Pace</div>
                   <div style={{ fontFamily: FONT_B, fontSize: 14, color: "#3a3a3a", lineHeight: 1.5 }}>{expect.pace}</div>
                 </div>
               )}
               {expect.environment && (
-                <div style={{ background: "#f4f1ec", borderRadius: 8, padding: 16 }}>
-                  <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: "#8a8a8a", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Environment</div>
+                <div style={{ background: "#f4f1ec", borderRadius: 10, padding: 18, textAlign: "center" }}>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>🌿</div>
+                  <div style={{ fontFamily: FONT_B, fontSize: 10, fontWeight: 700, color: "#8a8a8a", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Environment</div>
                   <div style={{ fontFamily: FONT_B, fontSize: 14, color: "#3a3a3a", lineHeight: 1.5 }}>{expect.environment}</div>
                 </div>
               )}

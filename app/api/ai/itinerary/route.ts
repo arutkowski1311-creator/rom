@@ -172,6 +172,15 @@ export async function POST(req: NextRequest) {
 
 You are generating a premium guest itinerary for RŌM, an adventure guide marketplace. This must feel like the guide personally sat down and wrote it for this specific guest. Every line must be specific — no generic filler.
 
+CRITICAL — LOCATION RESEARCH:
+The guide is based in ${location}. You MUST use your real knowledge of this specific area to include:
+- The actual rivers, trails, peaks, waterways, crags, or venues in and around ${location}
+- Historical context — why this area is known for ${activity}, how long people have been doing it here
+- Ecological/environmental details — the terrain, the species, the landscape, what makes it unique
+- Local regulations or customs worth knowing (catch-and-release requirements, permit areas, etc.)
+- What makes THIS specific location different from anywhere else for ${activity}
+Do NOT make up location names. Use real geographic features, real waterways, real trails. If you are not certain about a specific detail for ${location}, use broader regional knowledge that is accurate.
+
 GUIDE CONTEXT:
 - Name: ${guideName}
 - Location: ${location}
@@ -233,6 +242,15 @@ Generate a complete itinerary as JSON matching this EXACT structure:
     "overview": {
       "description": "2-3 sentences. Use ${guestName}'s name. Reference their specific booking details.",
       "highlights": ["3-4 short phrases specific to THIS trip"]
+    },
+    "about_the_area": {
+      "title": "About [Specific Area Name]",
+      "description": "3-4 sentences about the REAL geography, ecology, and history of ${location} as it relates to ${activity}. Name real rivers, peaks, trails, or venues. Include one fascinating fact that makes a guest feel like an insider.",
+      "details": [
+        { "icon": "🏔️", "label": "Terrain", "value": "Specific terrain description" },
+        { "icon": "🌡️", "label": "Typical Conditions", "value": "What conditions are usually like this time of year" },
+        { "icon": "📜", "label": "Local History", "value": "One compelling historical detail about this area and activity" }
+      ]
     },
     "timeline": [
       { "time": "Specific time", "title": "Block title", "description": "1-2 vivid sentences" }
