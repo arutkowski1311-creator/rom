@@ -23,12 +23,13 @@ const CATEGORIES = [
 ];
 
 const DESTINATIONS = [
-  { name:"Montana",         sub:"Fly Fishing · Hunting · Hiking",       gradient:"linear-gradient(135deg, #152018 0%, #0b1822 100%)" },
-  { name:"Alaska",          sub:"Salmon · Bears · Backcountry",          gradient:"linear-gradient(135deg, #0a1a2a 0%, #0d1f14 100%)" },
-  { name:"Moab, Utah",      sub:"Rock Climbing · Canyons · MTB",         gradient:"linear-gradient(135deg, #2a1408 0%, #1a0e04 100%)" },
-  { name:"Hawaii",          sub:"Diving · Surfing · Fishing",            gradient:"linear-gradient(135deg, #081a1a 0%, #0a1424 100%)" },
-  { name:"Maine Coast",     sub:"Kayaking · Sailing · Wildlife",         gradient:"linear-gradient(135deg, #0a1420 0%, #10181e 100%)" },
-  { name:"Wyoming",         sub:"Elk Hunting · Fly Fishing · Hiking",    gradient:"linear-gradient(135deg, #14200e 0%, #0e1a18 100%)" },
+  { name:"Adirondacks",     sub:"Fly Fishing · Hiking · Paddling",       gradient:"linear-gradient(135deg, #0a1a2a 0%, #0d1f14 100%)" },
+  { name:"Moab",            sub:"Rock Climbing · MTB · 4WD",             gradient:"linear-gradient(135deg, #2a1408 0%, #1a0e04 100%)" },
+  { name:"Telluride",       sub:"Backcountry Ski · Via Ferrata · Hiking", gradient:"linear-gradient(135deg, #152018 0%, #0b1822 100%)" },
+  { name:"Asheville",       sub:"Foraging · Food Tours · Hiking",        gradient:"linear-gradient(135deg, #14200e 0%, #0e1a18 100%)" },
+  { name:"Aosta Valley",    sub:"Skiing · Mountaineering · Food",        gradient:"linear-gradient(135deg, #081a1a 0%, #0a1424 100%)" },
+  { name:"Montana",         sub:"Fly Fishing · Hunting · Wildlife",      gradient:"linear-gradient(135deg, #152018 0%, #0b1822 100%)" },
+  { name:"Maine",           sub:"Kayaking · Sailing · Foraging",         gradient:"linear-gradient(135deg, #0a1420 0%, #10181e 100%)" },
 ];
 
 const STATS = [
@@ -549,77 +550,41 @@ export default function HomePage() {
       <Nav scrolled={scrolled} user={user} userRole={userRole}/>
       <Hero/>
 
-      {/* Featured Guides */}
-      <Section bg={T.gunmetal}>
-        <SectionHeader
-          eyebrow="Hand-picked for this week"
-          title="Featured guides"
-          sub="Every guide on RŌM is manually reviewed and approved. These are some of the best."
-          center
-        />
-        {isMobile ? (
-          <div className="carousel-scroll" style={{display:"flex", gap:12, overflowX:"auto", paddingBottom:16, paddingLeft:16, paddingRight:8, marginBottom:20, scrollSnapType:"x mandatory", WebkitOverflowScrolling:"touch", msOverflowStyle:"none", scrollbarWidth:"none"}}>
-            {featuredGuides.map(g=>(
-              <div key={g.id} style={{width:"75vw", maxWidth:300, minWidth:240, scrollSnapAlign:"start", flexShrink:0}}>
-                <GuideCard guide={g}/>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:16, marginBottom:36}}>
-            {featuredGuides.map(g=><GuideCard key={g.id} guide={g}/>)}
-          </div>
-        )}
-        <div style={{textAlign:"center"}}>
-          <button onClick={()=>window.location.href="/search"} style={{background:"none", border:`1px solid ${T.wire}`, borderRadius:6, padding:"12px 28px", fontFamily:FONT_BODY, fontSize:16, color:T.ash, cursor:"pointer"}}>
-            Browse all guides →
-          </button>
-        </div>
-      </Section>
-
-      {/* Destinations */}
+      {/* RŌM Concierge — right after hero */}
       <Section bg={T.carbon}>
-        <SectionHeader
-          eyebrow="Where guides take you"
-          title="Top destinations"
-          sub="The best guides live where the best experiences happen."
-          center
-        />
-        <DestinationGrid/>
-      </Section>
-
-      {/* RŌM Concierge */}
-      <Section bg={T.gunmetal}>
         <div style={{display:"grid", gridTemplateColumns:isMobile?"1fr":"1fr 1fr", gap:0, borderRadius:12, overflow:"hidden", border:`1px solid ${T.wire}`}}>
-          <div style={{background:"linear-gradient(145deg, #0b1a24 0%, #152018 50%, #1a1206 100%)", position:"relative", padding:isMobile?"40px 24px":"64px 56px", display:"flex", flexDirection:"column", justifyContent:"center", minHeight:isMobile?260:400}}>
+          <div style={{background:"linear-gradient(145deg, #0b1a24 0%, #152018 50%, #1a1206 100%)", position:"relative", padding:isMobile?"36px 24px":"56px 48px", display:"flex", flexDirection:"column", justifyContent:"center", minHeight:isMobile?220:360}}>
             <div style={{position:"absolute", inset:0, backgroundImage:`radial-gradient(ellipse at 70% 30%, ${T.gold}20 0%, transparent 50%), radial-gradient(ellipse at 20% 80%, #1a3a5025 0%, transparent 40%)`}}/>
             <div style={{position:"relative"}}>
-              <div style={{fontFamily:FONT_BODY, fontSize:12, fontWeight:700, color:T.gold, textTransform:"uppercase", letterSpacing:"0.14em", marginBottom:14}}>RŌM Concierge</div>
-              <div style={{fontFamily:FONT_DISPLAY, fontSize:isMobile?32:44, color:T.white, fontWeight:400, lineHeight:1.05, marginBottom:16}}>
+              <div style={{fontFamily:FONT_BODY, fontSize:11, fontWeight:700, color:T.gold, textTransform:"uppercase", letterSpacing:"0.14em", marginBottom:12}}>RŌM Concierge</div>
+              <div style={{fontFamily:FONT_DISPLAY, fontSize:isMobile?28:40, color:T.white, fontWeight:400, lineHeight:1.05, marginBottom:14}}>
                 Don't search.<br/>
                 <span style={{color:T.gold, fontStyle:"italic"}}>Just tell us where.</span>
               </div>
-              <div style={{fontFamily:FONT_BODY, fontSize:15, color:T.ash, lineHeight:1.7, maxWidth:360}}>
-                Tell us the destination, your dates, and your vibe. We'll build the trip.
+              <div style={{fontFamily:FONT_BODY, fontSize:14, color:T.ash, lineHeight:1.65, maxWidth:340}}>
+                Tell us the destination, your dates, and your vibe. Our AI concierge builds your full trip — guides, lodging, day-by-day plan — in under a minute.
               </div>
-              <div style={{marginTop:24}}>
-                <button onClick={()=>window.location.href="/concierge"} style={{background:T.gold, border:"none", borderRadius:6, padding:"12px 24px", fontFamily:FONT_BODY, fontSize:14, fontWeight:700, color:T.ink, cursor:"pointer"}}>
+              <div style={{marginTop:20}}>
+                <button onClick={()=>window.location.href="/concierge"} style={{background:T.gold, border:"none", borderRadius:6, padding:"11px 22px", fontFamily:FONT_BODY, fontSize:14, fontWeight:700, color:T.ink, cursor:"pointer"}}>
                   Try RŌM Concierge →
                 </button>
               </div>
             </div>
           </div>
           {!isMobile && (
-            <div style={{background:T.steel, padding:"48px 48px", display:"flex", flexDirection:"column", justifyContent:"center"}}>
+            <div style={{background:T.steel, padding:"40px 40px", display:"flex", flexDirection:"column", justifyContent:"center"}}>
               {[
-                ["✦", "Tell us the destination"],
-                ["◎", "Set your vibe"],
-                ["◈", "Get a full itinerary"],
-                ["◉", "Book in one tap"],
-              ].map(([icon, title], i) => (
-                <div key={title} style={{padding:"14px 0", borderBottom:i<3?`1px solid ${T.rim}`:"none", display:"flex", gap:14, alignItems:"center"}}>
-                  <span style={{color:T.gold, fontSize:16}}>{icon}</span>
-                  <span style={{fontFamily:FONT_BODY, fontSize:15, fontWeight:600, color:T.parchment}}>{title}</span>
+                ["✦", "Tell us the destination", "Name the place. We know every guide and location on the platform."],
+                ["◎", "Set your vibe", "Adventure level, group size, budget — or just pick Surprise Me."],
+                ["◈", "Get a full itinerary", "Guides matched to your trip, lodging, day-by-day plan — ready in seconds."],
+                ["◉", "Book in one tap", "Your whole trip, locked in. Deposits and confirmations handled."],
+              ].map(([icon, title, desc], i) => (
+                <div key={title} style={{padding:"12px 0", borderBottom:i<3?`1px solid ${T.rim}`:"none", display:"flex", gap:14}}>
+                  <span style={{color:T.gold, fontSize:16, flexShrink:0, marginTop:2}}>{icon}</span>
+                  <div>
+                    <div style={{fontFamily:FONT_BODY, fontSize:14, fontWeight:600, color:T.parchment}}>{title}</div>
+                    <div style={{fontFamily:FONT_BODY, fontSize:13, color:T.silver, lineHeight:1.5}}>{desc}</div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -627,13 +592,62 @@ export default function HomePage() {
         </div>
       </Section>
 
-      {/* Compact Footer */}
-      <div style={{background:T.void, borderTop:`1px solid ${T.wire}`, padding:"32px 20px", textAlign:"center"}}>
-        <div style={{fontFamily:FONT_DISPLAY, fontSize:22, color:T.gold, letterSpacing:"0.14em", marginBottom:8}}>RŌM</div>
-        <div style={{fontFamily:FONT_BODY, fontSize:12, color:T.silver, marginBottom:16}}>The world's best adventure guides, in one place.</div>
-        <div style={{display:"flex", justifyContent:"center", gap:24, flexWrap:"wrap", marginBottom:16}}>
+      {/* Featured Guides */}
+      <Section bg={T.gunmetal}>
+        <SectionHeader
+          eyebrow="Hand-picked"
+          title="Featured guides"
+          center
+        />
+        {isMobile ? (
+          <div className="carousel-scroll" style={{display:"flex", gap:12, overflowX:"auto", paddingBottom:12, paddingLeft:16, paddingRight:8, scrollSnapType:"x mandatory", WebkitOverflowScrolling:"touch", msOverflowStyle:"none", scrollbarWidth:"none"}}>
+            {featuredGuides.map(g=>(
+              <div key={g.id} style={{width:"75vw", maxWidth:300, minWidth:240, scrollSnapAlign:"start", flexShrink:0}}>
+                <GuideCard guide={g}/>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, marginBottom:28}}>
+            {featuredGuides.map(g=><GuideCard key={g.id} guide={g}/>)}
+          </div>
+        )}
+        <div style={{textAlign:"center", marginTop:isMobile?16:0}}>
+          <button onClick={()=>window.location.href="/search"} style={{background:"none", border:`1px solid ${T.wire}`, borderRadius:6, padding:"10px 24px", fontFamily:FONT_BODY, fontSize:14, color:T.ash, cursor:"pointer"}}>
+            Browse all guides →
+          </button>
+        </div>
+      </Section>
+
+      {/* Explore Top Areas */}
+      <Section bg={T.carbon}>
+        <SectionHeader
+          eyebrow="Where we operate"
+          title="Explore top areas"
+          center
+        />
+        <div style={{display:"grid", gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)", gap:isMobile?10:14}}>
+          {DESTINATIONS.map((dest)=>(
+            <div key={dest.name} onClick={()=>window.location.href=`/search?destination=${encodeURIComponent(dest.name)}`}
+              style={{background:dest.gradient, border:`1px solid ${T.rim}`, borderRadius:10, padding:isMobile?"20px 16px":"28px 24px", cursor:"pointer", position:"relative", overflow:"hidden"}}>
+              <div style={{position:"absolute", inset:0, backgroundImage:`radial-gradient(ellipse at 80% 20%, ${T.gold}15 0%, transparent 50%)`}}/>
+              <div style={{position:"relative"}}>
+                <div style={{fontFamily:FONT_DISPLAY, fontSize:isMobile?20:24, color:T.white, fontWeight:400, marginBottom:4, lineHeight:1.1}}>{dest.name}</div>
+                <div style={{fontFamily:FONT_BODY, fontSize:isMobile?12:13, color:T.silver, marginBottom:isMobile?8:12}}>{dest.sub}</div>
+                <div style={{fontFamily:FONT_BODY, fontSize:isMobile?12:13, color:T.gold, fontWeight:700}}>Browse →</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* Footer */}
+      <div style={{background:T.void, borderTop:`1px solid ${T.wire}`, padding:"28px 20px", textAlign:"center"}}>
+        <div style={{fontFamily:FONT_DISPLAY, fontSize:20, color:T.gold, letterSpacing:"0.14em", marginBottom:6}}>RŌM</div>
+        <div style={{fontFamily:FONT_BODY, fontSize:12, color:T.silver, marginBottom:14}}>The world's best adventure guides, in one place.</div>
+        <div style={{display:"flex", justifyContent:"center", gap:20, flexWrap:"wrap", marginBottom:14}}>
           {[["Explore","/search"],["RŌM Concierge","/concierge"],["Become a Guide","/become-a-guide"]].map(([label,href])=>(
-            <span key={label} onClick={()=>window.location.href=href} style={{fontFamily:FONT_BODY, fontSize:13, color:T.ash, cursor:"pointer"}}>{label}</span>
+            <span key={label} onClick={()=>window.location.href=href} style={{fontFamily:FONT_BODY, fontSize:12, color:T.ash, cursor:"pointer"}}>{label}</span>
           ))}
         </div>
         <div style={{fontFamily:FONT_BODY, fontSize:11, color:T.muted}}>© 2026 RŌM, Inc.</div>
