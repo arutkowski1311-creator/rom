@@ -170,16 +170,36 @@ export async function POST(req: NextRequest) {
     // ── Build the AI prompt ──────────────────────────────────────────────────
     const prompt = `${verticalConfig.prompt_personality}
 
-You are generating a premium guest itinerary for RŌM, an adventure guide marketplace. This must feel like the guide personally sat down and wrote it for this specific guest. Every line must be specific — no generic filler.
+You are generating a premium guest itinerary for RŌM, an adventure guide marketplace. This must feel like the guide personally sat down and wrote it for this specific guest.
 
-CRITICAL — LOCATION RESEARCH:
-The guide is based in ${location}. You MUST use your real knowledge of this specific area to include:
-- The actual rivers, trails, peaks, waterways, crags, or venues in and around ${location}
-- Historical context — why this area is known for ${activity}, how long people have been doing it here
-- Ecological/environmental details — the terrain, the species, the landscape, what makes it unique
-- Local regulations or customs worth knowing (catch-and-release requirements, permit areas, etc.)
-- What makes THIS specific location different from anywhere else for ${activity}
-Do NOT make up location names. Use real geographic features, real waterways, real trails. If you are not certain about a specific detail for ${location}, use broader regional knowledge that is accurate.
+═══════════════════════════════════════════════════
+THE GOLDEN RULES — THESE OVERRIDE EVERYTHING ELSE
+═══════════════════════════════════════════════════
+
+AI CAN (and should):
+- Describe the REGION: its geography, ecology, history, culture, and why it's special for ${activity}
+- Describe CONDITIONS: what this time of year generally feels like, what's in season, what to expect
+- Describe the EXPERIENCE: what the day feels like, the flow, the sensory details
+- Use real REGIONAL knowledge: the mountain range, the river system, the ecosystem, the culinary tradition
+- Reference GENERAL area features: "the rivers around ${location}", "the trails in this region"
+
+AI MUST NOT (ever):
+- Name SPECIFIC meeting points, trailheads, put-ins, or access roads
+- Name SPECIFIC fishing holes, climbing routes, restaurant stops, or secret spots
+- Claim SPECIFIC statistics (exact fish per mile, exact CFS, exact elevation) unless you are 100% certain
+- Write guide-specific logistics (drive times, exact start locations, parking details)
+- Invent location names that might not exist
+
+ONLY THE GUIDE fills in:
+- Exact meeting point (added via editor)
+- Specific spots they visit
+- Confirmed logistics and directions
+- Any guide-specific operational details
+
+For timeline meeting points, always use: "Meet at your designated starting point (details sent 24-48 hours before your trip)"
+For specific locations, use regional language: "one of the best stretches in the area" not "Cobblestone Access"
+
+═══════════════════════════════════════════════════
 
 GUIDE CONTEXT:
 - Name: ${guideName}
@@ -237,34 +257,41 @@ Generate a complete itinerary as JSON matching this EXACT structure:
       "title": "Your [Duration] with ${guideName}",
       "date": "${booking.trip_date}",
       "location": "${location}",
-      "vibe_statement": "One evocative sentence that sets the mood for this specific trip on this specific day"
+      "vibe_statement": "One evocative sentence that captures the emotional essence of THIS trip on THIS day. Not a description — a feeling. Example: 'Tomorrow is about slowing down and learning to see the river differently.'"
     },
+    "why_this_plan": "1-2 sentences explaining why this itinerary was built specifically for this guest. Reference their experience level, goals, special requests, or occasion. Must feel custom. Example: 'We built this plan around your goal to improve your dry fly game and the fact that the conditions this week are perfect for it.'",
     "overview": {
-      "description": "2-3 sentences. Use ${guestName}'s name. Reference their specific booking details.",
-      "highlights": ["3-4 short phrases specific to THIS trip"]
+      "description": "2-3 sentences. Use ${guestName}'s name. Reference their specific booking details. End with something that builds genuine anticipation.",
+      "highlights": ["4 short, specific phrases about what makes THIS trip special — not generic activity descriptions"]
     },
     "about_the_area": {
-      "title": "About [Specific Area Name]",
-      "description": "3-4 sentences about the REAL geography, ecology, and history of ${location} as it relates to ${activity}. Name real rivers, peaks, trails, or venues. Include one fascinating fact that makes a guest feel like an insider.",
+      "title": "About the [Region Name]",
+      "description": "3-4 sentences about the REGION's geography, ecology, and history as it relates to ${activity}. Use regional knowledge — the mountain range, the river system, the ecosystem, the tradition. Include one fascinating fact. Do NOT name specific guide spots, trailheads, or access points.",
       "details": [
-        { "icon": "🏔️", "label": "Terrain", "value": "Specific terrain description" },
-        { "icon": "🌡️", "label": "Typical Conditions", "value": "What conditions are usually like this time of year" },
-        { "icon": "📜", "label": "Local History", "value": "One compelling historical detail about this area and activity" }
+        { "icon": "appropriate emoji", "label": "Terrain", "value": "Regional terrain description — what the landscape looks and feels like" },
+        { "icon": "appropriate emoji", "label": "${monthName} Conditions", "value": "What conditions are generally like this time of year in this region" },
+        { "icon": "appropriate emoji", "label": "Local Heritage", "value": "One compelling fact about this region's history with ${activity}" }
       ]
     },
     "timeline": [
-      { "time": "Specific time", "title": "Block title", "description": "1-2 vivid sentences" }
+      { "time": "Time or time range", "title": "Block title", "description": "1-2 vivid sentences. For the FIRST block, use 'Meet at your designated starting point (details sent 24-48 hours before your trip)' — never name a specific meeting location." }
     ],
     "what_to_expect": {
       "effort_level": "Easy / Moderate / Challenging",
-      "pace": "Specific pace description",
-      "environment": "What the environment feels like"
+      "pace": "Specific pace description that sets realistic expectations",
+      "environment": "What the environment feels and sounds like — sensory, not factual"
     },
-    "what_to_bring": ["Specific items adjusted for weather and skill level"],
-    "notes_from_guide": "The most personal section. Written in the guide's voice. References conditions, the guest, and what makes today special. Must feel handwritten.",
+    "what_to_bring": ["Specific items adjusted for weather, skill level, and this activity. Include WHY for non-obvious items."],
+    "notes_from_guide": "THE MOST IMPORTANT SECTION. Written as if the guide texted this to the guest the night before. Must feel handwritten and personal. Reference current seasonal conditions (not exact stats), the guest by name, and what makes this particular trip special. Use the guide's voice profile — their words, their personality. 3-4 sentences. End with something that builds genuine excitement. NEVER mention specific locations — use 'the water', 'our spot', 'the area'. This is where the guide's personality lives.",
+    "guide_logistics": {
+      "meeting_point": "[Guide will add — leave blank]",
+      "meeting_time": "Based on trip time",
+      "parking_notes": "[Guide will add — leave blank]",
+      "guide_phone": "[Guide will add — leave blank]"
+    },
     "add_ons": [],
     "after_experience": {
-      "review_prompt": "Warm one-liner encouraging a review",
+      "review_prompt": "Warm one-liner encouraging a review — conversational, not corporate",
       "rebook_url": "https://romlife.co/guides/${guide?.slug || ""}"
     }
   },
@@ -278,19 +305,35 @@ Generate a complete itinerary as JSON matching this EXACT structure:
   }
 }
 
-RULES:
+RULES (STRICT):
+PERSONALIZATION:
 - Use ${guestName}'s name at least 3 times across the itinerary
-- Every line must be specific to THIS trip, THIS guest, THIS date, THIS location
-- The notes_from_guide section must feel like the guide texted it last night — warm, direct, specific
-- Timeline should have 4-6 blocks realistic for ${pkg?.duration || "a full day"}
-- What to bring must account for the weather forecast
-- If this is a repeat guest, reference their history naturally
-- Never use generic filler — if you can't be specific, be vivid
+- The "why_this_plan" section must reference something specific about THIS guest (skill level, occasion, goals)
+- If repeat guest, reference their history naturally — it builds trust
+- The vibe_statement must be an emotional hook, not a description
+
+LOCATION SAFETY:
+- NEVER name specific meeting points, trailheads, access roads, or guide's private spots
+- NEVER cite specific statistics you're not 100% certain of (no "3,000 fish per mile")
+- About the Area = REGIONAL knowledge only (mountain ranges, river systems, ecosystems, cultural traditions)
+- Timeline first block ALWAYS uses "Meet at your designated starting point (details sent 24-48 hours before your trip)"
+- guide_logistics fields should be left as placeholder text — the guide fills these in
+
+TONE:
+- notes_from_guide must feel like a text the guide sent last night — warm, direct, real
+- Use confidence language: "This is the best window for...", "Based on this time of year..."
+- Never be corporate, never be generic, never use filler
+- Short paragraphs. Scannable. Card-friendly layout.
+
+STRUCTURE:
+- Timeline: 4-6 blocks realistic for ${pkg?.duration || "a full day"}
+- What to bring: adjust for weather AND include WHY for non-obvious items
+- Keep all text concise — this will be rendered on mobile
 - Return ONLY valid JSON, no markdown, no preamble`;
 
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 3500,
+      max_tokens: 4500,
       messages: [{ role: "user", content: prompt }],
     });
 

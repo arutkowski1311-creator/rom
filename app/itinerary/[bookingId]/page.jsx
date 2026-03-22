@@ -103,6 +103,16 @@ export default function ItineraryPage({ params }) {
           {h.vibe_statement && <p style={{ fontFamily: FONT_D, fontSize: 20, color: "#3a3a3a", fontStyle: "italic", lineHeight: 1.5 }}>{h.vibe_statement}</p>}
         </div>
 
+        {/* ── WHY THIS PLAN ── */}
+        {content.why_this_plan && (
+          <div style={{ padding: "24px 0 20px", borderBottom: "1px solid #e8e5df" }}>
+            <div style={{ background: "linear-gradient(135deg, #f9f6f0 0%, #f4f1ec 100%)", borderRadius: 12, padding: "20px 24px", borderLeft: `3px solid ${GOLD}` }}>
+              <div style={{ fontFamily: FONT_B, fontSize: 10, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 8 }}>Why This Plan Was Built for You</div>
+              <p style={{ fontFamily: FONT_B, fontSize: 15, color: "#2a2a2a", lineHeight: 1.65, margin: 0 }}>{content.why_this_plan}</p>
+            </div>
+          </div>
+        )}
+
         {/* ── CONDITIONS / WEATHER ── */}
         {weather && (
           <div style={{ padding: "20px 0", borderBottom: "1px solid #e8e5df" }}>
@@ -247,6 +257,51 @@ export default function ItineraryPage({ params }) {
                 <span style={{ fontFamily: FONT_B, fontSize: 14, color: "#2a2a2a" }}>{typeof addon === "string" ? addon : addon.title || addon.name || JSON.stringify(addon)}</span>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ── LOGISTICS ── */}
+        {content.guide_logistics && (content.guide_logistics.meeting_point && !content.guide_logistics.meeting_point.includes("[Guide will add")) && (
+          <div style={{ padding: "36px 0 32px", borderBottom: "1px solid #e8e5df" }}>
+            <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 16 }}>Meeting Details</div>
+            <div style={{ display: "grid", gap: 12 }}>
+              {content.guide_logistics.meeting_point && (
+                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>📍</span>
+                  <div>
+                    <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: "#8a8a8a", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Meeting Point</div>
+                    <div style={{ fontFamily: FONT_B, fontSize: 15, color: "#2a2a2a" }}>{content.guide_logistics.meeting_point}</div>
+                  </div>
+                </div>
+              )}
+              {content.guide_logistics.meeting_time && (
+                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>🕐</span>
+                  <div>
+                    <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: "#8a8a8a", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Time</div>
+                    <div style={{ fontFamily: FONT_B, fontSize: 15, color: "#2a2a2a" }}>{content.guide_logistics.meeting_time}</div>
+                  </div>
+                </div>
+              )}
+              {content.guide_logistics.parking_notes && !content.guide_logistics.parking_notes.includes("[Guide will add") && (
+                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>🅿️</span>
+                  <div>
+                    <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: "#8a8a8a", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Parking</div>
+                    <div style={{ fontFamily: FONT_B, fontSize: 15, color: "#2a2a2a" }}>{content.guide_logistics.parking_notes}</div>
+                  </div>
+                </div>
+              )}
+              {content.guide_logistics.guide_phone && !content.guide_logistics.guide_phone.includes("[Guide will add") && (
+                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>📞</span>
+                  <div>
+                    <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: "#8a8a8a", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Guide Contact</div>
+                    <div style={{ fontFamily: FONT_B, fontSize: 15, color: "#2a2a2a" }}>{content.guide_logistics.guide_phone}</div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
