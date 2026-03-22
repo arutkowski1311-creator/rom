@@ -239,37 +239,54 @@ export default function AuthPage({ defaultMode = "signup-traveler" }) {
         ::-webkit-scrollbar{width:5px;}
       `}</style>
 
-      <div style={{minHeight:"100vh", background:T.void, display:"flex"}}>
-        <div style={{flex:1, position:"relative", overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center"}}>
-          <div style={{position:"absolute", inset:0, background:"linear-gradient(160deg, #152018 0%, #0b1824 50%, #1a1206 100%)"}}>
-            <div style={{position:"absolute", inset:0, backgroundImage:`radial-gradient(ellipse at 25% 60%, ${T.gold}28 0%, transparent 50%), radial-gradient(ellipse at 75% 20%, #1a3a5030 0%, transparent 40%)`}}/>
-          </div>
-          <div style={{position:"relative", padding:"60px 64px", maxWidth:480}}>
-            <div style={{fontFamily:FONT_DISPLAY, fontSize:40, color:T.gold, letterSpacing:"0.16em", fontWeight:500, marginBottom:48}}>RŌM</div>
-            <div style={{fontFamily:FONT_DISPLAY, fontSize:48, color:T.white, fontWeight:400, lineHeight:1.05, marginBottom:20}}>
-              The world's best<br/>
-              <span style={{color:T.gold, fontStyle:"italic"}}>adventure guides,</span><br/>
-              in one place.
+      <div style={{minHeight:"100vh", background:T.void}}>
+        <style>{`
+          .auth-layout{display:flex;flex-direction:column;}
+          .auth-hero{display:none;}
+          .auth-form{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 24px;}
+          @media(min-width:768px){
+            .auth-layout{flex-direction:row;}
+            .auth-hero{display:flex;flex:1;position:relative;overflow:hidden;align-items:center;justify-content:center;}
+            .auth-form{width:480px;min-height:100vh;padding:48px 40px;border-left:1px solid ${T.wire};}
+          }
+        `}</style>
+        <div className="auth-layout">
+          <div className="auth-hero">
+            <div style={{position:"absolute", inset:0, background:"linear-gradient(160deg, #152018 0%, #0b1824 50%, #1a1206 100%)"}}>
+              <div style={{position:"absolute", inset:0, backgroundImage:`radial-gradient(ellipse at 25% 60%, ${T.gold}28 0%, transparent 50%), radial-gradient(ellipse at 75% 20%, #1a3a5030 0%, transparent 40%)`}}/>
             </div>
-            <p style={{fontFamily:FONT_BODY, fontSize:15, color:T.ash, lineHeight:1.75, marginBottom:48}}>
-              Book directly with verified local guides — fly fishing, hunting, climbing, diving, and more.
-            </p>
-            <div style={{display:"flex", flexDirection:"column", gap:16}}>
-              {[["✦","340+ verified guides worldwide"],["◉","Direct booking — no middlemen"],["◎","100% of your price if you guide"]].map(([icon,text])=>(
-                <div key={text} style={{display:"flex", gap:14, alignItems:"center"}}>
-                  <span style={{color:T.gold, fontSize:14, flexShrink:0}}>{icon}</span>
-                  <span style={{fontFamily:FONT_BODY, fontSize:14, color:T.parchment}}>{text}</span>
-                </div>
-              ))}
+            <div style={{position:"relative", padding:"60px 64px", maxWidth:480}}>
+              <div style={{fontFamily:FONT_DISPLAY, fontSize:40, color:T.gold, letterSpacing:"0.16em", fontWeight:500, marginBottom:48}}>RŌM</div>
+              <div style={{fontFamily:FONT_DISPLAY, fontSize:48, color:T.white, fontWeight:400, lineHeight:1.05, marginBottom:20}}>
+                The world's best<br/>
+                <span style={{color:T.gold, fontStyle:"italic"}}>adventure guides,</span><br/>
+                in one place.
+              </div>
+              <p style={{fontFamily:FONT_BODY, fontSize:15, color:T.ash, lineHeight:1.75, marginBottom:48}}>
+                Book directly with verified local guides — fly fishing, hunting, climbing, diving, and more.
+              </p>
+              <div style={{display:"flex", flexDirection:"column", gap:16}}>
+                {[["✦","340+ verified guides worldwide"],["◉","Direct booking — no middlemen"],["◎","100% of your price if you guide"]].map(([icon,text])=>(
+                  <div key={text} style={{display:"flex", gap:14, alignItems:"center"}}>
+                    <span style={{color:T.gold, fontSize:14, flexShrink:0}}>{icon}</span>
+                    <span style={{fontFamily:FONT_BODY, fontSize:14, color:T.parchment}}>{text}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div style={{width:480, background:T.carbon, borderLeft:`1px solid ${T.wire}`, display:"flex", alignItems:"center", justifyContent:"center", padding:"48px 40px"}}>
-          <div style={{width:"100%", maxWidth:380}}>
-            {mode==="login" && <LoginForm onSwitch={setMode}/>}
-            {mode.startsWith("signup") && <SignupForm role={role} onSwitch={setMode}/>}
-            {mode==="forgot" && <ForgotForm onSwitch={setMode}/>}
+          <div className="auth-form" style={{background:T.carbon}}>
+            <div style={{width:"100%", maxWidth:380}}>
+              <div className="auth-mobile-logo" style={{textAlign:"center", marginBottom:32}}>
+                <style>{`@media(min-width:768px){.auth-mobile-logo{display:none!important;}}`}</style>
+                <div style={{fontFamily:FONT_DISPLAY, fontSize:32, color:T.gold, letterSpacing:"0.16em", fontWeight:500, marginBottom:8}}>RŌM</div>
+                <div style={{fontFamily:FONT_BODY, fontSize:13, color:T.silver}}>The world's best adventure guides</div>
+              </div>
+              {mode==="login" && <LoginForm onSwitch={setMode}/>}
+              {mode.startsWith("signup") && <SignupForm role={role} onSwitch={setMode}/>}
+              {mode==="forgot" && <ForgotForm onSwitch={setMode}/>}
+            </div>
           </div>
         </div>
       </div>

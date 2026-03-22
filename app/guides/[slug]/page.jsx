@@ -267,7 +267,7 @@ function BookingPanel({ guide, onClose }) {
   if (authError) return (
     <div style={{position:"fixed",inset:0,zIndex:200,display:"flex",justifyContent:"flex-end"}}>
       <div onClick={onClose} style={{flex:1,background:"rgba(0,0,0,0.75)"}}/>
-      <div style={{width:500,background:T.carbon,height:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,padding:40,borderLeft:`2px solid ${T.wire}`}}>
+      <div style={{width:"100%",maxWidth:500,background:T.carbon,height:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,padding:40,borderLeft:`2px solid ${T.wire}`}}>
         <div style={{fontFamily:FONT_DISPLAY,fontSize:32,color:T.white,textAlign:"center"}}>Sign in to book</div>
         <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver,textAlign:"center",lineHeight:1.7}}>Create a free account to book this experience and manage your trips.</p>
         <button onClick={()=>window.location.href=`/login?redirect=${encodeURIComponent(window.location.pathname)}`} style={{width:"100%",padding:"15px",background:T.gold,border:"none",borderRadius:8,fontFamily:FONT_BODY,fontSize:15,fontWeight:700,color:T.ink,cursor:"pointer"}}>Sign In / Create Account</button>
@@ -280,7 +280,7 @@ function BookingPanel({ guide, onClose }) {
   if (confirmed) return (
     <div style={{position:"fixed",inset:0,zIndex:200,display:"flex",justifyContent:"flex-end"}}>
       <div onClick={onClose} style={{flex:1,background:"rgba(0,0,0,0.75)"}}/>
-      <div style={{width:500,background:T.carbon,height:"100vh",overflowY:"auto",borderLeft:`2px solid ${T.wire}`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,padding:40}}>
+      <div style={{width:"100%",maxWidth:500,background:T.carbon,height:"100vh",overflowY:"auto",borderLeft:`2px solid ${T.wire}`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,padding:40}}>
         <div style={{width:64,height:64,borderRadius:"50%",background:"#3a7a5428",border:"2px solid #3a7a54",display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,color:"#3a7a54"}}>✓</div>
         <div style={{fontFamily:FONT_DISPLAY,fontSize:36,color:T.white,textAlign:"center"}}>{clientSecret ? "Booking Confirmed" : "Request Sent"}</div>
         <p style={{fontFamily:FONT_BODY,fontSize:14,color:T.silver,textAlign:"center",lineHeight:1.75}}>
@@ -313,7 +313,7 @@ function BookingPanel({ guide, onClose }) {
   return (
     <div style={{position:"fixed",inset:0,zIndex:200,display:"flex",justifyContent:"flex-end"}}>
       <div onClick={onClose} style={{flex:1,background:"rgba(0,0,0,0.75)"}}/>
-      <div style={{width:500,background:T.carbon,height:"100vh",overflowY:"auto",borderLeft:`2px solid ${T.wire}`,display:"flex",flexDirection:"column"}}>
+      <div style={{width:"100%",maxWidth:500,background:T.carbon,height:"100vh",overflowY:"auto",borderLeft:`2px solid ${T.wire}`,display:"flex",flexDirection:"column"}}>
         <div style={{padding:"24px 28px",borderBottom:`1px solid ${T.wire}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
             <div style={{fontFamily:FONT_DISPLAY,fontSize:24,color:T.white}}>Book {guide.name}</div>
@@ -548,7 +548,7 @@ function MessagePanel({ guide, onClose }) {
   if (authError) return (
     <div style={{position:"fixed",inset:0,zIndex:200,display:"flex",justifyContent:"flex-end"}}>
       <div onClick={onClose} style={{flex:1,background:"rgba(0,0,0,0.75)"}}/>
-      <div style={{width:500,background:T.carbon,height:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,padding:40,borderLeft:`2px solid ${T.wire}`}}>
+      <div style={{width:"100%",maxWidth:500,background:T.carbon,height:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,padding:40,borderLeft:`2px solid ${T.wire}`}}>
         <div style={{fontFamily:FONT_DISPLAY,fontSize:32,color:T.white,textAlign:"center"}}>Sign in to message</div>
         <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver,textAlign:"center",lineHeight:1.7}}>Create a free account to message this guide.</p>
         <button onClick={()=>window.location.href=`/login?redirect=${encodeURIComponent(window.location.pathname)}`} style={{width:"100%",padding:"15px",background:T.gold,border:"none",borderRadius:8,fontFamily:FONT_BODY,fontSize:15,fontWeight:700,color:T.ink,cursor:"pointer"}}>Sign In / Create Account</button>
@@ -560,7 +560,7 @@ function MessagePanel({ guide, onClose }) {
   return (
     <div style={{position:"fixed",inset:0,zIndex:200,display:"flex",justifyContent:"flex-end"}}>
       <div onClick={onClose} style={{flex:1,background:"rgba(0,0,0,0.75)"}}/>
-      <div style={{width:500,background:T.carbon,height:"100vh",overflowY:"auto",borderLeft:`2px solid ${T.wire}`,display:"flex",flexDirection:"column"}}>
+      <div style={{width:"100%",maxWidth:500,background:T.carbon,height:"100vh",overflowY:"auto",borderLeft:`2px solid ${T.wire}`,display:"flex",flexDirection:"column"}}>
         <div style={{padding:"24px 28px",borderBottom:`1px solid ${T.wire}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
             <div style={{fontFamily:FONT_DISPLAY,fontSize:24,color:T.white}}>Message {guide.name}</div>

@@ -466,7 +466,7 @@ function BookingPanel({ booking, onClose, onAccept, onDecline, onComplete, onCan
   return (
     <div style={{position:"fixed", inset:0, zIndex:200, display:"flex", justifyContent:"flex-end"}}>
       <div onClick={onClose} style={{flex:1, background:"rgba(0,0,0,0.7)"}}/>
-      <div style={{width:520, background:T.carbon, borderLeft:`1px solid ${T.wire}`, height:"100vh", overflowY:"auto", display:"flex", flexDirection:"column"}}>
+      <div style={{width:"100%", maxWidth:520, background:T.carbon, borderLeft:`1px solid ${T.wire}`, height:"100vh", overflowY:"auto", display:"flex", flexDirection:"column"}}>
         <div style={{padding:"24px 28px", borderBottom:`1px solid ${T.wire}`, display:"flex", justifyContent:"space-between", alignItems:"flex-start"}}>
           <div>
             <div style={{fontFamily:FONT_DISPLAY, fontSize:24, color:T.white, marginBottom:6}}>{booking.package}</div>
@@ -1260,33 +1260,36 @@ export default function GuideDashboard() {
               ))}
             </div>
           </div>
-          <div style={{display:"flex"}}>
+          <div style={{display:"flex",overflowX:"auto",WebkitOverflowScrolling:"touch",scrollbarWidth:"none",msOverflowStyle:"none"}}>
+            <style>{`.tab-scroll::-webkit-scrollbar{display:none;}`}</style>
+            <div className="tab-scroll" style={{display:"flex",minWidth:"max-content"}}>
             {TABS.map(t=>{
               const badge = (t==="Bookings"&&pendingCount) ? pendingCount : (t==="Messages"&&unreadMsgs) ? unreadMsgs : null;
               return (
                 <button key={t} onClick={()=>setTab(t)} style={{
-                  padding:"14px 20px",background:"none",border:"none",
+                  padding:"14px 16px",background:"none",border:"none",
                   borderBottom:`2px solid ${tab===t?T.gold:"transparent"}`,
                   fontFamily:FONT_BODY,fontSize:13,fontWeight:tab===t?700:400,
                   color:tab===t?T.gold:T.silver,cursor:"pointer",
-                  display:"flex",alignItems:"center",gap:7,
+                  display:"flex",alignItems:"center",gap:7,whiteSpace:"nowrap",flexShrink:0,
                 }}>
                   {t}
                   {badge && <span style={{background:T.gold,color:T.ink,borderRadius:10,padding:"1px 7px",fontSize:10,fontWeight:700}}>{badge}</span>}
                 </button>
               );
             })}
+            </div>
           </div>
         </div>
       </div>
 
       {/* ── BODY — gunmetal ── */}
       <div style={{background:T.gunmetal,minHeight:"calc(100vh - 170px)"}}>
-        <div style={{maxWidth:1280,margin:"0 auto",padding:"36px 40px 80px"}}>
+        <div style={{maxWidth:1280,margin:"0 auto",padding:"36px 16px 80px"}}>
 
           {/* ── OVERVIEW ── */}
           {tab==="Overview" && (
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))",gap:16}}>
               {/* Stats row */}
               {[
                 ["◎","Total earnings this month",`$${stats.earningsThisMonth.toLocaleString()}`,`+$${stats.earningsThisMonth-stats.earningsLastMonth} vs last month`],
@@ -1540,7 +1543,7 @@ export default function GuideDashboard() {
 
           {/* ── CALENDAR ── */}
           {tab==="Calendar" && (
-            <div style={{display:"grid",gridTemplateColumns:"1fr 280px",gap:32,alignItems:"start"}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr",gap:32,alignItems:"start"}}>
               <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:28}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
                   <div style={{fontFamily:FONT_DISPLAY,fontSize:26,color:T.white}}>{MONTHS[calMonth]} {calYear}</div>
@@ -1624,7 +1627,7 @@ export default function GuideDashboard() {
                       <input value={editingPkg.title||""} onChange={e=>setEditingPkg({...editingPkg,title:e.target.value})} placeholder="e.g. Full Day Wade Trip"
                         style={{width:"100%",background:T.lifted,border:`1px solid ${T.wire}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none"}}/>
                     </div>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))",gap:12}}>
                       <div>
                         <label style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,display:"block",marginBottom:4}}>Price *</label>
                         <input type="number" value={editingPkg.price||""} onChange={e=>setEditingPkg({...editingPkg,price:e.target.value})} placeholder="300"
@@ -1818,7 +1821,7 @@ export default function GuideDashboard() {
             return (
             <div style={{maxWidth:900}}>
               <div style={{fontFamily:FONT_DISPLAY,fontSize:32,color:T.white,fontWeight:400,marginBottom:28}}>Earnings</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:28}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(150px, 1fr))",gap:16,marginBottom:28}}>
                 {[
                   ["This month",`$${stats.earningsThisMonth.toLocaleString()}`,`${stats.tripsThisMonth} trips`],
                   ["Last month",`$${stats.earningsLastMonth.toLocaleString()}`,`${stats.earningsThisMonth-stats.earningsLastMonth>=0?"+":"-"}$${Math.abs(stats.earningsThisMonth-stats.earningsLastMonth)} vs this month`],
