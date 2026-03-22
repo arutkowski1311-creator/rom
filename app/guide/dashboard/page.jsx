@@ -78,6 +78,82 @@ function EarningsChart({ data }) {
 }
 
 // ─── ITINERARY PANEL (inside BookingPanel) ───────────────────────────────────
+// ── AI Rewrite button with tone + focus options ──
+function RewriteBtn({ section, currentText, onRewrite }) {
+  const [open, setOpen] = useState(false);
+  const [rewriting, setRewriting] = useState(false);
+  const [customFocus, setCustomFocus] = useState("");
+  const [showCustom, setShowCustom] = useState(false);
+
+  const doRewrite = async (instruction) => {
+    setRewriting(true);
+    setOpen(false);
+    setShowCustom(false);
+    try {
+      const res = await fetch("/api/ai/itinerary/rewrite", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ section, currentText, instruction }),
+      });
+      const d = await res.json();
+      if (d?.rewritten) onRewrite(d.rewritten);
+    } catch (e) { console.error(e); }
+    setRewriting(false);
+  };
+
+  if (rewriting) return <span style={{fontFamily:FONT_BODY,fontSize:10,color:T.gold,padding:"2px 6px"}}>✨ Rewriting…</span>;
+
+  return (
+    <div style={{position:"relative",display:"inline-block"}}>
+      <button onClick={() => setOpen(!open)} style={{background:"none",border:`1px solid ${T.wire}`,borderRadius:4,padding:"2px 8px",fontFamily:FONT_BODY,fontSize:9,fontWeight:700,color:T.gold,cursor:"pointer",letterSpacing:"0.02em"}}>
+        ✨ Rewrite
+      </button>
+      {open && (
+        <div style={{position:"absolute",top:"100%",left:0,zIndex:50,background:T.carbon,border:`1px solid ${T.wire}`,borderRadius:8,padding:10,marginTop:4,width:220,boxShadow:"0 8px 24px rgba(0,0,0,0.4)"}}>
+          <div style={{fontFamily:FONT_BODY,fontSize:9,fontWeight:700,color:T.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:6}}>Tone</div>
+          {["More premium","More beginner-friendly","More concise","More personal & warm"].map(t => (
+            <div key={t} onClick={() => doRewrite(`Rewrite with this tone: ${t}`)}
+              style={{fontFamily:FONT_BODY,fontSize:12,color:T.parchment,padding:"6px 8px",borderRadius:4,cursor:"pointer",marginBottom:2,":hover":{background:T.steel}}}>
+              {t}
+            </div>
+          ))}
+          <div style={{height:1,background:T.rim,margin:"8px 0"}}/>
+          <div style={{fontFamily:FONT_BODY,fontSize:9,fontWeight:700,color:T.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:6}}>Focus On</div>
+          {["The technique & skills","The scenery & experience","The challenge & achievement","Relaxation & escape","Family & bonding"].map(f => (
+            <div key={f} onClick={() => doRewrite(`Rewrite with this focus: ${f}`)}
+              style={{fontFamily:FONT_BODY,fontSize:12,color:T.parchment,padding:"6px 8px",borderRadius:4,cursor:"pointer",marginBottom:2}}>
+              {f}
+            </div>
+          ))}
+          <div style={{height:1,background:T.rim,margin:"8px 0"}}/>
+          {!showCustom ? (
+            <div onClick={() => setShowCustom(true)}
+              style={{fontFamily:FONT_BODY,fontSize:12,color:T.gold,padding:"6px 8px",borderRadius:4,cursor:"pointer",fontWeight:600}}>
+              ✏️ Custom instruction…
+            </div>
+          ) : (
+            <div>
+              <input value={customFocus} onChange={e => setCustomFocus(e.target.value)}
+                placeholder="e.g. emphasize father-son bonding"
+                autoFocus
+                onKeyDown={e => e.key === "Enter" && customFocus && doRewrite(customFocus)}
+                style={{width:"100%",background:T.void,border:`1px solid ${T.wire}`,borderRadius:4,padding:"6px 8px",fontFamily:FONT_BODY,fontSize:12,color:T.parchment,outline:"none",marginBottom:6}}/>
+              <button onClick={() => customFocus && doRewrite(customFocus)}
+                style={{width:"100%",background:T.gold,border:"none",borderRadius:4,padding:"6px",fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.ink,cursor:"pointer"}}>
+                Rewrite with this
+              </button>
+            </div>
+          )}
+          <div style={{height:1,background:T.rim,margin:"8px 0"}}/>
+          <div onClick={() => { setOpen(false); setShowCustom(false); }}
+            style={{fontFamily:FONT_BODY,fontSize:11,color:T.muted,padding:"4px 8px",cursor:"pointer",textAlign:"center"}}>
+            Cancel
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Editable field component ──
 function EditField({ label, value, onChange, multiline, placeholder }) {
   const [editing, setEditing] = useState(false);
@@ -259,26 +335,38 @@ function ItineraryPanel({ bookingId, guideId }) {
         <div style={{display:"flex",flexDirection:"column",gap:16}}>
           {/* Header */}
           <div style={{background:T.carbon,borderRadius:8,padding:16,border:`1px solid ${T.rim}`}}>
-            <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:10}}>Header</div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.1em"}}>Header</div>
+              <RewriteBtn section="vibe_statement" currentText={content?.header?.vibe_statement} onRewrite={v => updateContent("header.vibe_statement", v)} />
+            </div>
             <EditField label="Title" value={content?.header?.title} onChange={v => updateContent("header.title", v)} />
             <EditField label="Vibe Statement" value={content?.header?.vibe_statement} onChange={v => updateContent("header.vibe_statement", v)} placeholder="One evocative sentence…" />
           </div>
 
           {/* Why This Plan */}
           <div style={{background:T.carbon,borderRadius:8,padding:16,border:`1px solid ${T.rim}`}}>
-            <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:10}}>Why This Plan</div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.1em"}}>Why This Plan</div>
+              <RewriteBtn section="why_this_plan" currentText={content?.why_this_plan} onRewrite={v => updateContent("why_this_plan", v)} />
+            </div>
             <EditField label="Personalized reason" value={content?.why_this_plan} onChange={v => updateContent("why_this_plan", v)} multiline placeholder="Why this plan was built for this guest…" />
           </div>
 
           {/* Overview */}
           <div style={{background:T.carbon,borderRadius:8,padding:16,border:`1px solid ${T.rim}`}}>
-            <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:10}}>Overview</div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.1em"}}>Overview</div>
+              <RewriteBtn section="overview" currentText={content?.overview?.description} onRewrite={v => updateContent("overview.description", v)} />
+            </div>
             <EditField label="Description" value={content?.overview?.description} onChange={v => updateContent("overview.description", v)} multiline />
           </div>
 
           {/* About the Area */}
           <div style={{background:T.carbon,borderRadius:8,padding:16,border:`1px solid ${T.rim}`}}>
-            <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:10}}>About the Area</div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.1em"}}>About the Area</div>
+              <RewriteBtn section="about_the_area" currentText={content?.about_the_area?.description} onRewrite={v => updateContent("about_the_area.description", v)} />
+            </div>
             <EditField label="Area Title" value={content?.about_the_area?.title} onChange={v => updateContent("about_the_area.title", v)} />
             <EditField label="Area Description" value={content?.about_the_area?.description} onChange={v => updateContent("about_the_area.description", v)} multiline />
           </div>
@@ -313,7 +401,10 @@ function ItineraryPanel({ bookingId, guideId }) {
 
           {/* Notes from Guide */}
           <div style={{background:T.carbon,borderRadius:8,padding:16,border:`1px solid ${T.rim}`}}>
-            <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:10}}>Notes from Guide ✦</div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.1em"}}>Notes from Guide ✦</div>
+              <RewriteBtn section="notes_from_guide" currentText={content?.notes_from_guide} onRewrite={v => updateContent("notes_from_guide", v)} />
+            </div>
             <EditField label="Your personal note to the guest" value={content?.notes_from_guide} onChange={v => updateContent("notes_from_guide", v)} multiline placeholder="Write as yourself — this is the most important section…" />
           </div>
 
