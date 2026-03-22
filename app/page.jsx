@@ -577,57 +577,6 @@ export default function HomePage() {
         </div>
       </Section>
 
-      {/* How It Works */}
-      <Section bg={T.gunmetal} id="how-it-works">
-        <SectionHeader eyebrow="Simple by design" title="How RŌM works" center/>
-        <HowItWorks/>
-      </Section>
-
-      {/* RŌM Concierge */}
-      <Section bg={T.carbon}>
-        <div style={{display:"grid", gridTemplateColumns:isMobile?"1fr":"1fr 1fr", gap:0, borderRadius:12, overflow:"hidden", border:`1px solid ${T.wire}`}}>
-          {/* Left — Visual */}
-          <div style={{background:"linear-gradient(145deg, #0b1a24 0%, #152018 50%, #1a1206 100%)", position:"relative", padding:isMobile?"48px 32px":"64px 56px", display:"flex", flexDirection:"column", justifyContent:"center", minHeight:isMobile?300:440}}>
-            <div style={{position:"absolute", inset:0, backgroundImage:`radial-gradient(ellipse at 70% 30%, ${T.gold}20 0%, transparent 50%), radial-gradient(ellipse at 20% 80%, #1a3a5025 0%, transparent 40%)`}}/>
-            <div style={{position:"relative"}}>
-              <div style={{fontFamily:FONT_BODY, fontSize:13, fontWeight:700, color:T.gold, textTransform:"uppercase", letterSpacing:"0.14em", marginBottom:16}}>RŌM Concierge</div>
-              <div style={{fontFamily:FONT_DISPLAY, fontSize:isMobile?36:48, color:T.white, fontWeight:400, lineHeight:1.05, marginBottom:20}}>
-                Don't search.<br/>
-                <span style={{color:T.gold, fontStyle:"italic"}}>Just tell us where.</span>
-              </div>
-              <div style={{fontFamily:FONT_BODY, fontSize:16, color:T.ash, lineHeight:1.7, maxWidth:380}}>
-                Tell us the destination, your dates, and your vibe. Our AI concierge builds a full itinerary — guides, lodging, and logistics — in under a minute.
-              </div>
-            </div>
-          </div>
-
-          {/* Right — Features */}
-          <div style={{background:T.steel, padding:isMobile?"40px 32px":"56px 56px", display:"flex", flexDirection:"column", justifyContent:"center"}}>
-            <div style={{display:"flex", flexDirection:"column", gap:0}}>
-              {[
-                ["✦", "Tell us the destination", "Type where you want to go. The Concierge knows every guide and location on the platform."],
-                ["◎", "Set your vibe", "Adventure level, group size, budget. Or pick Surprise Me and we handle everything."],
-                ["◈", "Get a full itinerary", "Guides matched to your trip, lodging recommendations, day-by-day plan — ready in seconds."],
-                ["◉", "Book in one tap", "Your whole trip, locked in. Deposits, confirmations, and prep emails handled automatically."],
-              ].map(([icon, title, body], i) => (
-                <div key={title} style={{padding:"18px 0", borderBottom:i<3?`1px solid ${T.rim}`:"none", display:"flex", gap:16}}>
-                  <span style={{color:T.gold, fontSize:18, flexShrink:0, marginTop:2}}>{icon}</span>
-                  <div>
-                    <div style={{fontFamily:FONT_BODY, fontSize:15, fontWeight:700, color:T.parchment, marginBottom:3}}>{title}</div>
-                    <div style={{fontFamily:FONT_BODY, fontSize:14, color:T.silver, lineHeight:1.6}}>{body}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{marginTop:28}}>
-              <button onClick={()=>window.location.href="/concierge"} style={{background:T.gold, border:"none", borderRadius:6, padding:"13px 28px", fontFamily:FONT_BODY, fontSize:15, fontWeight:700, color:T.ink, cursor:"pointer"}}>
-                Try RŌM Concierge →
-              </button>
-            </div>
-          </div>
-        </div>
-      </Section>
-
       {/* Destinations */}
       <Section bg={T.carbon}>
         <SectionHeader
@@ -639,32 +588,56 @@ export default function HomePage() {
         <DestinationGrid/>
       </Section>
 
-      {/* Trust + Testimonials */}
+      {/* RŌM Concierge */}
       <Section bg={T.gunmetal}>
-        {/* Compact trust strip */}
-        <div style={{display:"flex", flexWrap:"wrap", justifyContent:"center", gap:isMobile?16:32, marginBottom:48, paddingBottom:48, borderBottom:`1px solid ${T.wire}`}}>
-          {[
-            ["◬","Verified guides"],
-            ["◉","Transparent pricing"],
-            ["◷","2hr response time"],
-            ["✦","Protected booking"],
-          ].map(([icon,label])=>(
-            <div key={label} style={{display:"flex", alignItems:"center", gap:10}}>
-              <span style={{fontSize:20, color:T.gold}}>{icon}</span>
-              <span style={{fontFamily:FONT_BODY, fontSize:15, fontWeight:600, color:T.ash, letterSpacing:"0.02em"}}>{label}</span>
+        <div style={{display:"grid", gridTemplateColumns:isMobile?"1fr":"1fr 1fr", gap:0, borderRadius:12, overflow:"hidden", border:`1px solid ${T.wire}`}}>
+          <div style={{background:"linear-gradient(145deg, #0b1a24 0%, #152018 50%, #1a1206 100%)", position:"relative", padding:isMobile?"40px 24px":"64px 56px", display:"flex", flexDirection:"column", justifyContent:"center", minHeight:isMobile?260:400}}>
+            <div style={{position:"absolute", inset:0, backgroundImage:`radial-gradient(ellipse at 70% 30%, ${T.gold}20 0%, transparent 50%), radial-gradient(ellipse at 20% 80%, #1a3a5025 0%, transparent 40%)`}}/>
+            <div style={{position:"relative"}}>
+              <div style={{fontFamily:FONT_BODY, fontSize:12, fontWeight:700, color:T.gold, textTransform:"uppercase", letterSpacing:"0.14em", marginBottom:14}}>RŌM Concierge</div>
+              <div style={{fontFamily:FONT_DISPLAY, fontSize:isMobile?32:44, color:T.white, fontWeight:400, lineHeight:1.05, marginBottom:16}}>
+                Don't search.<br/>
+                <span style={{color:T.gold, fontStyle:"italic"}}>Just tell us where.</span>
+              </div>
+              <div style={{fontFamily:FONT_BODY, fontSize:15, color:T.ash, lineHeight:1.7, maxWidth:360}}>
+                Tell us the destination, your dates, and your vibe. We'll build the trip.
+              </div>
+              <div style={{marginTop:24}}>
+                <button onClick={()=>window.location.href="/concierge"} style={{background:T.gold, border:"none", borderRadius:6, padding:"12px 24px", fontFamily:FONT_BODY, fontSize:14, fontWeight:700, color:T.ink, cursor:"pointer"}}>
+                  Try RŌM Concierge →
+                </button>
+              </div>
             </div>
-          ))}
+          </div>
+          {!isMobile && (
+            <div style={{background:T.steel, padding:"48px 48px", display:"flex", flexDirection:"column", justifyContent:"center"}}>
+              {[
+                ["✦", "Tell us the destination"],
+                ["◎", "Set your vibe"],
+                ["◈", "Get a full itinerary"],
+                ["◉", "Book in one tap"],
+              ].map(([icon, title], i) => (
+                <div key={title} style={{padding:"14px 0", borderBottom:i<3?`1px solid ${T.rim}`:"none", display:"flex", gap:14, alignItems:"center"}}>
+                  <span style={{color:T.gold, fontSize:16}}>{icon}</span>
+                  <span style={{fontFamily:FONT_BODY, fontSize:15, fontWeight:600, color:T.parchment}}>{title}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        <SectionHeader eyebrow="From the field" title="What guests say" center/>
-        <Testimonials/>
       </Section>
 
-      {/* Guide CTA */}
-      <div style={{borderBottom:`1px solid ${T.wire}`}}>
-        <GuideCTA/>
+      {/* Compact Footer */}
+      <div style={{background:T.void, borderTop:`1px solid ${T.wire}`, padding:"32px 20px", textAlign:"center"}}>
+        <div style={{fontFamily:FONT_DISPLAY, fontSize:22, color:T.gold, letterSpacing:"0.14em", marginBottom:8}}>RŌM</div>
+        <div style={{fontFamily:FONT_BODY, fontSize:12, color:T.silver, marginBottom:16}}>The world's best adventure guides, in one place.</div>
+        <div style={{display:"flex", justifyContent:"center", gap:24, flexWrap:"wrap", marginBottom:16}}>
+          {[["Explore","/search"],["RŌM Concierge","/concierge"],["Become a Guide","/become-a-guide"]].map(([label,href])=>(
+            <span key={label} onClick={()=>window.location.href=href} style={{fontFamily:FONT_BODY, fontSize:13, color:T.ash, cursor:"pointer"}}>{label}</span>
+          ))}
+        </div>
+        <div style={{fontFamily:FONT_BODY, fontSize:11, color:T.muted}}>© 2026 RŌM, Inc.</div>
       </div>
-
-      <Footer/>
     </>
   );
 }

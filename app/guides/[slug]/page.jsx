@@ -612,16 +612,23 @@ function GuideProfile({ guide=GUIDE }) {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Barlow:wght@300;400;500;600;700&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
+        html,body{width:100%;overflow-x:hidden;}
         body{background:${T.void};}
         ::placeholder{color:${T.muted};}
         ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:${T.carbon};}::-webkit-scrollbar-thumb{background:${T.wire};border-radius:3px;}
+        @media(max-width:768px){
+          .guide-nav-links{display:none!important;}
+          .guide-hero{height:380px!important;}
+          .guide-hero-inner{padding:0 20px!important;}
+          .guide-body{padding:0 16px!important;}
+        }
       `}</style>
 
       {/* ── NAV — void (darkest) ── */}
       <div style={{position:"fixed",top:0,left:0,right:0,zIndex:100,height:64,background:T.void,borderBottom:`1px solid ${T.wire}`,display:"flex",alignItems:"center"}}>
         <div style={{maxWidth:1160,margin:"0 auto",padding:"0 36px",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div style={{fontFamily:FONT_DISPLAY,fontSize:26,color:T.gold,letterSpacing:"0.14em",fontWeight:500,cursor:"pointer"}} onClick={()=>window.location.href="/"}>RŌM</div>
-          <div style={{display:"flex",gap:28,alignItems:"center"}}>
+          <div className="guide-nav-links" style={{display:"flex",gap:28,alignItems:"center"}}>
             <span style={{fontFamily:FONT_BODY,fontSize:14,color:T.ash,cursor:"pointer"}}>Explore</span>
             <span style={{fontFamily:FONT_BODY,fontSize:14,color:T.ash,cursor:"pointer"}}>Become a Guide</span>
             <button onClick={()=>setBookingOpen(true)} style={{background:T.gold,border:"none",borderRadius:6,padding:"10px 22px",fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:T.ink,cursor:"pointer"}}>Book Now</button>
@@ -630,13 +637,13 @@ function GuideProfile({ guide=GUIDE }) {
       </div>
 
       {/* ── HERO — carbon (one step up from void) ── */}
-      <div style={{position:"relative",height:540,overflow:"hidden"}}>
+      <div className="guide-hero" style={{position:"relative",height:540,overflow:"hidden"}}>
         <div style={{position:"absolute",inset:0,background:`linear-gradient(160deg, #152018 0%, #0b1a24 50%, #1a1205 100%)`}}>
           {guide.coverPhotoUrl && <img src={guide.coverPhotoUrl} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:0.45,mixBlendMode:"luminosity"}}/>}
           <div style={{position:"absolute",inset:0,backgroundImage:`radial-gradient(ellipse at 15% 90%, ${T.gold}38 0%, transparent 40%), radial-gradient(ellipse at 80% 10%, #1a3a5040 0%, transparent 38%)`}}/>
           <div style={{position:"absolute",bottom:0,left:0,right:0,height:360,background:`linear-gradient(to top, ${T.void} 0%, ${T.void}cc 30%, ${T.void}44 65%, transparent 100%)`}}/>
         </div>
-        <div style={{position:"relative",maxWidth:1160,margin:"0 auto",padding:"0 36px",height:"100%",display:"flex",flexDirection:"column",justifyContent:"flex-end",paddingBottom:52}}>
+        <div className="guide-hero-inner" style={{position:"relative",maxWidth:1160,margin:"0 auto",padding:"0 36px",height:"100%",display:"flex",flexDirection:"column",justifyContent:"flex-end",paddingBottom:52}}>
           <div style={{display:"flex",gap:8,marginBottom:16}}>
             {guide.verified&&<span style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,background:T.goldGlow,border:`1px solid ${T.gold}`,borderRadius:4,padding:"4px 12px",letterSpacing:"0.1em"}}>✓ VERIFIED</span>}
             {guide.insured&&<span style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.ash,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.22)",borderRadius:4,padding:"4px 12px",letterSpacing:"0.1em"}}>INSURED</span>}
@@ -665,7 +672,7 @@ function GuideProfile({ guide=GUIDE }) {
 
       {/* ── BODY — gunmetal (two steps up from void) ── */}
       <div style={{background:T.gunmetal,borderTop:`1px solid ${T.wire}`}}>
-        <div style={{maxWidth:1160,margin:"0 auto",padding:"0 36px 96px"}}>
+        <div className="guide-body" style={{maxWidth:1160,margin:"0 auto",padding:"0 36px 96px"}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:52,alignItems:"start"}}>
 
             {/* LEFT */}
