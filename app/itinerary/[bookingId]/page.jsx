@@ -3,6 +3,13 @@ import { useState, useEffect } from "react";
 import React from "react";
 
 const GOLD = "#c9973a";
+const GOLD_LIGHT = "#c9973a18";
+const CREAM = "#faf9f6";
+const WARM = "#f4f1ec";
+const BORDER = "#e8e5df";
+const INK = "#1a1a1a";
+const ASH = "#5a5a5a";
+const MUTED = "#8a8a8a";
 const FONT_D = "'Cormorant Garamond', Georgia, serif";
 const FONT_B = "'Barlow', -apple-system, sans-serif";
 
@@ -14,15 +21,34 @@ const weatherIcons = {
   "Thunderstorms": "⛈", "Variable": "🌤",
 };
 
+// ── Section wrapper ──
+function Section({ children, noBorder }) {
+  return (
+    <div style={{ padding: "40px 0", borderBottom: noBorder ? "none" : `1px solid ${BORDER}` }}>
+      {children}
+    </div>
+  );
+}
+
+function SectionLabel({ children }) {
+  return (
+    <div style={{ fontFamily: FONT_B, fontSize: 10, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 16 }}>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+        <span style={{ width: 16, height: 1, background: GOLD, display: "inline-block" }} />
+        {children}
+        <span style={{ width: 16, height: 1, background: GOLD, display: "inline-block" }} />
+      </span>
+    </div>
+  );
+}
+
 export default function ItineraryPage({ params }) {
   const { bookingId } = React.use(params);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
-  useEffect(() => {
-    if (bookingId) fetchItinerary();
-  }, [bookingId]);
+  useEffect(() => { if (bookingId) fetchItinerary(); }, [bookingId]);
 
   const fetchItinerary = async () => {
     try {
@@ -41,16 +67,19 @@ export default function ItineraryPage({ params }) {
   };
 
   if (loading) return (
-    <div style={{ minHeight: "100vh", background: "#faf9f6", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ fontFamily: FONT_D, fontSize: 32, color: GOLD, letterSpacing: "0.14em" }}>RŌM</div>
+    <div style={{ minHeight: "100vh", background: CREAM, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
+      <div style={{ fontFamily: FONT_D, fontSize: 36, color: GOLD, letterSpacing: "0.16em" }}>RŌM</div>
+      <div style={{ width: 40, height: 2, background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)` }} />
+      <div style={{ fontFamily: FONT_B, fontSize: 12, color: MUTED, letterSpacing: "0.08em" }}>Loading your trip plan…</div>
     </div>
   );
 
   if (notFound) return (
-    <div style={{ minHeight: "100vh", background: "#faf9f6", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, padding: 40 }}>
-      <div style={{ fontFamily: FONT_D, fontSize: 36, color: "#1a1a1a" }}>Not available yet</div>
-      <div style={{ fontFamily: FONT_B, fontSize: 15, color: "#8a8a8a", textAlign: "center" }}>Your guide is still putting the finishing touches on your trip plan. Check back soon.</div>
-      <button onClick={() => window.location.href = "/dashboard"} style={{ marginTop: 16, background: GOLD, border: "none", borderRadius: 6, padding: "12px 28px", fontFamily: FONT_B, fontSize: 14, fontWeight: 700, color: "#0d1117", cursor: "pointer" }}>Go to Dashboard</button>
+    <div style={{ minHeight: "100vh", background: CREAM, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 20, padding: 40 }}>
+      <div style={{ fontFamily: FONT_D, fontSize: 24, color: GOLD, letterSpacing: "0.14em", marginBottom: 8 }}>RŌM</div>
+      <div style={{ fontFamily: FONT_D, fontSize: 36, color: INK, fontWeight: 400 }}>Not available yet</div>
+      <div style={{ fontFamily: FONT_B, fontSize: 15, color: MUTED, textAlign: "center", maxWidth: 380 }}>Your guide is still putting the finishing touches on your trip plan. Check back soon.</div>
+      <button onClick={() => window.location.href = "/dashboard"} style={{ marginTop: 8, background: GOLD, border: "none", borderRadius: 6, padding: "12px 28px", fontFamily: FONT_B, fontSize: 14, fontWeight: 700, color: "#0d1117", cursor: "pointer" }}>Go to Dashboard</button>
     </div>
   );
 
@@ -64,263 +93,305 @@ export default function ItineraryPage({ params }) {
   const notes = content.notes_from_guide || "";
   const addOns = content.add_ons || [];
   const after = content.after_experience || {};
+  const logistics = content.guide_logistics || {};
 
-  // Section overrides from vertical config
   const overrides = content._section_overrides || {};
   const renames = overrides.rename || {};
   const hideSections = overrides.hide_sections || [];
   const conditionsLabel = content._conditions_label || "Current Conditions";
   const label = (section, fallback) => renames[section] || fallback;
 
+  const hasLogistics = logistics.meeting_point && !logistics.meeting_point.includes("[Guide will add");
+
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Barlow:wght@300;400;500;600;700&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
-        body{background:#faf9f6;}
-        @media print { .no-print { display:none!important; } body { background:#fff; } }
+        body{background:${CREAM};}
+        @media print {
+          .no-print{display:none!important;}
+          body{background:#fff;}
+          .print-break{page-break-before:always;}
+        }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+        .itin-section { animation: fadeIn 0.5s ease forwards; }
       `}</style>
 
-      {/* Header bar */}
-      <div className="no-print" style={{ position: "sticky", top: 0, zIndex: 100, background: "#faf9f6", borderBottom: "1px solid #e8e5df", padding: "12px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ fontFamily: FONT_D, fontSize: 22, color: GOLD, letterSpacing: "0.14em", cursor: "pointer" }} onClick={() => window.location.href = "/"}>RŌM</div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={handleShare} style={{ background: "none", border: "1px solid #d4d0c8", borderRadius: 6, padding: "6px 14px", fontFamily: FONT_B, fontSize: 12, fontWeight: 600, color: "#4a4a4a", cursor: "pointer" }}>Share</button>
-          <button onClick={() => window.print()} style={{ background: "none", border: "1px solid #d4d0c8", borderRadius: 6, padding: "6px 14px", fontFamily: FONT_B, fontSize: 12, fontWeight: 600, color: "#4a4a4a", cursor: "pointer" }}>Print / PDF</button>
+      {/* ══ STICKY HEADER BAR ══ */}
+      <div className="no-print" style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(250,249,246,0.92)", backdropFilter: "blur(12px)", borderBottom: `1px solid ${BORDER}`, padding: "10px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ fontFamily: FONT_D, fontSize: 20, color: GOLD, letterSpacing: "0.14em", cursor: "pointer" }} onClick={() => window.location.href = "/"}>RŌM</div>
+          <div style={{ width: 1, height: 16, background: BORDER }} />
+          <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 600, color: MUTED, letterSpacing: "0.04em" }}>Trip Plan</div>
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button onClick={handleShare} style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 6, padding: "6px 14px", fontFamily: FONT_B, fontSize: 11, fontWeight: 600, color: ASH, cursor: "pointer" }}>Share</button>
+          <button onClick={() => window.print()} style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 6, padding: "6px 14px", fontFamily: FONT_B, fontSize: 11, fontWeight: 600, color: ASH, cursor: "pointer" }}>Print / PDF</button>
         </div>
       </div>
 
       <div style={{ maxWidth: 640, margin: "0 auto", padding: "0 24px 80px" }}>
 
-        {/* ── HERO ── */}
-        <div style={{ padding: "48px 0 40px", borderBottom: "1px solid #e8e5df" }}>
-          <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 12 }}>Your Trip Plan</div>
-          <h1 style={{ fontFamily: FONT_D, fontSize: "clamp(32px, 6vw, 48px)", color: "#1a1a1a", fontWeight: 400, lineHeight: 1.1, marginBottom: 16 }}>{h.title || "Your Adventure"}</h1>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 16 }}>
-            {h.date && <span style={{ fontFamily: FONT_B, fontSize: 14, color: "#6a6a6a" }}>📅 {new Date(h.date).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</span>}
-            {h.location && <span style={{ fontFamily: FONT_B, fontSize: 14, color: "#6a6a6a" }}>📍 {h.location}</span>}
+        {/* ══ HERO ══ */}
+        <div className="itin-section" style={{ paddingTop: 56, paddingBottom: 44, borderBottom: `1px solid ${BORDER}`, textAlign: "center" }}>
+          {/* Gold decorative element */}
+          <div style={{ width: 40, height: 2, background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)`, margin: "0 auto 20px" }} />
+          <div style={{ fontFamily: FONT_B, fontSize: 10, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.16em", marginBottom: 16 }}>Your Trip Plan</div>
+          <h1 style={{ fontFamily: FONT_D, fontSize: "clamp(34px, 7vw, 52px)", color: INK, fontWeight: 400, lineHeight: 1.08, marginBottom: 20 }}>
+            {h.title || "Your Adventure"}
+          </h1>
+          <div style={{ display: "flex", justifyContent: "center", gap: 20, flexWrap: "wrap", marginBottom: 20 }}>
+            {h.date && (
+              <span style={{ fontFamily: FONT_B, fontSize: 13, color: MUTED, display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ color: GOLD }}>◦</span>
+                {new Date(h.date).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+              </span>
+            )}
+            {h.location && (
+              <span style={{ fontFamily: FONT_B, fontSize: 13, color: MUTED, display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ color: GOLD }}>◦</span>
+                {h.location}
+              </span>
+            )}
           </div>
-          {h.vibe_statement && <p style={{ fontFamily: FONT_D, fontSize: 20, color: "#3a3a3a", fontStyle: "italic", lineHeight: 1.5 }}>{h.vibe_statement}</p>}
+          {h.vibe_statement && (
+            <p style={{ fontFamily: FONT_D, fontSize: 22, color: "#3a3a3a", fontStyle: "italic", lineHeight: 1.45, maxWidth: 500, margin: "0 auto" }}>
+              "{h.vibe_statement}"
+            </p>
+          )}
         </div>
 
-        {/* ── WHY THIS PLAN ── */}
+        {/* ══ WHY THIS PLAN ══ */}
         {content.why_this_plan && (
-          <div style={{ padding: "24px 0 20px", borderBottom: "1px solid #e8e5df" }}>
-            <div style={{ background: "linear-gradient(135deg, #f9f6f0 0%, #f4f1ec 100%)", borderRadius: 12, padding: "20px 24px", borderLeft: `3px solid ${GOLD}` }}>
-              <div style={{ fontFamily: FONT_B, fontSize: 10, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 8 }}>Why This Plan Was Built for You</div>
+          <Section>
+            <div style={{ background: `linear-gradient(135deg, ${WARM} 0%, ${CREAM} 100%)`, borderRadius: 12, padding: "24px 28px", borderLeft: `3px solid ${GOLD}`, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+              <div style={{ fontFamily: FONT_B, fontSize: 10, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 10 }}>Built for You</div>
               <p style={{ fontFamily: FONT_B, fontSize: 15, color: "#2a2a2a", lineHeight: 1.65, margin: 0 }}>{content.why_this_plan}</p>
             </div>
-          </div>
+          </Section>
         )}
 
-        {/* ── CONDITIONS / WEATHER ── */}
+        {/* ══ WEATHER ══ */}
         {weather && (
-          <div style={{ padding: "20px 0", borderBottom: "1px solid #e8e5df" }}>
-            <div style={{ fontFamily: FONT_B, fontSize: 10, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 12 }}>{label("conditions", conditionsLabel)}</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <span style={{ fontSize: 32 }}>{weatherIcons[weather.condition] || "🌤"}</span>
+          <Section>
+            <SectionLabel>{label("conditions", conditionsLabel)}</SectionLabel>
+            <div style={{ display: "flex", alignItems: "center", gap: 16, background: WARM, borderRadius: 10, padding: "16px 20px" }}>
+              <span style={{ fontSize: 36 }}>{weatherIcons[weather.condition] || "🌤"}</span>
               <div>
-                <div style={{ fontFamily: FONT_B, fontSize: 14, fontWeight: 600, color: "#1a1a1a" }}>{weather.condition}</div>
-                <div style={{ fontFamily: FONT_B, fontSize: 13, color: "#6a6a6a" }}>
+                <div style={{ fontFamily: FONT_B, fontSize: 15, fontWeight: 600, color: INK }}>{weather.condition}</div>
+                <div style={{ fontFamily: FONT_B, fontSize: 13, color: MUTED }}>
                   High {weather.high}°F · Low {weather.low}°F · Wind {weather.windSpeed}mph
                   {weather.sunrise && ` · Sunrise ${new Date(weather.sunrise).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`}
                 </div>
               </div>
             </div>
-          </div>
+          </Section>
         )}
 
-        {/* ── ABOUT THE AREA ── */}
+        {/* ══ ABOUT THE AREA ══ */}
         {content.about_the_area && (
-          <div style={{ padding: "36px 0 32px", borderBottom: "1px solid #e8e5df" }}>
-            <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 14 }}>
-              {content.about_the_area.title || "About the Area"}
-            </div>
+          <Section>
+            <SectionLabel>{content.about_the_area.title || "About the Area"}</SectionLabel>
             <p style={{ fontFamily: FONT_B, fontSize: 15, color: "#2a2a2a", lineHeight: 1.7, marginBottom: 20 }}>
               {content.about_the_area.description}
             </p>
             {content.about_the_area.details?.length > 0 && (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
                 {content.about_the_area.details.map((d, i) => (
-                  <div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start", background: "#f4f1ec", borderRadius: 10, padding: "16px 18px" }}>
-                    <span style={{ fontSize: 24, flexShrink: 0, marginTop: 2 }}>{d.icon}</span>
+                  <div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start", background: WARM, borderRadius: 10, padding: "16px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                    <span style={{ fontSize: 22, flexShrink: 0, marginTop: 1 }}>{d.icon}</span>
                     <div>
-                      <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>{d.label}</div>
+                      <div style={{ fontFamily: FONT_B, fontSize: 10, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>{d.label}</div>
                       <div style={{ fontFamily: FONT_B, fontSize: 14, color: "#3a3a3a", lineHeight: 1.55 }}>{d.value}</div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-          </div>
+          </Section>
         )}
 
-        {/* ── OVERVIEW ── */}
+        {/* ══ OVERVIEW ══ */}
         {overview.description && (
-          <div style={{ padding: "36px 0 32px", borderBottom: "1px solid #e8e5df" }}>
-            <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 14 }}>Overview</div>
-            <p style={{ fontFamily: FONT_B, fontSize: 16, color: "#2a2a2a", lineHeight: 1.7, marginBottom: 16 }}>{overview.description}</p>
+          <Section>
+            <SectionLabel>Overview</SectionLabel>
+            <p style={{ fontFamily: FONT_B, fontSize: 16, color: "#2a2a2a", lineHeight: 1.7, marginBottom: 20 }}>{overview.description}</p>
             {overview.highlights?.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {overview.highlights.map((hl, i) => (
-                  <span key={i} style={{ fontFamily: FONT_B, fontSize: 12, fontWeight: 600, color: GOLD, background: "#c9973a15", borderRadius: 20, padding: "5px 14px" }}>{hl}</span>
+                  <span key={i} style={{ fontFamily: FONT_B, fontSize: 12, fontWeight: 600, color: GOLD, background: GOLD_LIGHT, border: `1px solid ${GOLD}30`, borderRadius: 20, padding: "6px 16px" }}>
+                    ✦ {hl}
+                  </span>
                 ))}
               </div>
             )}
-          </div>
+          </Section>
         )}
 
-        {/* ── TIMELINE ── */}
+        {/* ══ TIMELINE ══ */}
         {timeline.length > 0 && (
-          <div style={{ padding: "36px 0 32px", borderBottom: "1px solid #e8e5df" }}>
-            <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 20 }}>{label("timeline", overrides.timeline_label || "Your Day")}</div>
+          <Section>
+            <SectionLabel>{label("timeline", overrides.timeline_label || "Your Day")}</SectionLabel>
             <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
               {timeline.map((block, i) => (
-                <div key={i} style={{ display: "flex", gap: 20, paddingBottom: 24, position: "relative" }}>
-                  {/* Timeline line */}
-                  <div style={{ width: 24, display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: GOLD, border: "2px solid #faf9f6", boxShadow: `0 0 0 2px ${GOLD}`, zIndex: 1 }} />
-                    {i < timeline.length - 1 && <div style={{ width: 1, flex: 1, background: "#e0ddd4", marginTop: 4 }} />}
+                <div key={i} style={{ display: "flex", gap: 20, paddingBottom: 28, position: "relative" }}>
+                  {/* Timeline dot + line */}
+                  <div style={{ width: 28, display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+                    <div style={{ width: 12, height: 12, borderRadius: "50%", background: i === 0 ? GOLD : CREAM, border: `2px solid ${GOLD}`, boxShadow: i === 0 ? `0 0 0 4px ${GOLD_LIGHT}` : "none", zIndex: 1 }} />
+                    {i < timeline.length - 1 && <div style={{ width: 1, flex: 1, background: `linear-gradient(to bottom, ${GOLD}60, ${BORDER})`, marginTop: 4 }} />}
                   </div>
-                  <div style={{ flex: 1, paddingBottom: i < timeline.length - 1 ? 8 : 0 }}>
-                    {block.time && <div style={{ fontFamily: FONT_B, fontSize: 12, fontWeight: 700, color: GOLD, marginBottom: 4 }}>{block.time}</div>}
-                    <div style={{ fontFamily: FONT_D, fontSize: 20, color: "#1a1a1a", fontWeight: 500, marginBottom: 4 }}>{block.title}</div>
-                    <div style={{ fontFamily: FONT_B, fontSize: 14, color: "#5a5a5a", lineHeight: 1.6 }}>{block.description}</div>
+                  <div style={{ flex: 1, paddingTop: 0 }}>
+                    {block.time && <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, marginBottom: 4, letterSpacing: "0.02em" }}>{block.time}</div>}
+                    <div style={{ fontFamily: FONT_D, fontSize: 21, color: INK, fontWeight: 500, marginBottom: 6, lineHeight: 1.2 }}>{block.title}</div>
+                    <div style={{ fontFamily: FONT_B, fontSize: 14, color: ASH, lineHeight: 1.65 }}>{block.description}</div>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          </Section>
         )}
 
-        {/* ── WHAT TO EXPECT ── */}
+        {/* ══ WHAT TO EXPECT ══ */}
         {!hideSections.includes("what_to_expect") && (expect.effort_level || expect.pace || expect.environment) && (
-          <div style={{ padding: "36px 0 32px", borderBottom: "1px solid #e8e5df" }}>
-            <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 16 }}>{label("what_to_expect", "What to Expect")}</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16 }}>
+          <Section>
+            <SectionLabel>{label("what_to_expect", "What to Expect")}</SectionLabel>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
               {expect.effort_level && (
-                <div style={{ background: "#f4f1ec", borderRadius: 10, padding: 18, textAlign: "center" }}>
-                  <div style={{ fontSize: 24, marginBottom: 8 }}>💪</div>
-                  <div style={{ fontFamily: FONT_B, fontSize: 10, fontWeight: 700, color: "#8a8a8a", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Effort</div>
-                  <div style={{ fontFamily: FONT_D, fontSize: 18, color: "#1a1a1a" }}>{expect.effort_level}</div>
+                <div style={{ background: WARM, borderRadius: 12, padding: 20, textAlign: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                  <div style={{ fontSize: 28, marginBottom: 10 }}>💪</div>
+                  <div style={{ fontFamily: FONT_B, fontSize: 9, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Effort</div>
+                  <div style={{ fontFamily: FONT_D, fontSize: 20, color: INK }}>{expect.effort_level}</div>
                 </div>
               )}
               {expect.pace && (
-                <div style={{ background: "#f4f1ec", borderRadius: 10, padding: 18, textAlign: "center" }}>
-                  <div style={{ fontSize: 24, marginBottom: 8 }}>⏱️</div>
-                  <div style={{ fontFamily: FONT_B, fontSize: 10, fontWeight: 700, color: "#8a8a8a", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Pace</div>
+                <div style={{ background: WARM, borderRadius: 12, padding: 20, textAlign: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                  <div style={{ fontSize: 28, marginBottom: 10 }}>⏱️</div>
+                  <div style={{ fontFamily: FONT_B, fontSize: 9, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Pace</div>
                   <div style={{ fontFamily: FONT_B, fontSize: 14, color: "#3a3a3a", lineHeight: 1.5 }}>{expect.pace}</div>
                 </div>
               )}
               {expect.environment && (
-                <div style={{ background: "#f4f1ec", borderRadius: 10, padding: 18, textAlign: "center" }}>
-                  <div style={{ fontSize: 24, marginBottom: 8 }}>🌿</div>
-                  <div style={{ fontFamily: FONT_B, fontSize: 10, fontWeight: 700, color: "#8a8a8a", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Environment</div>
+                <div style={{ background: WARM, borderRadius: 12, padding: 20, textAlign: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                  <div style={{ fontSize: 28, marginBottom: 10 }}>🌿</div>
+                  <div style={{ fontFamily: FONT_B, fontSize: 9, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Environment</div>
                   <div style={{ fontFamily: FONT_B, fontSize: 14, color: "#3a3a3a", lineHeight: 1.5 }}>{expect.environment}</div>
                 </div>
               )}
             </div>
-          </div>
+          </Section>
         )}
 
-        {/* ── WHAT TO BRING ── */}
+        {/* ══ WHAT TO BRING ══ */}
         {bring.length > 0 && (
-          <div style={{ padding: "36px 0 32px", borderBottom: "1px solid #e8e5df" }}>
-            <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 16 }}>{label("what_to_bring", "What to Bring")}</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {bring.map((item, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0" }}>
-                  <div style={{ width: 18, height: 18, borderRadius: 4, border: "1.5px solid #d4d0c8", flexShrink: 0 }} />
-                  <span style={{ fontFamily: FONT_B, fontSize: 14, color: "#3a3a3a" }}>{item}</span>
-                </div>
-              ))}
+          <Section>
+            <SectionLabel>{label("what_to_bring", "What to Bring")}</SectionLabel>
+            <div style={{ background: WARM, borderRadius: 12, padding: "20px 24px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: bring.length > 6 ? "1fr 1fr" : "1fr", gap: 10 }}>
+                {bring.map((item, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                    <div style={{ width: 18, height: 18, borderRadius: 4, border: `1.5px solid ${GOLD}50`, flexShrink: 0, marginTop: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <span style={{ fontSize: 9, color: GOLD }}>✦</span>
+                    </div>
+                    <span style={{ fontFamily: FONT_B, fontSize: 14, color: "#3a3a3a", lineHeight: 1.4 }}>{item}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          </Section>
         )}
 
-        {/* ── NOTES FROM GUIDE ── */}
+        {/* ══ NOTES FROM GUIDE ══ */}
         {notes && (
-          <div style={{ padding: "36px 0 32px", borderBottom: "1px solid #e8e5df" }}>
-            <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 16 }}>{label("notes_from_guide", "A Note from Your Guide")}</div>
-            <div style={{ background: "#f4f1ec", borderRadius: 10, padding: 24, borderLeft: `3px solid ${GOLD}` }}>
-              <p style={{ fontFamily: FONT_D, fontSize: 18, color: "#2a2a2a", lineHeight: 1.65, fontStyle: "italic" }}>{notes}</p>
+          <Section>
+            <SectionLabel>{label("notes_from_guide", "A Note from Your Guide")}</SectionLabel>
+            <div style={{ background: "linear-gradient(135deg, #f9f7f2 0%, #f3efe8 100%)", borderRadius: 14, padding: "28px 28px", borderLeft: `3px solid ${GOLD}`, boxShadow: "0 2px 8px rgba(0,0,0,0.04)", position: "relative" }}>
+              {/* Decorative quote mark */}
+              <div style={{ position: "absolute", top: 12, right: 20, fontFamily: FONT_D, fontSize: 64, color: `${GOLD}20`, lineHeight: 1, userSelect: "none" }}>"</div>
+              <p style={{ fontFamily: FONT_D, fontSize: 19, color: "#2a2a2a", lineHeight: 1.7, fontStyle: "italic", position: "relative", zIndex: 1 }}>
+                {notes}
+              </p>
             </div>
-          </div>
+          </Section>
         )}
 
-        {/* ── ADD-ONS ── */}
+        {/* ══ ADD-ONS ══ */}
         {!hideSections.includes("add_ons") && addOns.length > 0 && (
-          <div style={{ padding: "36px 0 32px", borderBottom: "1px solid #e8e5df" }}>
-            <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 16 }}>Optional Add-Ons</div>
+          <Section>
+            <SectionLabel>Optional Add-Ons</SectionLabel>
             {addOns.map((addon, i) => (
-              <div key={i} style={{ background: "#f4f1ec", borderRadius: 8, padding: 16, marginBottom: 8 }}>
+              <div key={i} style={{ background: WARM, borderRadius: 10, padding: 16, marginBottom: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
                 <span style={{ fontFamily: FONT_B, fontSize: 14, color: "#2a2a2a" }}>{typeof addon === "string" ? addon : addon.title || addon.name || JSON.stringify(addon)}</span>
               </div>
             ))}
-          </div>
+          </Section>
         )}
 
-        {/* ── LOGISTICS ── */}
-        {content.guide_logistics && (content.guide_logistics.meeting_point && !content.guide_logistics.meeting_point.includes("[Guide will add")) && (
-          <div style={{ padding: "36px 0 32px", borderBottom: "1px solid #e8e5df" }}>
-            <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 16 }}>Meeting Details</div>
-            <div style={{ display: "grid", gap: 12 }}>
-              {content.guide_logistics.meeting_point && (
-                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  <span style={{ fontSize: 18, flexShrink: 0 }}>📍</span>
-                  <div>
-                    <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: "#8a8a8a", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Meeting Point</div>
-                    <div style={{ fontFamily: FONT_B, fontSize: 15, color: "#2a2a2a" }}>{content.guide_logistics.meeting_point}</div>
+        {/* ══ LOGISTICS ══ */}
+        {hasLogistics && (
+          <Section>
+            <SectionLabel>Meeting Details</SectionLabel>
+            <div style={{ background: WARM, borderRadius: 12, padding: "20px 24px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+              <div style={{ display: "grid", gap: 16 }}>
+                {logistics.meeting_point && (
+                  <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                    <span style={{ fontSize: 20, flexShrink: 0 }}>📍</span>
+                    <div>
+                      <div style={{ fontFamily: FONT_B, fontSize: 10, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Meeting Point</div>
+                      <div style={{ fontFamily: FONT_B, fontSize: 15, color: INK }}>{logistics.meeting_point}</div>
+                    </div>
                   </div>
-                </div>
-              )}
-              {content.guide_logistics.meeting_time && (
-                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  <span style={{ fontSize: 18, flexShrink: 0 }}>🕐</span>
-                  <div>
-                    <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: "#8a8a8a", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Time</div>
-                    <div style={{ fontFamily: FONT_B, fontSize: 15, color: "#2a2a2a" }}>{content.guide_logistics.meeting_time}</div>
+                )}
+                {logistics.meeting_time && (
+                  <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                    <span style={{ fontSize: 20, flexShrink: 0 }}>🕐</span>
+                    <div>
+                      <div style={{ fontFamily: FONT_B, fontSize: 10, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Time</div>
+                      <div style={{ fontFamily: FONT_B, fontSize: 15, color: INK }}>{logistics.meeting_time}</div>
+                    </div>
                   </div>
-                </div>
-              )}
-              {content.guide_logistics.parking_notes && !content.guide_logistics.parking_notes.includes("[Guide will add") && (
-                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  <span style={{ fontSize: 18, flexShrink: 0 }}>🅿️</span>
-                  <div>
-                    <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: "#8a8a8a", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Parking</div>
-                    <div style={{ fontFamily: FONT_B, fontSize: 15, color: "#2a2a2a" }}>{content.guide_logistics.parking_notes}</div>
+                )}
+                {logistics.parking_notes && !logistics.parking_notes.includes("[Guide will add") && (
+                  <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                    <span style={{ fontSize: 20, flexShrink: 0 }}>🅿️</span>
+                    <div>
+                      <div style={{ fontFamily: FONT_B, fontSize: 10, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Parking</div>
+                      <div style={{ fontFamily: FONT_B, fontSize: 15, color: INK }}>{logistics.parking_notes}</div>
+                    </div>
                   </div>
-                </div>
-              )}
-              {content.guide_logistics.guide_phone && !content.guide_logistics.guide_phone.includes("[Guide will add") && (
-                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  <span style={{ fontSize: 18, flexShrink: 0 }}>📞</span>
-                  <div>
-                    <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: "#8a8a8a", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Guide Contact</div>
-                    <div style={{ fontFamily: FONT_B, fontSize: 15, color: "#2a2a2a" }}>{content.guide_logistics.guide_phone}</div>
+                )}
+                {logistics.guide_phone && !logistics.guide_phone.includes("[Guide will add") && (
+                  <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                    <span style={{ fontSize: 20, flexShrink: 0 }}>📞</span>
+                    <div>
+                      <div style={{ fontFamily: FONT_B, fontSize: 10, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Guide Contact</div>
+                      <div style={{ fontFamily: FONT_B, fontSize: 15, color: INK }}>{logistics.guide_phone}</div>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
+          </Section>
         )}
 
-        {/* ── AFTER THE EXPERIENCE ── */}
-        <div style={{ padding: "36px 0 32px" }}>
-          <div style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 16 }}>After Your Adventure</div>
-          {after.review_prompt && <p style={{ fontFamily: FONT_B, fontSize: 15, color: "#4a4a4a", lineHeight: 1.6, marginBottom: 20 }}>{after.review_prompt}</p>}
-          <div className="no-print" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        {/* ══ AFTER THE EXPERIENCE ══ */}
+        <Section noBorder>
+          <SectionLabel>After Your Adventure</SectionLabel>
+          {after.review_prompt && <p style={{ fontFamily: FONT_B, fontSize: 15, color: ASH, lineHeight: 1.6, marginBottom: 24, textAlign: "center" }}>{after.review_prompt}</p>}
+          <div className="no-print" style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
             {after.rebook_url && (
-              <button onClick={() => window.location.href = after.rebook_url} style={{ background: GOLD, border: "none", borderRadius: 6, padding: "12px 24px", fontFamily: FONT_B, fontSize: 14, fontWeight: 700, color: "#0d1117", cursor: "pointer" }}>Book Again</button>
+              <button onClick={() => window.location.href = after.rebook_url} style={{ background: GOLD, border: "none", borderRadius: 8, padding: "14px 32px", fontFamily: FONT_B, fontSize: 14, fontWeight: 700, color: "#0d1117", cursor: "pointer", boxShadow: "0 2px 8px rgba(201,151,58,0.3)" }}>Book Again</button>
             )}
-            <button onClick={handleShare} style={{ background: "none", border: `1px solid #d4d0c8`, borderRadius: 6, padding: "12px 24px", fontFamily: FONT_B, fontSize: 14, fontWeight: 600, color: "#4a4a4a", cursor: "pointer" }}>Share This Plan</button>
+            <button onClick={handleShare} style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "14px 32px", fontFamily: FONT_B, fontSize: 14, fontWeight: 600, color: ASH, cursor: "pointer" }}>Share This Plan</button>
           </div>
-        </div>
+        </Section>
 
-        {/* ── FOOTER ── */}
-        <div style={{ padding: "24px 0", borderTop: "1px solid #e8e5df", textAlign: "center" }}>
-          <div style={{ fontFamily: FONT_D, fontSize: 18, color: GOLD, letterSpacing: "0.14em", marginBottom: 4 }}>RŌM</div>
-          <div style={{ fontFamily: FONT_B, fontSize: 11, color: "#8a8a8a" }}>The world's best adventure guides, in one place.</div>
+        {/* ══ BRANDED FOOTER ══ */}
+        <div style={{ padding: "40px 0 20px", textAlign: "center" }}>
+          <div style={{ width: 40, height: 1, background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)`, margin: "0 auto 16px" }} />
+          <div style={{ fontFamily: FONT_D, fontSize: 22, color: GOLD, letterSpacing: "0.16em", marginBottom: 6 }}>RŌM</div>
+          <div style={{ fontFamily: FONT_B, fontSize: 11, color: MUTED, letterSpacing: "0.04em" }}>The world's best adventure guides, in one place.</div>
+          <div style={{ fontFamily: FONT_B, fontSize: 10, color: `${MUTED}80`, marginTop: 12, letterSpacing: "0.02em" }}>romlife.co</div>
         </div>
       </div>
     </>
