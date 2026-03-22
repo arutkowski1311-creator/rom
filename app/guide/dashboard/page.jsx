@@ -1223,39 +1223,31 @@ export default function GuideDashboard() {
       `}</style>
 
       {/* ── NAV — void ── */}
-      <div style={{position:"sticky",top:0,zIndex:100,background:T.void,borderBottom:`1px solid ${T.wire}`,height:64,display:"flex",alignItems:"center"}}>
-        <div style={{maxWidth:1280,margin:"0 auto",padding:"0 40px",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{fontFamily:FONT_DISPLAY,fontSize:26,color:T.gold,letterSpacing:"0.14em",fontWeight:500,cursor:"pointer"}} onClick={()=>window.location.href="/"}>RŌM</div>
-          <div style={{display:"flex",gap:20,alignItems:"center"}}>
+      <div style={{position:"sticky",top:0,zIndex:100,background:T.void,borderBottom:`1px solid ${T.wire}`,height:56,display:"flex",alignItems:"center"}}>
+        <div style={{maxWidth:1280,margin:"0 auto",padding:"0 16px",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{fontFamily:FONT_DISPLAY,fontSize:22,color:T.gold,letterSpacing:"0.14em",fontWeight:500,cursor:"pointer"}} onClick={()=>window.location.href="/"}>RŌM</div>
+          <div style={{display:"flex",gap:10,alignItems:"center"}}>
             {pendingCount>0 && (
-              <div onClick={()=>{setTab("Bookings");setBookingFilter("pending");}} style={{display:"flex",alignItems:"center",gap:8,background:T.goldGlow,border:`1px solid ${T.gold}`,borderRadius:20,padding:"5px 12px",cursor:"pointer"}}>
-                <span style={{fontFamily:FONT_BODY,fontSize:12,fontWeight:700,color:T.gold}}>{pendingCount} booking{pendingCount!==1?"s":""} need your response</span>
+              <div onClick={()=>{setTab("Bookings");setBookingFilter("pending");}} style={{display:"flex",alignItems:"center",gap:4,background:T.goldGlow,border:`1px solid ${T.gold}`,borderRadius:20,padding:"4px 10px",cursor:"pointer"}}>
+                <span style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold}}>{pendingCount}</span>
               </div>
             )}
-            <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <div style={{width:34,height:34,borderRadius:"50%",background:T.steel,border:`2px solid ${T.gold}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FONT_DISPLAY,fontSize:16,color:T.gold}}>{guide.avatar}</div>
-              <div>
-                <div style={{fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:T.parchment}}>{guide.name}</div>
-                <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.silver}}>Guide · {guide.location}</div>
-              </div>
-            </div>
+            <div style={{width:32,height:32,borderRadius:"50%",background:T.steel,border:`2px solid ${T.gold}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FONT_DISPLAY,fontSize:14,color:T.gold,flexShrink:0}}>{guide.avatar}</div>
           </div>
         </div>
       </div>
 
       {/* ── HEADER — carbon ── */}
       <div style={{background:T.carbon,borderBottom:`1px solid ${T.wire}`}}>
-        <div style={{maxWidth:1280,margin:"0 auto",padding:"28px 40px 0"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:24}}>
-            <div>
-              <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Guide Dashboard</div>
-              <h1 style={{fontFamily:FONT_DISPLAY,fontSize:36,color:T.white,fontWeight:400}}>{guide.name}</h1>
-            </div>
-            <div style={{display:"flex",gap:32,textAlign:"right"}}>
+        <div style={{maxWidth:1280,margin:"0 auto",padding:"20px 16px 0"}}>
+          <div style={{marginBottom:16}}>
+            <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>Guide Dashboard</div>
+            <h1 style={{fontFamily:FONT_DISPLAY,fontSize:28,color:T.white,fontWeight:400,marginBottom:12}}>{guide.name}</h1>
+            <div style={{display:"flex",gap:20,flexWrap:"wrap"}}>
               {[["$"+stats.earningsThisMonth.toLocaleString(),"This month"],["$"+(stats.earningsThisMonth-stats.earningsLastMonth>=0?"+":"")+((stats.earningsThisMonth-stats.earningsLastMonth)),"vs last month"],[stats.tripsThisMonth+" trips","This month"]].map(([val,label],i)=>(
                 <div key={label+i}>
-                  <div style={{fontFamily:FONT_DISPLAY,fontSize:26,color:T.white,fontWeight:300,lineHeight:1}}>{val}</div>
-                  <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.silver,marginTop:4}}>{label}</div>
+                  <div style={{fontFamily:FONT_DISPLAY,fontSize:20,color:T.white,fontWeight:300,lineHeight:1}}>{val}</div>
+                  <div style={{fontFamily:FONT_BODY,fontSize:10,color:T.silver,marginTop:2}}>{label}</div>
                 </div>
               ))}
             </div>
@@ -1396,18 +1388,18 @@ export default function GuideDashboard() {
                       const icon = NTYPE_ICONS[n.type] || "◉";
                       const isAutoExec = !!n.auto_executed_at;
                       return (
-                        <div key={n.id} style={{padding:"12px 14px",borderBottom:`1px solid ${T.rim}`,background:!n.read_at?(n.priority==="high"?"rgba(180,60,60,0.06)":"rgba(193,163,98,0.05)"):"transparent",marginBottom:4,borderRadius:6,display:"flex",gap:12,alignItems:"flex-start"}}>
-                          <span style={{fontSize:16,flexShrink:0,marginTop:2}}>{icon}</span>
+                        <div key={n.id} style={{padding:"10px 12px",borderBottom:`1px solid ${T.rim}`,background:!n.read_at?(n.priority==="high"?"rgba(180,60,60,0.06)":"rgba(193,163,98,0.05)"):"transparent",marginBottom:4,borderRadius:6,display:"flex",gap:10,alignItems:"flex-start"}}>
+                          <span style={{fontSize:14,flexShrink:0,marginTop:2}}>{icon}</span>
                           <div style={{flex:1,minWidth:0}}>
-                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
-                              <div style={{fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:!n.read_at?T.gold:T.parchment}}>{n.title}</div>
-                              <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
+                            <div style={{marginBottom:3}}>
+                              <div style={{fontFamily:FONT_BODY,fontSize:12,fontWeight:700,color:!n.read_at?T.gold:T.parchment,marginBottom:2}}>{n.title}</div>
+                              <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
                                 {n.priority==="high"&&<span style={{fontFamily:FONT_BODY,fontSize:9,fontWeight:700,color:T.red,background:T.redGlow,borderRadius:3,padding:"1px 5px"}}>URGENT</span>}
                                 {isAutoExec&&<span style={{fontFamily:FONT_BODY,fontSize:9,fontWeight:700,color:T.green,background:T.greenGlow,borderRadius:3,padding:"1px 5px"}}>AUTO</span>}
-                                <span style={{fontFamily:FONT_BODY,fontSize:11,color:T.muted}}>{new Date(n.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>
+                                <span style={{fontFamily:FONT_BODY,fontSize:10,color:T.muted}}>{new Date(n.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>
                               </div>
                             </div>
-                            <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.ash,lineHeight:1.5}}>{n.body}</div>
+                            <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.ash,lineHeight:1.5}}>{n.body}</div>
                             {n.metadata?.date_start && <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.silver,marginTop:4}}>Dates: {n.metadata.date_start} to {n.metadata.date_end}</div>}
                             {/* Action buttons for actionable notification types */}
                             {!n.read_at && !isAutoExec && ["content_ready","calendar_fill_activated","license_expiring"].includes(n.type) && (
@@ -1438,12 +1430,10 @@ export default function GuideDashboard() {
 
               {/* Stripe Connect prompt */}
               {!guide.stripeConnected && (
-                <div style={{gridColumn:"1 / -1",background:T.goldGlow,border:`1px solid ${T.gold}`,borderRadius:10,padding:"20px 24px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div>
-                    <div style={{fontFamily:FONT_DISPLAY,fontSize:20,color:T.gold,fontWeight:400,marginBottom:4}}>Connect payments to start earning</div>
-                    <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash}}>Set up Stripe to receive payouts from guest bookings. Takes about 2 minutes.</div>
-                  </div>
-                  <button onClick={handleStripeConnect} disabled={stripeLoading} style={{background:T.gold,border:"none",borderRadius:7,padding:"11px 24px",fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:T.ink,cursor:"pointer",whiteSpace:"nowrap",opacity:stripeLoading?0.6:1}}>
+                <div style={{gridColumn:"1 / -1",background:T.goldGlow,border:`1px solid ${T.gold}`,borderRadius:10,padding:"16px 16px"}}>
+                  <div style={{fontFamily:FONT_DISPLAY,fontSize:18,color:T.gold,fontWeight:400,marginBottom:4}}>Connect payments to start earning</div>
+                  <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.ash,marginBottom:12}}>Set up Stripe to receive payouts. Takes about 2 minutes.</div>
+                  <button onClick={handleStripeConnect} disabled={stripeLoading} style={{background:T.gold,border:"none",borderRadius:7,padding:"10px 20px",fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:T.ink,cursor:"pointer",width:"100%",opacity:stripeLoading?0.6:1}}>
                     {stripeLoading?"Connecting…":"Connect Stripe →"}
                   </button>
                 </div>
@@ -1456,7 +1446,7 @@ export default function GuideDashboard() {
                   <div onClick={()=>setTab("Messages")} style={{fontFamily:FONT_BODY,fontSize:12,color:T.gold,cursor:"pointer",fontWeight:600}}>View all →</div>
                 </div>
                 {threads.length > 0 ? (
-                  <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(threads.length,3)},1fr)`,gap:0}}>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr",gap:0}}>
                     {threads.slice(0,3).map((t,i)=>{
                       const msgs=(t.messages||[]).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
                       const lastMsg=msgs[0];
@@ -1470,7 +1460,7 @@ export default function GuideDashboard() {
                         return `${Math.floor(hrs/24)}d ago`;
                       })() : "";
                       return (
-                        <div key={t.id} onClick={()=>{setTab("Messages");openThread(t);}} style={{padding:"16px 20px",borderRight:i<Math.min(threads.length,3)-1?`1px solid ${T.wire}`:"none",cursor:"pointer",background:hasUnread?T.lifted:T.steel}}
+                        <div key={t.id} onClick={()=>{setTab("Messages");openThread(t);}} style={{padding:"14px 16px",borderBottom:i<Math.min(threads.length,3)-1?`1px solid ${T.wire}`:"none",cursor:"pointer",background:hasUnread?T.lifted:T.steel}}
                           onMouseEnter={e=>e.currentTarget.style.background=T.lifted}
                           onMouseLeave={e=>e.currentTarget.style.background=hasUnread?T.lifted:T.steel}>
                           <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
