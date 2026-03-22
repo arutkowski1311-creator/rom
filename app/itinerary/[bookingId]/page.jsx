@@ -94,6 +94,9 @@ export default function ItineraryPage({ params }) {
   const addOns = content.add_ons || [];
   const after = content.after_experience || {};
   const logistics = content.guide_logistics || {};
+  const guideName = data?.guide_name || "";
+  const guidePhoto = data?.guide_photo || null;
+  const guideSlug = data?.guide_slug || "";
 
   const overrides = content._section_overrides || {};
   const renames = overrides.rename || {};
@@ -105,14 +108,28 @@ export default function ItineraryPage({ params }) {
 
   return (
     <>
+      {/* Dynamic OG meta for share previews */}
+      {h.title && (
+        <>
+          <meta property="og:title" content={h.title} />
+          <meta property="og:description" content={h.vibe_statement || `Trip plan with ${guideName} in ${h.location}`} />
+          <meta property="og:site_name" content="RŌM" />
+          <meta property="og:type" content="article" />
+          <meta name="twitter:card" content="summary" />
+          <meta name="twitter:title" content={h.title} />
+          <meta name="twitter:description" content={h.vibe_statement || `Trip plan with ${guideName}`} />
+        </>
+      )}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Barlow:wght@300;400;500;600;700&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
         body{background:${CREAM};}
         @media print {
           .no-print{display:none!important;}
-          body{background:#fff;}
+          body{background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+          *{box-shadow:none!important;}
           .print-break{page-break-before:always;}
+          @page{margin:0.6in 0.75in;size:letter;}
         }
         @keyframes fadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
         .itin-section { animation: fadeIn 0.5s ease forwards; }
@@ -159,6 +176,28 @@ export default function ItineraryPage({ params }) {
             <p style={{ fontFamily: FONT_D, fontSize: 22, color: "#3a3a3a", fontStyle: "italic", lineHeight: 1.45, maxWidth: 500, margin: "0 auto" }}>
               "{h.vibe_statement}"
             </p>
+          )}
+
+          {/* Guide card */}
+          {guideName && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginTop: 28, padding: "16px 24px", background: WARM, borderRadius: 50, maxWidth: 340, margin: "28px auto 0" }}>
+              {guidePhoto ? (
+                <img src={guidePhoto} alt={guideName} style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", border: `2px solid ${GOLD}` }} />
+              ) : (
+                <div style={{ width: 40, height: 40, borderRadius: "50%", background: `linear-gradient(135deg, ${GOLD}40, ${GOLD}20)`, border: `2px solid ${GOLD}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT_D, fontSize: 18, color: GOLD, fontWeight: 500 }}>
+                  {guideName.charAt(0)}
+                </div>
+              )}
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontFamily: FONT_B, fontSize: 14, fontWeight: 600, color: INK }}>{guideName}</div>
+                <div style={{ fontFamily: FONT_B, fontSize: 11, color: MUTED }}>Your Guide</div>
+              </div>
+              {guideSlug && (
+                <div style={{ marginLeft: "auto" }}>
+                  <a href={`/guides/${guideSlug}`} style={{ fontFamily: FONT_B, fontSize: 11, fontWeight: 600, color: GOLD, textDecoration: "none" }}>View Profile →</a>
+                </div>
+              )}
+            </div>
           )}
         </div>
 
@@ -386,12 +425,24 @@ export default function ItineraryPage({ params }) {
           </div>
         </Section>
 
-        {/* ══ BRANDED FOOTER ══ */}
+        {/* ══ CO-BRANDED FOOTER ══ */}
         <div style={{ padding: "40px 0 20px", textAlign: "center" }}>
-          <div style={{ width: 40, height: 1, background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)`, margin: "0 auto 16px" }} />
-          <div style={{ fontFamily: FONT_D, fontSize: 22, color: GOLD, letterSpacing: "0.16em", marginBottom: 6 }}>RŌM</div>
-          <div style={{ fontFamily: FONT_B, fontSize: 11, color: MUTED, letterSpacing: "0.04em" }}>The world's best adventure guides, in one place.</div>
-          <div style={{ fontFamily: FONT_B, fontSize: 10, color: `${MUTED}80`, marginTop: 12, letterSpacing: "0.02em" }}>romlife.co</div>
+          <div style={{ width: 60, height: 1, background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)`, margin: "0 auto 20px" }} />
+          {guideName && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 16 }}>
+              {guidePhoto ? (
+                <img src={guidePhoto} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", border: `1.5px solid ${GOLD}40` }} />
+              ) : (
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: `${GOLD}20`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT_D, fontSize: 14, color: GOLD }}>{guideName.charAt(0)}</div>
+              )}
+              <span style={{ fontFamily: FONT_B, fontSize: 12, color: MUTED }}>Prepared by <strong style={{ color: ASH }}>{guideName}</strong></span>
+            </div>
+          )}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 6 }}>
+            <span style={{ fontFamily: FONT_B, fontSize: 10, color: MUTED, letterSpacing: "0.04em" }}>Powered by</span>
+            <span style={{ fontFamily: FONT_D, fontSize: 18, color: GOLD, letterSpacing: "0.14em" }}>RŌM</span>
+          </div>
+          <div style={{ fontFamily: FONT_B, fontSize: 10, color: `${MUTED}80`, letterSpacing: "0.02em" }}>romlife.co</div>
         </div>
       </div>
     </>

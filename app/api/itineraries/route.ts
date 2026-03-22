@@ -12,6 +12,18 @@ export async function GET(req: NextRequest) {
     if (bookingId) {
       query = query.eq("booking_id", bookingId);
       const { data } = await query.single();
+      if (data) {
+        // Fetch guide info for display
+        const { data: guide } = await supabase.from("guides").select("slug, location, profile_photo_url, profile_id, categories").eq("id", data.guide_id).single();
+        if (guide) {
+          const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", guide.profile_id).single();
+          (data as any).guide_name = profile?.full_name || "Guide";
+          (data as any).guide_photo = guide.profile_photo_url || null;
+          (data as any).guide_slug = guide.slug || "";
+          (data as any).guide_location = guide.location || "";
+          (data as any).guide_categories = guide.categories || [];
+        }
+      }
       return NextResponse.json(data || null);
     }
 
