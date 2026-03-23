@@ -188,6 +188,18 @@ function getDestinationPhoto(destination) {
 function makeGoogleMapsLink(name, destination) {
   return `https://www.google.com/maps/search/${encodeURIComponent(name + " " + destination)}`;
 }
+function makeDirectionsLink(name, destination) {
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(name + " " + destination)}`;
+}
+function makeMultiStopMapLink(locations, destination) {
+  if (!locations || locations.length === 0) return null;
+  const encoded = locations.map(l => encodeURIComponent(l + " " + destination));
+  if (encoded.length === 1) return `https://www.google.com/maps/search/${encoded[0]}`;
+  const origin = encoded[0];
+  const dest = encoded[encoded.length - 1];
+  const waypoints = encoded.slice(1, -1).join("|");
+  return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}${waypoints ? `&waypoints=${waypoints}` : ""}`;
+}
 
 // ─── SLIDER COMPONENT ──────────────────────────────────────────────────────
 function BudgetSlider({ label, value, max, onChange }) {
@@ -857,35 +869,71 @@ export default function ConciergePage() {
 function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handleRefine, refining, handleShare, copied, shareToken, onStartOver, destination, dateStart, dateEnd, adults, children, socialCardRef, handleDownloadCard, downloadingCard, vibes, handleEmailItinerary, handleDownloadCalendar }) {
   return (
     <div style={{ minHeight: "100vh", background: T.void, color: T.parchment }}>
-      {/* Header */}
-      <div style={{ background: T.carbon, borderBottom: `1px solid ${T.wire}`, padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: T.gold, letterSpacing: "0.12em" }}>RŌM</div>
-        <div style={{ display: "flex", gap: 12 }}>
-          <button onClick={handleDownloadCard} disabled={downloadingCard} style={{ background: T.gold, border: "none", borderRadius: 6, padding: "8px 16px", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, color: T.ink, cursor: "pointer", opacity: downloadingCard ? 0.6 : 1 }}>
-            {downloadingCard ? "..." : "For The Gram"}
+      <style>{`
+        @media print {
+          .no-print, .no-print * { display: none !important; }
+          body { background: #fff !important; color: #1a1a1a !important; -webkit-print-color-adjust: exact; }
+          .print-content { max-width: 100% !important; padding: 0 20px !important; }
+          .print-content * { color: #1a1a1a !important; background: transparent !important; border-color: #ddd !important; }
+          .print-content a { color: #8a7a50 !important; }
+          .print-header { display: flex !important; align-items: center; justify-content: center; gap: 8px; padding: 24px 0 16px; border-bottom: 2px solid #C9A55C; margin-bottom: 24px; }
+          .print-header span { font-family: 'Cormorant Garamond', serif; font-size: 28px; color: #C9A55C !important; letter-spacing: 0.08em; }
+        }
+        @media not print { .print-only { display: none !important; } }
+      `}</style>
+
+      {/* Header — hidden on print */}
+      <div className="no-print" style={{ background: T.carbon, borderBottom: `1px solid ${T.wire}`, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: T.gold, letterSpacing: "0.12em" }}>RŌM</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button onClick={handleDownloadCard} disabled={downloadingCard} style={{ background: T.gold, border: "none", borderRadius: 6, padding: "8px 14px", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: T.ink, cursor: "pointer", opacity: downloadingCard ? 0.6 : 1 }}>
+            {downloadingCard ? "..." : "Share Card"}
           </button>
-          <button onClick={handleEmailItinerary} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "8px 16px", fontFamily: FONT_BODY, fontSize: 13, color: T.ash, cursor: "pointer" }}>
-            Email
-          </button>
-          <button onClick={handleDownloadCalendar} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "8px 16px", fontFamily: FONT_BODY, fontSize: 13, color: T.ash, cursor: "pointer" }}>
-            Calendar
-          </button>
-          <button onClick={handleShare} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "8px 16px", fontFamily: FONT_BODY, fontSize: 13, color: T.ash, cursor: "pointer" }}>
-            {copied ? "Copied!" : "Share"}
-          </button>
-          <button onClick={() => window.print()} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "8px 16px", fontFamily: FONT_BODY, fontSize: 13, color: T.ash, cursor: "pointer" }}>
-            Print
-          </button>
-          <button onClick={onStartOver} style={{ background: "none", border: "none", fontFamily: FONT_BODY, fontSize: 13, color: T.silver, cursor: "pointer" }}>Start Over</button>
+          <button onClick={handleEmailItinerary} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "8px 14px", fontFamily: FONT_BODY, fontSize: 12, color: T.ash, cursor: "pointer" }}>Email</button>
+          <button onClick={handleDownloadCalendar} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "8px 14px", fontFamily: FONT_BODY, fontSize: 12, color: T.ash, cursor: "pointer" }}>Calendar</button>
+          <button onClick={handleShare} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "8px 14px", fontFamily: FONT_BODY, fontSize: 12, color: T.ash, cursor: "pointer" }}>{copied ? "Copied!" : "Share"}</button>
+          <button onClick={() => window.print()} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "8px 14px", fontFamily: FONT_BODY, fontSize: 12, color: T.ash, cursor: "pointer" }}>Print</button>
+          <button onClick={onStartOver} style={{ background: "none", border: "none", fontFamily: FONT_BODY, fontSize: 12, color: T.silver, cursor: "pointer" }}>Start Over</button>
         </div>
       </div>
 
       <div className="print-content" style={{ maxWidth: 800, margin: "0 auto", padding: isMobile ? "24px 16px" : "40px 24px" }}>
+        {/* Print-only branded header */}
+        <div className="print-only print-header">
+          <span>R</span>
+          <span style={{ fontSize: 20 }}>✦</span>
+          <span>M</span>
+          <span style={{ fontSize: 14, marginLeft: 8, letterSpacing: "0.06em" }}>CONCIERGE</span>
+        </div>
+
         {/* Trip Title */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 28 : 36, color: T.white, lineHeight: 1.2, marginBottom: 8 }}>{itinerary.title}</div>
           <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.ash, lineHeight: 1.6 }}>{itinerary.summary}</div>
         </div>
+
+        {/* Trip Map — all locations on one Google Maps route */}
+        {(() => {
+          const allLocations = [];
+          itinerary.days?.forEach(day => {
+            ["morning","afternoon","evening"].forEach(p => { if(day[p]?.name) allLocations.push(day[p].name); });
+            day.activities?.forEach(a => { if(a?.name) allLocations.push(a.name); });
+          });
+          itinerary.lodging?.forEach(l => { if(l?.name) allLocations.push(l.name); });
+          const mapUrl = makeMultiStopMapLink(allLocations, destination);
+          if (!mapUrl || allLocations.length < 2) return null;
+          return (
+            <div style={{ marginBottom: 24 }}>
+              <a href={mapUrl} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 10, background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 10, padding: "16px 20px", textDecoration: "none", cursor: "pointer" }}>
+                <span style={{ fontSize: 22 }}>🗺️</span>
+                <div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 14, fontWeight: 700, color: T.gold }}>View Full Trip Map</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver }}>{allLocations.length} locations pinned — open in Google Maps</div>
+                </div>
+              </a>
+            </div>
+          );
+        })()}
 
         {/* Guide Match */}
         {itinerary.guide && itinerary.guide.name && (
@@ -929,7 +977,10 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
                     </div>
                     <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.white, fontWeight: 600 }}>{block.name}</div>
                     <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, marginTop: 4, lineHeight: 1.5 }}>{block.description}</div>
-                    {block.bookingLink && <a href={block.bookingLink} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 6, display: "inline-block" }}>Book &rarr;</a>}
+                    <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
+                      {block.bookingLink && <a href={block.bookingLink} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold }}>Book &rarr;</a>}
+                      <a href={makeDirectionsLink(block.name, destination)} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver }}>Get Directions &rarr;</a>
+                    </div>
                   </div>
                 );
               })}
@@ -977,7 +1028,10 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
                   <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 2 }}>{l.type} {l.pricePerNight ? `\u00B7 ${l.pricePerNight}/night` : l.priceRange ? `\u00B7 ${l.priceRange}` : ""}</div>
                   {l.totalEstimate && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver, marginTop: 2 }}>Est. total: {l.totalEstimate}</div>}
                   <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, marginTop: 6 }}>{l.reason}</div>
-                  <a href={l.bookingLink || makeGoogleMapsLink(l.name, destination)} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 6, display: "inline-block" }}>{l.bookingLink ? "Book" : "View on Maps"} &rarr;</a>
+                  <div style={{ display: "flex", gap: 12, marginTop: 6 }}>
+                    <a href={l.bookingLink || makeGoogleMapsLink(l.name, destination)} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold }}>{l.bookingLink ? "Book" : "View on Maps"} &rarr;</a>
+                    <a href={makeDirectionsLink(l.name, destination)} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver }}>Directions &rarr;</a>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1004,7 +1058,10 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
                   <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.muted, marginTop: 2, textTransform: "capitalize" }}>{d.meal}</div>
                   <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, marginTop: 6 }}>{d.reason}</div>
                   {d.mustTry && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 4, fontStyle: "italic" }}>Must try: {d.mustTry}</div>}
-                  <a href={d.reservationLink || makeGoogleMapsLink(d.name, destination)} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, marginTop: 6, display: "inline-block" }}>{d.reservationLink ? "Reserve" : "View on Maps"} &rarr;</a>
+                  <div style={{ display: "flex", gap: 12, marginTop: 6 }}>
+                    <a href={d.reservationLink || makeGoogleMapsLink(d.name, destination)} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold }}>{d.reservationLink ? "Reserve" : "View on Maps"} &rarr;</a>
+                    <a href={makeDirectionsLink(d.name, destination)} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver }}>Directions &rarr;</a>
+                  </div>
                 </div>
               ))}
             </div>
