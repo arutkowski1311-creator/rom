@@ -457,12 +457,13 @@ function ItineraryPanel({ bookingId, guideId }) {
 }
 
 // ─── BOOKING DETAIL PANEL ─────────────────────────────────────────────────────
-function BookingPanel({ booking, onClose, onAccept, onDecline, onComplete, onCancel }) {
+function BookingPanel({ booking, onClose, onAccept, onDecline, onComplete, onCancel, employees=[], guideId, businessType, onAssign }) {
   const [replyText, setReplyText] = useState("");
   const [cancelConfirm, setCancelConfirm] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [completing, setCompleting] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [assigning, setAssigning] = useState(false);
   return (
     <div style={{position:"fixed", inset:0, zIndex:200, display:"flex", justifyContent:"flex-end"}}>
       <div onClick={onClose} style={{flex:1, background:"rgba(0,0,0,0.7)"}}/>
@@ -496,6 +497,34 @@ function BookingPanel({ booking, onClose, onAccept, onDecline, onComplete, onCan
               </div>
             )}
           </div>
+
+          {/* Assign to Employee */}
+          {businessType==="outfitter" && employees.length>0 && (
+            <div style={{background:T.steel, border:`1px solid ${T.wire}`, borderRadius:8, padding:16}}>
+              <div style={{fontFamily:FONT_BODY, fontSize:11, fontWeight:700, color:T.silver, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:10}}>Assign To</div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                <button onClick={async()=>{
+                  setAssigning(true);
+                  const supabase=getSupabase();
+                  await supabase.from("bookings").update({assigned_employee_id:null,assigned_at:null}).eq("id",booking.id);
+                  onAssign?.(booking.id,null);setAssigning(false);
+                }} style={{padding:"8px 14px",borderRadius:6,background:!booking.assigned_employee_id?T.goldGlow:T.carbon,border:`1px solid ${!booking.assigned_employee_id?T.gold:T.wire}`,fontFamily:FONT_BODY,fontSize:12,fontWeight:600,color:!booking.assigned_employee_id?T.gold:T.silver,cursor:"pointer"}}>
+                  Me (Owner)
+                </button>
+                {employees.filter(e=>e.status==="active"||e.status==="invited").map(emp=>(
+                  <button key={emp.id} onClick={async()=>{
+                    setAssigning(true);
+                    const supabase=getSupabase();
+                    await supabase.from("bookings").update({assigned_employee_id:emp.id,assigned_at:new Date().toISOString()}).eq("id",booking.id);
+                    onAssign?.(booking.id,emp.id);setAssigning(false);
+                  }} style={{padding:"8px 14px",borderRadius:6,background:booking.assigned_employee_id===emp.id?`${emp.color}20`:T.carbon,border:`1px solid ${booking.assigned_employee_id===emp.id?emp.color:T.wire}`,fontFamily:FONT_BODY,fontSize:12,fontWeight:600,color:booking.assigned_employee_id===emp.id?emp.color:T.silver,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
+                    <div style={{width:8,height:8,borderRadius:"50%",background:emp.color}}/>
+                    {emp.display_name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Trip details */}
           <div style={{background:T.steel, border:`1px solid ${T.wire}`, borderRadius:8, padding:20}}>
@@ -804,7 +833,7 @@ function ExpenseInterview({ booking, guideId, guideCategories, onDone, onSkip })
 }
 
 // ─── TABS ─────────────────────────────────────────────────────────────────────
-const TABS = ["Overview","Bookings","Calendar","Packages","Messages","Earnings","Finances","Marketing","Analytics","Guests","Licenses","Profile"];
+const TABS = ["Overview","Bookings","Calendar","Packages","Messages","Earnings","Finances","Marketing","Analytics","Guests","Licenses","Team","Profile"];
 
 export default function GuideDashboard() {
   const [tab, setTab] = useState("Overview");
@@ -830,6 +859,16 @@ export default function GuideDashboard() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showAllNotifications, setShowAllNotifications] = useState(false);
+  const [employees, setEmployees] = useState([]);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteName, setInviteName] = useState("");
+  const [inviteRole, setInviteRole] = useState("guide");
+  const [inviting, setInviting] = useState(false);
+  const [inviteError, setInviteError] = useState("");
+  const [inviteSuccess, setInviteSuccess] = useState("");
+  const [workingDays, setWorkingDays] = useState([1,2,3,4,5,6,0]);
+  const [maxConcurrent, setMaxConcurrent] = useState(1);
+  const [businessType, setBusinessType] = useState("solo");
   const [earningsMonthly, setEarningsMonthly] = useState([]);
   const [editingPkg, setEditingPkg] = useState(null); // package object being edited, or {} for new
   const [pkgSaving, setPkgSaving] = useState(false);
@@ -952,6 +991,15 @@ export default function GuideDashboard() {
         subscription_tier: g.subscription_tier || "spark",
         categories: g.categories || [],
       });
+
+      // Business settings
+      setBusinessType(g.business_type || "solo");
+      setMaxConcurrent(g.max_concurrent_bookings || 1);
+      setWorkingDays(g.working_days || [1,2,3,4,5,6,0]);
+
+      // Fetch employees
+      const { data: emps } = await supabase.from("guide_employees").select("*").eq("guide_id", g.id).order("created_at");
+      if (emps) setEmployees(emps);
 
       // Fetch bookings for this guide
       const { data: rawBookings } = await supabase
@@ -1902,6 +1950,137 @@ export default function GuideDashboard() {
             </FeatureGate>
           )}
 
+          {/* ── TEAM ── */}
+          {tab==="Team" && (
+            <div style={{maxWidth:700}}>
+              {/* Business Type Toggle */}
+              <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:20,marginBottom:16}}>
+                <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:14}}>Business Type</div>
+                <div style={{display:"flex",gap:10}}>
+                  {[["solo","Solo Guide","Just you"],["outfitter","Outfitter / Team","Multiple guides under one business"]].map(([val,label,desc])=>(
+                    <button key={val} onClick={async()=>{
+                      setBusinessType(val);
+                      const supabase=getSupabase();
+                      await supabase.from("guides").update({business_type:val}).eq("id",guideId);
+                    }} style={{flex:1,background:businessType===val?T.goldGlow:T.carbon,border:`1.5px solid ${businessType===val?T.gold:T.wire}`,borderRadius:8,padding:"14px 16px",cursor:"pointer",textAlign:"left"}}>
+                      <div style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:businessType===val?T.gold:T.parchment,marginBottom:2}}>{label}</div>
+                      <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver}}>{desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Working Days */}
+              <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:20,marginBottom:16}}>
+                <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:14}}>Working Days</div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {[["Sun",0],["Mon",1],["Tue",2],["Wed",3],["Thu",4],["Fri",5],["Sat",6]].map(([label,day])=>{
+                    const active=workingDays.includes(day);
+                    return (
+                      <button key={day} onClick={async()=>{
+                        const updated=active?workingDays.filter(d=>d!==day):[...workingDays,day];
+                        setWorkingDays(updated);
+                        const supabase=getSupabase();
+                        await supabase.from("guides").update({working_days:updated}).eq("id",guideId);
+                      }} style={{width:44,height:44,borderRadius:8,background:active?T.goldGlow:T.carbon,border:`1.5px solid ${active?T.gold:T.wire}`,fontFamily:FONT_BODY,fontSize:12,fontWeight:700,color:active?T.gold:T.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Concurrent Bookings */}
+              {businessType==="outfitter" && (
+                <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:20,marginBottom:16}}>
+                  <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:14}}>Max Concurrent Trips</div>
+                  <div style={{display:"flex",alignItems:"center",gap:16}}>
+                    <button onClick={async()=>{
+                      const v=Math.max(1,maxConcurrent-1);setMaxConcurrent(v);
+                      const supabase=getSupabase();await supabase.from("guides").update({max_concurrent_bookings:v}).eq("id",guideId);
+                    }} style={{width:36,height:36,borderRadius:8,background:T.carbon,border:`1px solid ${T.wire}`,color:T.parchment,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
+                    <div style={{fontFamily:FONT_DISPLAY,fontSize:32,color:T.white,minWidth:40,textAlign:"center"}}>{maxConcurrent}</div>
+                    <button onClick={async()=>{
+                      const v=maxConcurrent+1;setMaxConcurrent(v);
+                      const supabase=getSupabase();await supabase.from("guides").update({max_concurrent_bookings:v}).eq("id",guideId);
+                    }} style={{width:36,height:36,borderRadius:8,background:T.carbon,border:`1px solid ${T.wire}`,color:T.parchment,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
+                  </div>
+                  <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,marginTop:8}}>How many trips your team can run at the same time.</div>
+                </div>
+              )}
+
+              {/* Employee Management — only for outfitters */}
+              {businessType==="outfitter" && (
+                <>
+                  {/* Invite Form */}
+                  <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:20,marginBottom:16}}>
+                    <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:14}}>Invite Team Member</div>
+                    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                      <input value={inviteName} onChange={e=>setInviteName(e.target.value)} placeholder="Full name" style={{background:T.carbon,border:`1px solid ${T.wire}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none"}}/>
+                      <input value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} placeholder="Email address" type="email" style={{background:T.carbon,border:`1px solid ${T.wire}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none"}}/>
+                      <select value={inviteRole} onChange={e=>setInviteRole(e.target.value)} style={{background:T.carbon,border:`1px solid ${T.wire}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none"}}>
+                        <option value="guide">Guide</option>
+                        <option value="admin">Admin (can see financials)</option>
+                        <option value="assistant">Assistant (view only)</option>
+                      </select>
+                      {inviteError&&<div style={{fontFamily:FONT_BODY,fontSize:12,color:"#cc8080"}}>{inviteError}</div>}
+                      {inviteSuccess&&<div style={{fontFamily:FONT_BODY,fontSize:12,color:"#6aaa84"}}>{inviteSuccess}</div>}
+                      <button disabled={inviting||!inviteName||!inviteEmail} onClick={async()=>{
+                        setInviting(true);setInviteError("");setInviteSuccess("");
+                        try {
+                          const supabase=getSupabase();
+                          const perms={bookings:true,messages:true,itineraries:true,calendar:true,financials:inviteRole==="admin",marketing:inviteRole==="admin",analytics:inviteRole==="admin",guests:inviteRole!=="assistant"};
+                          const colors=["#C9A55C","#5C8AC9","#6AAA84","#CC8080","#9B7DCF","#D4955A","#5CC9B8"];
+                          const color=colors[employees.length%colors.length];
+                          const {data:emp,error}=await supabase.from("guide_employees").insert({guide_id:guideId,user_id:"00000000-0000-0000-0000-000000000000",display_name:inviteName,email:inviteEmail,role:inviteRole,permissions:perms,color,status:"invited"}).select().single();
+                          if(error){setInviteError(error.message);}
+                          else{setEmployees(prev=>[...prev,emp]);setInviteName("");setInviteEmail("");setInviteSuccess(`Invited ${inviteName}`);}
+                        }catch(e){setInviteError("Failed to invite");}
+                        setInviting(false);
+                      }} style={{background:T.gold,border:"none",borderRadius:7,padding:"10px 20px",fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:T.ink,cursor:"pointer",opacity:inviting||!inviteName||!inviteEmail?0.5:1}}>
+                        {inviting?"Inviting...":"Send Invite"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Employee List */}
+                  {employees.length>0 && (
+                    <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,overflow:"hidden"}}>
+                      <div style={{background:T.void,padding:"14px 20px",borderBottom:`1px solid ${T.wire}`}}>
+                        <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em"}}>Your Team ({employees.length})</div>
+                      </div>
+                      {employees.map((emp,i)=>(
+                        <div key={emp.id} style={{padding:"14px 20px",borderBottom:i<employees.length-1?`1px solid ${T.rim}`:"none",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                          <div style={{display:"flex",alignItems:"center",gap:12}}>
+                            <div style={{width:36,height:36,borderRadius:"50%",background:emp.color||T.gold,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FONT_DISPLAY,fontSize:16,color:T.ink,fontWeight:500}}>
+                              {emp.display_name?.[0]?.toUpperCase()||"?"}
+                            </div>
+                            <div>
+                              <div style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:600,color:T.parchment}}>{emp.display_name}</div>
+                              <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver}}>{emp.email}</div>
+                            </div>
+                          </div>
+                          <div style={{display:"flex",alignItems:"center",gap:10}}>
+                            <span style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:emp.status==="active"?T.green:T.gold,background:emp.status==="active"?"rgba(106,170,132,0.1)":T.goldGlow,borderRadius:4,padding:"3px 8px",textTransform:"uppercase"}}>{emp.status}</span>
+                            <span style={{fontFamily:FONT_BODY,fontSize:11,color:T.silver,background:T.carbon,borderRadius:4,padding:"3px 8px"}}>{emp.role}</span>
+                            <button onClick={async()=>{
+                              const supabase=getSupabase();
+                              const newStatus=emp.status==="active"?"inactive":"active";
+                              await supabase.from("guide_employees").update({status:newStatus}).eq("id",emp.id);
+                              setEmployees(prev=>prev.map(e=>e.id===emp.id?{...e,status:newStatus}:e));
+                            }} style={{background:"none",border:`1px solid ${T.wire}`,borderRadius:5,padding:"4px 10px",fontFamily:FONT_BODY,fontSize:11,color:T.muted,cursor:"pointer"}}>
+                              {emp.status==="active"?"Deactivate":"Activate"}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
           {/* ── PROFILE ── */}
           {tab==="Profile" && (
             <div style={{maxWidth:700}}>
@@ -2017,7 +2196,7 @@ export default function GuideDashboard() {
       </div>
 
       {activeBooking && (
-        <BookingPanel booking={activeBooking} onClose={()=>setActiveBooking(null)} onAccept={accept} onDecline={decline} onComplete={completeTrip} onCancel={cancelBooking}/>
+        <BookingPanel booking={activeBooking} onClose={()=>setActiveBooking(null)} onAccept={accept} onDecline={decline} onComplete={completeTrip} onCancel={cancelBooking} employees={employees} guideId={guideId} businessType={businessType} onAssign={(bookingId,empId)=>{setBookings(bs=>bs.map(b=>b.id===bookingId?{...b,assigned_employee_id:empId}:b));setActiveBooking(prev=>prev?{...prev,assigned_employee_id:empId}:null);}}/>
       )}
 
       {expenseInterview && (
