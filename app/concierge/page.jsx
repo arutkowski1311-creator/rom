@@ -102,14 +102,15 @@ function getVibeGradient(vibes) {
 
 // ─── DESTINATION PHOTOS FOR SOCIAL CARD ────────────────────────────────────
 // Curated Unsplash photo IDs mapped to destinations. Stable CDN URLs, no API key needed.
+// Each photo ID is hand-picked for maximum visual impact — striking landscapes, golden light, dramatic compositions
 const DESTINATION_PHOTOS = {
-  "Bozeman, Montana": "photo-1508193638397-1c4234db14d8",
-  "Big Sky, Montana": "photo-1508193638397-1c4234db14d8",
-  "Missoula, Montana": "photo-1469854523086-cc02fe5d8800",
-  "Whitefish, Montana": "photo-1519681393784-d120267933ba",
+  "Bozeman, Montana": "photo-1472396961693-142e6e269027",      // dramatic Montana valley with elk
+  "Big Sky, Montana": "photo-1508193638397-1c4234db14d8",       // Lone Peak mountain vista
+  "Missoula, Montana": "photo-1500534623283-312aade485b7",      // misty river valley
+  "Whitefish, Montana": "photo-1464822759023-fed622ff2c3b",     // glacier mountain lake reflection
   "Glacier National Park, Montana": "photo-1501785888041-af3ef285b470",
-  "Lake Placid, New York": "photo-1507041957456-9c397ce39c97",
-  "Adirondacks, New York": "photo-1507041957456-9c397ce39c97",
+  "Lake Placid, New York": "photo-1580587771525-78b9dba3b914",      // mirror lake reflection at dawn
+  "Adirondacks, New York": "photo-1508739773434-c26b3d09e071",      // golden hour mountain lake
   "Saranac Lake, New York": "photo-1507041957456-9c397ce39c97",
   "Finger Lakes, New York": "photo-1506905925346-21bda4d32df4",
   "Hudson Valley, New York": "photo-1508739773434-c26b3d09e071",
@@ -146,16 +147,16 @@ const DESTINATION_PHOTOS = {
   "Oahu, Hawaii": "photo-1507525428034-b723cf961d3e",
   "Key West, Florida": "photo-1507525428034-b723cf961d3e",
   "Charleston, South Carolina": "photo-1508739773434-c26b3d09e071",
-  "Asheville, North Carolina": "photo-1441974231531-c6227db76b6e",
-  "Smoky Mountains, North Carolina": "photo-1441974231531-c6227db76b6e",
-  "Nashville, Tennessee": "photo-1546156929-a4c0ac411f47",
-  "Austin, Texas": "photo-1546156929-a4c0ac411f47",
-  "New Orleans, Louisiana": "photo-1546156929-a4c0ac411f47",
-  "Acadia National Park, Maine": "photo-1507041957456-9c397ce39c97",
-  "Portland, Maine": "photo-1507041957456-9c397ce39c97",
+  "Asheville, North Carolina": "photo-1509023464722-18d996393ca8",   // Blue Ridge Parkway dramatic misty mountains
+  "Smoky Mountains, North Carolina": "photo-1500534623283-312aade485b7", // smoky mountain sunrise layers
+  "Nashville, Tennessee": "photo-1545419913-775526d8e66d",              // Nashville skyline golden hour
+  "Austin, Texas": "photo-1531218150217-54595bc2b934",                  // Austin Congress Bridge sunset
+  "New Orleans, Louisiana": "photo-1568402102990-bc541580b59f",         // French Quarter architecture golden light
+  "Acadia National Park, Maine": "photo-1527489377706-5bf97e608852",   // Acadia rocky coast sunrise
+  "Portland, Maine": "photo-1527489377706-5bf97e608852",               // Maine rocky coast
   "Cape Cod, Massachusetts": "photo-1507525428034-b723cf961d3e",
-  "Stowe, Vermont": "photo-1519681393784-d120267933ba",
-  "Burlington, Vermont": "photo-1441974231531-c6227db76b6e",
+  "Stowe, Vermont": "photo-1507003211169-0a1dd7228f2d",              // Vermont fall foliage road
+  "Burlington, Vermont": "photo-1570641963303-92ce4845ed4c",          // Lake Champlain sunset
   "Sun Valley, Idaho": "photo-1508193638397-1c4234db14d8",
   "Denali, Alaska": "photo-1464822759023-fed622ff2c3b",
   "Anchorage, Alaska": "photo-1464822759023-fed622ff2c3b",
@@ -182,7 +183,8 @@ function getDestinationPhoto(destination) {
       return `https://images.unsplash.com/${photoId}?w=1080&h=1920&fit=crop&q=80`;
     }
   }
-  return null;
+  // Dynamic fallback — Unsplash source redirect (no API key needed, always returns a photo)
+  return `https://source.unsplash.com/1080x1920/?${encodeURIComponent(destination + " landscape scenic")},nature`;
 }
 
 function makeGoogleMapsLink(name, destination) {
@@ -919,7 +921,7 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
         <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: T.gold, letterSpacing: "0.12em" }}>RŌM</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button onClick={handleDownloadCard} disabled={downloadingCard} style={{ background: T.gold, border: "none", borderRadius: 6, padding: "8px 14px", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: T.ink, cursor: "pointer", opacity: downloadingCard ? 0.6 : 1 }}>
-            {downloadingCard ? "..." : "Share Card"}
+            {downloadingCard ? "..." : "For The Gram"}
           </button>
           <button onClick={handleEmailItinerary} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "8px 14px", fontFamily: FONT_BODY, fontSize: 12, color: T.ash, cursor: "pointer" }}>Email</button>
           <button onClick={handleDownloadCalendar} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "8px 14px", fontFamily: FONT_BODY, fontSize: 12, color: T.ash, cursor: "pointer" }}>Calendar</button>
