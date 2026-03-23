@@ -104,6 +104,7 @@ function BookingPanel({ guide, onClose }) {
   const [bookingId, setBookingId] = useState(null);
   const [paymentError, setPaymentError] = useState(null);
   const [stripeNotReady, setStripeNotReady] = useState(false);
+  const [tripProtection, setTripProtection] = useState(true); // ON by default
 
   useEffect(() => {
     if (!guide?.id) return;
@@ -112,10 +113,12 @@ function BookingPanel({ guide, onClose }) {
       .then(({ data }) => { if (data) setBlockedDates(data.map(r => r.date)); });
   }, [guide?.id]);
 
+  const TRIP_PROTECTION_RATE = 0.08;
   const pkg = guide.packages.find(p=>p.id===selectedPkg);
   const tripPrice = pkg?(pkg.priceType==="person"?pkg.price*guests:pkg.price):0;
   const serviceFee = Math.round(tripPrice * GUEST_SERVICE_FEE_RATE);
-  const total = tripPrice+serviceFee;
+  const protectionFee = tripProtection ? Math.round(tripPrice * TRIP_PROTECTION_RATE) : 0;
+  const total = tripPrice + serviceFee + protectionFee;
   const deposit = Math.round(total*0.25);
   const balance = total-deposit;
 
@@ -172,6 +175,10 @@ function BookingPanel({ guide, onClose }) {
           deposit: deposit,
           balance: balance,
           service_fee_rate: GUEST_SERVICE_FEE_RATE,
+          trip_protection: tripProtection,
+          trip_protection_rate: tripProtection ? TRIP_PROTECTION_RATE : 0,
+          trip_protection_amount: protectionFee,
+          trip_protection_status: tripProtection ? "active" : "none",
           status: "pending",
           package_title: pkg.title,
           guide_name: guide.name,
@@ -399,13 +406,44 @@ function BookingPanel({ guide, onClose }) {
                 </div>
               </div>
               <textarea value={requests} onChange={e=>setRequests(e.target.value)} rows={4} placeholder="Skill level, physical limitations, specific goals…" style={{width:"100%",boxSizing:"border-box",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:6,padding:"12px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none",resize:"vertical"}}/>
-              <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:20}}>
-                {[[pkg.priceType==="person"?`$${pkg.price} × ${guests} guest${guests!==1?"s":""}` : "Flat rate",`$${tripPrice}`],["RŌM service fee",`$${serviceFee}`]].map(([l,v])=>(
-                  <div key={l} style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
-                    <span style={{fontFamily:FONT_BODY,fontSize:14,color:T.silver}}>{l}</span>
-                    <span style={{fontFamily:FONT_BODY,fontSize:14,color:T.parchment,fontWeight:600}}>{v}</span>
+
+              {/* Trip Protection Toggle */}
+              <div onClick={()=>setTripProtection(p=>!p)} style={{background:tripProtection?T.goldGlow:T.steel,border:`1px solid ${tripProtection?T.gold:T.wire}`,borderRadius:10,padding:"16px 18px",cursor:"pointer",transition:"all 0.2s"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{fontSize:20}}>🛡️</span>
+                    <span style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:tripProtection?T.gold:T.parchment}}>RŌM Trip Protection</span>
                   </div>
-                ))}
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:tripProtection?T.gold:T.silver}}>${protectionFee || Math.round(tripPrice * TRIP_PROTECTION_RATE)}</span>
+                    <div style={{width:40,height:22,borderRadius:11,background:tripProtection?T.gold:"#444",padding:2,transition:"all 0.2s",display:"flex",alignItems:tripProtection?"center":"center",justifyContent:tripProtection?"flex-end":"flex-start"}}>
+                      <div style={{width:18,height:18,borderRadius:"50%",background:tripProtection?T.ink:"#888",transition:"all 0.2s"}}/>
+                    </div>
+                  </div>
+                </div>
+                <div style={{fontFamily:FONT_BODY,fontSize:12,color:tripProtection?T.parchment:T.silver,lineHeight:1.5}}>
+                  {tripProtection
+                    ? "✓ Full refund if you cancel 48+ hours before · ✓ Weather cancellations covered · ✓ Guide cancellation protection"
+                    : "Add protection for peace of mind — cancel for any reason up to 48 hours before your trip."}
+                </div>
+              </div>
+
+              {/* Pricing Breakdown */}
+              <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:20}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
+                  <span style={{fontFamily:FONT_BODY,fontSize:14,color:T.silver}}>{pkg.priceType==="person"?`$${pkg.price} × ${guests} guest${guests!==1?"s":""}` : "Flat rate"}</span>
+                  <span style={{fontFamily:FONT_BODY,fontSize:14,color:T.parchment,fontWeight:600}}>${tripPrice}</span>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
+                  <span style={{fontFamily:FONT_BODY,fontSize:14,color:T.silver}}>RŌM service fee</span>
+                  <span style={{fontFamily:FONT_BODY,fontSize:14,color:T.parchment,fontWeight:600}}>${serviceFee}</span>
+                </div>
+                {tripProtection && (
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
+                    <span style={{fontFamily:FONT_BODY,fontSize:14,color:T.gold}}>🛡️ Trip protection</span>
+                    <span style={{fontFamily:FONT_BODY,fontSize:14,color:T.gold,fontWeight:600}}>${protectionFee}</span>
+                  </div>
+                )}
                 <div style={{height:1,background:T.wire,margin:"8px 0 12px"}}/>
                 <div style={{display:"flex",justifyContent:"space-between"}}>
                   <span style={{fontFamily:FONT_BODY,fontSize:15,fontWeight:700,color:T.white}}>Total</span>
@@ -419,10 +457,12 @@ function BookingPanel({ guide, onClose }) {
               <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:20}}>
                 <div style={{fontFamily:FONT_DISPLAY,fontSize:20,color:T.white,marginBottom:4}}>{pkg.title}</div>
                 <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.silver,marginBottom:14}}>{guests} guest{guests!==1?"s":""} · {selectedDate?new Date(selectedDate+"T12:00:00").toLocaleDateString("en-US",{month:"long",day:"numeric"}):""}</div>
-                {[["Trip price",`$${tripPrice}`],["Service fee",`$${serviceFee}`],["Total",`$${total}`]].map(([l,v])=>(
+                {[["Trip price",`$${tripPrice}`],["Service fee",`$${serviceFee}`],
+                  ...(tripProtection ? [["🛡️ Trip protection",`$${protectionFee}`]] : []),
+                  ["Total",`$${total}`]].map(([l,v])=>(
                   <div key={l} style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
-                    <span style={{fontFamily:FONT_BODY,fontSize:14,color:l==="Total"?T.white:T.silver,fontWeight:l==="Total"?700:400}}>{l}</span>
-                    <span style={{fontFamily:FONT_BODY,fontSize:14,color:l==="Total"?T.white:T.silver,fontWeight:l==="Total"?700:400}}>{v}</span>
+                    <span style={{fontFamily:FONT_BODY,fontSize:14,color:l==="Total"?T.white:l.includes("🛡️")?T.gold:T.silver,fontWeight:l==="Total"?700:400}}>{l}</span>
+                    <span style={{fontFamily:FONT_BODY,fontSize:14,color:l==="Total"?T.white:l.includes("🛡️")?T.gold:T.silver,fontWeight:l==="Total"?700:400}}>{v}</span>
                   </div>
                 ))}
               </div>
