@@ -152,8 +152,8 @@ const DESTINATION_PHOTOS = {
   "Nashville, Tennessee": "photo-1545419913-775526d8e66d",              // Nashville skyline golden hour
   "Austin, Texas": "photo-1531218150217-54595bc2b934",                  // Austin Congress Bridge sunset
   "New Orleans, Louisiana": "photo-1568402102990-bc541580b59f",         // French Quarter architecture golden light
-  "Acadia National Park, Maine": "photo-1527489377706-5bf97e608852",   // Acadia rocky coast sunrise
-  "Portland, Maine": "photo-1527489377706-5bf97e608852",               // Maine rocky coast
+  "Acadia National Park, Maine": "photo-1469474968028-56623f02e42e",   // dramatic rocky Atlantic coastline
+  "Portland, Maine": "photo-1504618223053-559bdef9dd5a",               // Portland Head Light lighthouse
   "Cape Cod, Massachusetts": "photo-1507525428034-b723cf961d3e",
   "Stowe, Vermont": "photo-1507003211169-0a1dd7228f2d",              // Vermont fall foliage road
   "Burlington, Vermont": "photo-1570641963303-92ce4845ed4c",          // Lake Champlain sunset
@@ -901,7 +901,10 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
             padding: 12px 0 12px 18px !important;
             margin-bottom: 14px !important;
             background: #fff !important;
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
           }
+          .print-content > div { break-inside: avoid; page-break-inside: avoid; }
           .print-section-label { color: #C9A55C !important; font-size: 9px !important; letter-spacing: 0.14em !important; }
           .print-card-title { color: #1a1a1a !important; font-size: 14px !important; font-weight: 600 !important; }
           .print-card-desc { color: #4a4a4a !important; font-size: 12px !important; line-height: 1.65 !important; }
@@ -1203,9 +1206,9 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
                 <img src={proxyUrl} crossOrigin="anonymous" alt="" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 0 }} />
               )}
 
-              {/* Dark gradient overlay for text readability */}
+              {/* Dark gradient overlay — heavy at bottom for text punch */}
               <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", background: proxyUrl
-                ? "linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.15) 30%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.85) 100%)"
+                ? "linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.05) 20%, rgba(0,0,0,0.2) 45%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.92) 100%)"
                 : "radial-gradient(ellipse at 30% 20%, rgba(193,163,98,0.08) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(193,163,98,0.05) 0%, transparent 50%)",
                 zIndex: 1 }} />
 
@@ -1216,16 +1219,16 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
 
               {/* Center section — pushed toward bottom for photo cards */}
               <div style={{ position: "relative", zIndex: 2, padding: "0 64px", flex: 1, display: "flex", flexDirection: "column", justifyContent: proxyUrl ? "flex-end" : "center", paddingBottom: proxyUrl ? 40 : 0 }}>
-                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 96, color: "#fff", lineHeight: 1.05, marginBottom: 24, fontWeight: 400, letterSpacing: "0.02em", textShadow: proxyUrl ? "0 3px 16px rgba(0,0,0,0.6)" : "none" }}>
+                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 110, color: "#fff", lineHeight: 0.95, marginBottom: 28, fontWeight: 400, letterSpacing: "0.01em", textShadow: "0 4px 24px rgba(0,0,0,0.8), 0 1px 4px rgba(0,0,0,0.9)" }}>
                   {destination || itinerary.title}
                 </div>
                 {dateStart && dateEnd && (
-                  <div style={{ fontFamily: FONT_BODY, fontSize: 32, color: "rgba(255,255,255,0.85)", marginBottom: 16, fontWeight: 300, letterSpacing: "0.04em", textShadow: proxyUrl ? "0 2px 8px rgba(0,0,0,0.5)" : "none" }}>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 28, color: "#fff", marginBottom: 20, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", textShadow: "0 2px 12px rgba(0,0,0,0.7)" }}>
                     {new Date(dateStart + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" })} – {new Date(dateEnd + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
                   </div>
                 )}
                 {itinerary.title && destination && (
-                  <div style={{ fontFamily: FONT_DISPLAY, fontSize: 30, color: "rgba(255,255,255,0.7)", lineHeight: 1.3, fontStyle: "italic", maxWidth: 800, textShadow: proxyUrl ? "0 2px 8px rgba(0,0,0,0.5)" : "none" }}>
+                  <div style={{ fontFamily: FONT_DISPLAY, fontSize: 36, color: T.gold, lineHeight: 1.25, fontStyle: "italic", maxWidth: 800, textShadow: "0 2px 12px rgba(0,0,0,0.7)" }}>
                     {itinerary.title}
                   </div>
                 )}
