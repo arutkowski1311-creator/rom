@@ -245,6 +245,10 @@ export default function ConciergePage() {
   const destRef = useRef(null);
   const socialCardRef = useRef(null);
   const [downloadingCard, setDownloadingCard] = useState(false);
+  const [showPhotoPicker, setShowPhotoPicker] = useState(false);
+  const [photoOptions, setPhotoOptions] = useState([]);
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [loadingPhotos, setLoadingPhotos] = useState(false);
   const [dateStart, setDateStart] = useState("");
   const [dateEnd, setDateEnd] = useState("");
   const [adults, setAdults] = useState(2);
@@ -295,10 +299,54 @@ export default function ConciergePage() {
     setShowSuggestions(false);
   };
 
-  // Social card download
+  // Photo picker — fetch options from Unsplash
+  const fetchPhotoOptions = async () => {
+    setLoadingPhotos(true);
+    try {
+      const query = `${destination} landscape scenic travel`;
+      const resp = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=6&orientation=portrait&order_by=relevant`, {
+        headers: { "Authorization": `Client-ID ${process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY || ""}` }
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.results?.length > 0) {
+          setPhotoOptions(data.results.map(r => ({
+            id: r.id,
+            url: r.urls.regular,
+            fullUrl: `${r.urls.raw}&w=1080&h=1920&fit=crop&q=85`,
+            thumb: r.urls.small,
+            alt: r.alt_description || destination,
+            credit: r.user?.name || "",
+          })));
+          setLoadingPhotos(false);
+          return;
+        }
+      }
+    } catch (e) { console.error("Unsplash fetch error:", e); }
+    // Fallback — generate 6 variations from Unsplash source
+    const keywords = ["landscape", "mountains", "nature", "scenic", "travel", "adventure"];
+    setPhotoOptions(keywords.map((kw, i) => ({
+      id: `fallback-${i}`,
+      url: `https://source.unsplash.com/600x900/?${encodeURIComponent(destination + " " + kw)}`,
+      fullUrl: `https://source.unsplash.com/1080x1920/?${encodeURIComponent(destination + " " + kw)}`,
+      thumb: `https://source.unsplash.com/300x450/?${encodeURIComponent(destination + " " + kw)}`,
+      alt: `${destination} ${kw}`,
+      credit: "Unsplash",
+    })));
+    setLoadingPhotos(false);
+  };
+
+  const handleForTheGram = () => {
+    setShowPhotoPicker(true);
+    setSelectedPhoto(null);
+    fetchPhotoOptions();
+  };
+
+  // Social card download — uses selected photo
   const handleDownloadCard = async () => {
     if (!socialCardRef.current) return;
     setDownloadingCard(true);
+    setShowPhotoPicker(false);
     try {
       const html2canvas = (await import("html2canvas")).default;
       const canvas = await html2canvas(socialCardRef.current, {
@@ -489,7 +537,7 @@ export default function ConciergePage() {
   };
 
   // ─── ITINERARY VIEW ──────────────────────────────────────────────────────
-  if (itinerary) return <ItineraryView itinerary={itinerary} isMobile={isMobile} refineInput={refineInput} setRefineInput={setRefineInput} handleRefine={handleRefine} refining={refining} handleShare={handleShare} copied={copied} shareToken={shareToken} onStartOver={() => { setItinerary(null); setStep(0); setMode(""); }} destination={destination} dateStart={dateStart} dateEnd={dateEnd} adults={adults} children={children} socialCardRef={socialCardRef} handleDownloadCard={handleDownloadCard} downloadingCard={downloadingCard} vibes={vibes} handleEmailItinerary={handleEmailItinerary} handleDownloadCalendar={handleDownloadCalendar} />;
+  if (itinerary) return <ItineraryView itinerary={itinerary} isMobile={isMobile} refineInput={refineInput} setRefineInput={setRefineInput} handleRefine={handleRefine} refining={refining} handleShare={handleShare} copied={copied} shareToken={shareToken} onStartOver={() => { setItinerary(null); setStep(0); setMode(""); }} destination={destination} dateStart={dateStart} dateEnd={dateEnd} adults={adults} children={children} socialCardRef={socialCardRef} handleDownloadCard={handleDownloadCard} handleForTheGram={handleForTheGram} downloadingCard={downloadingCard} vibes={vibes} handleEmailItinerary={handleEmailItinerary} handleDownloadCalendar={handleDownloadCalendar} showPhotoPicker={showPhotoPicker} setShowPhotoPicker={setShowPhotoPicker} photoOptions={photoOptions} selectedPhoto={selectedPhoto} setSelectedPhoto={setSelectedPhoto} loadingPhotos={loadingPhotos} />;
 
   // ─── LOADING STATE ────────────────────────────────────────────────────────
   if (generating) return (
@@ -868,7 +916,7 @@ export default function ConciergePage() {
 }
 
 // ─── ITINERARY VIEW COMPONENT ───────────────────────────────────────────────
-function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handleRefine, refining, handleShare, copied, shareToken, onStartOver, destination, dateStart, dateEnd, adults, children, socialCardRef, handleDownloadCard, downloadingCard, vibes, handleEmailItinerary, handleDownloadCalendar }) {
+function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handleRefine, refining, handleShare, copied, shareToken, onStartOver, destination, dateStart, dateEnd, adults, children, socialCardRef, handleDownloadCard, handleForTheGram, downloadingCard, vibes, handleEmailItinerary, handleDownloadCalendar, showPhotoPicker, setShowPhotoPicker, photoOptions, selectedPhoto, setSelectedPhoto, loadingPhotos }) {
   return (
     <div style={{ minHeight: "100vh", background: T.void, color: T.parchment }}>
       <style>{`
@@ -923,8 +971,8 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
       <div className="no-print" style={{ background: T.carbon, borderBottom: `1px solid ${T.wire}`, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
         <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: T.gold, letterSpacing: "0.12em" }}>RŌM</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button onClick={handleDownloadCard} disabled={downloadingCard} style={{ background: T.gold, border: "none", borderRadius: 6, padding: "8px 14px", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: T.ink, cursor: "pointer", opacity: downloadingCard ? 0.6 : 1 }}>
-            {downloadingCard ? "..." : "For The Gram"}
+          <button onClick={() => handleForTheGram()} disabled={downloadingCard} style={{ background: T.gold, border: "none", borderRadius: 6, padding: "8px 14px", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: T.ink, cursor: "pointer", opacity: downloadingCard ? 0.6 : 1 }}>
+            {downloadingCard ? "Creating..." : "For The Gram"}
           </button>
           <button onClick={handleEmailItinerary} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "8px 14px", fontFamily: FONT_BODY, fontSize: 12, color: T.ash, cursor: "pointer" }}>Email</button>
           <button onClick={handleDownloadCalendar} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "8px 14px", fontFamily: FONT_BODY, fontSize: 12, color: T.ash, cursor: "pointer" }}>Calendar</button>
@@ -933,6 +981,52 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
           <button onClick={onStartOver} style={{ background: "none", border: "none", fontFamily: FONT_BODY, fontSize: 12, color: T.silver, cursor: "pointer" }}>Start Over</button>
         </div>
       </div>
+
+      {/* Photo Picker Modal */}
+      {showPhotoPicker && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ background: T.carbon, borderRadius: 16, padding: isMobile ? 20 : 32, maxWidth: 640, width: "100%", maxHeight: "90vh", overflow: "auto", border: `1px solid ${T.wire}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+              <div>
+                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: T.white }}>Choose your photo</div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.silver, marginTop: 4 }}>Pick the shot that best represents your trip</div>
+              </div>
+              <button onClick={() => setShowPhotoPicker(false)} style={{ background: "none", border: "none", color: T.silver, fontSize: 24, cursor: "pointer", padding: 8 }}>✕</button>
+            </div>
+            {loadingPhotos ? (
+              <div style={{ textAlign: "center", padding: 40 }}>
+                <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.silver }}>Finding stunning photos...</div>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+                {photoOptions.map((photo) => (
+                  <div key={photo.id} onClick={() => setSelectedPhoto(photo)}
+                    style={{
+                      position: "relative", borderRadius: 10, overflow: "hidden", cursor: "pointer",
+                      aspectRatio: "2/3",
+                      border: selectedPhoto?.id === photo.id ? `3px solid ${T.gold}` : "3px solid transparent",
+                      boxShadow: selectedPhoto?.id === photo.id ? `0 0 0 2px ${T.gold}` : "none",
+                      transition: "all 0.15s",
+                    }}>
+                    <img src={photo.thumb || photo.url} alt={photo.alt} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    {selectedPhoto?.id === photo.id && (
+                      <div style={{ position: "absolute", top: 8, right: 8, width: 28, height: 28, borderRadius: "50%", background: T.gold, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <span style={{ color: T.ink, fontSize: 16, fontWeight: 700 }}>✓</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 12, marginTop: 24, justifyContent: "flex-end" }}>
+              <button onClick={() => setShowPhotoPicker(false)} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "10px 20px", fontFamily: FONT_BODY, fontSize: 13, color: T.ash, cursor: "pointer" }}>Cancel</button>
+              <button onClick={handleDownloadCard} disabled={!selectedPhoto} style={{ background: selectedPhoto ? T.gold : T.wire, border: "none", borderRadius: 6, padding: "10px 24px", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, color: selectedPhoto ? T.ink : T.muted, cursor: selectedPhoto ? "pointer" : "default" }}>
+                Create Card
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="print-content" style={{ maxWidth: 800, margin: "0 auto", padding: isMobile ? "24px 16px" : "40px 24px" }}>
         {/* Print-only branded header */}
@@ -1192,7 +1286,8 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
 
       {/* Social Card (hidden, for capture) */}
       {(() => {
-        const photoUrl = getDestinationPhoto(destination);
+        // Use user-selected photo if available, otherwise fall back to hardcoded
+        const photoUrl = selectedPhoto?.fullUrl || selectedPhoto?.url || getDestinationPhoto(destination);
         const proxyUrl = photoUrl ? `/api/social-card?url=${encodeURIComponent(photoUrl)}` : null;
         return (
           <div style={{ position: "fixed", left: "-9999px", top: 0 }}>
