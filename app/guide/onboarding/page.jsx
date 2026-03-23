@@ -95,7 +95,31 @@ export default function GuideOnboarding() {
   const [stripeLoading, setStripeLoading] = useState(false);
   const [stripeConnected, setStripeConnected] = useState(false);
 
+  // Insurance (collected on Done step)
+  const [insuranceProvider, setInsuranceProvider] = useState("");
+  const [insurancePolicyNumber, setInsurancePolicyNumber] = useState("");
+  const [insuranceExpiry, setInsuranceExpiry] = useState("");
+  const [insuranceSaving, setInsuranceSaving] = useState(false);
+  const [insuranceSaved, setInsuranceSaved] = useState(false);
+
   const [guideId, setGuideId] = useState(null);
+
+  const handleSaveInsurance = async () => {
+    if (!guideId || !insuranceProvider || !insurancePolicyNumber) return;
+    setInsuranceSaving(true);
+    try {
+      const supabase = getSupabase();
+      await supabase.from("guides").update({
+        insurance_provider: insuranceProvider,
+        insurance_policy_number: insurancePolicyNumber,
+        insurance_expiry_date: insuranceExpiry || null,
+        has_own_liability_insurance: true,
+        insured: true,
+      }).eq("id", guideId);
+      setInsuranceSaved(true);
+    } catch(e) { console.error("Insurance save error:", e); }
+    setInsuranceSaving(false);
+  };
 
   // Check for Stripe return redirect
   useEffect(() => {
@@ -687,12 +711,42 @@ export default function GuideOnboarding() {
                 Head to your dashboard to manage bookings, customize your profile, and start getting discovered.
               </p>
 
+              {/* Insurance Collection */}
+              <div style={{background:T.goldGlow,border:`1px solid ${T.gold}`,borderRadius:10,padding:24,marginBottom:24,textAlign:"left"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+                  <span style={{fontSize:22}}>🛡️</span>
+                  <div style={{fontFamily:FONT_BODY,fontSize:15,fontWeight:700,color:T.gold}}>Liability Insurance</div>
+                </div>
+                <p style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment,lineHeight:1.6,marginBottom:16}}>
+                  All RŌM guides need commercial general liability insurance on file before accepting bookings. You can add it now or from your dashboard — your profile stays in review until it's uploaded.
+                </p>
+                <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                  <input placeholder="Insurance provider (e.g., State Farm, NICA)" value={insuranceProvider||""} onChange={e=>setInsuranceProvider(e.target.value)}
+                    style={{width:"100%",boxSizing:"border-box",background:"rgba(0,0,0,0.3)",border:`1px solid ${T.wire}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none"}}/>
+                  <input placeholder="Policy number" value={insurancePolicyNumber||""} onChange={e=>setInsurancePolicyNumber(e.target.value)}
+                    style={{width:"100%",boxSizing:"border-box",background:"rgba(0,0,0,0.3)",border:`1px solid ${T.wire}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none"}}/>
+                  <div style={{display:"flex",gap:12}}>
+                    <input type="date" placeholder="Expiry date" value={insuranceExpiry||""} onChange={e=>setInsuranceExpiry(e.target.value)}
+                      style={{flex:1,background:"rgba(0,0,0,0.3)",border:`1px solid ${T.wire}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none"}}/>
+                    <GoldBtn small onClick={handleSaveInsurance} disabled={!insuranceProvider||!insurancePolicyNumber||insuranceSaving}>
+                      {insuranceSaving ? "Saving…" : insuranceSaved ? "✓ Saved" : "Save"}
+                    </GoldBtn>
+                  </div>
+                </div>
+                {!insuranceProvider && (
+                  <p style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,marginTop:12,fontStyle:"italic"}}>
+                    Don't have insurance yet? Thimble.com offers per-job liability coverage starting at $15/day.
+                  </p>
+                )}
+              </div>
+
               <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:24,marginBottom:32,textAlign:"left"}}>
                 <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:16}}>Your Setup</div>
                 {[
                   ["Plan", TIERS[selectedTier].name + (TIERS[selectedTier].monthlyPrice === 0 ? " — Free" : " — $" + TIERS[selectedTier].monthlyPrice + "/mo")],
                   ["Booking fee", "Keep 100% of your price — guests pay a 15% service fee"],
                   ["Payments", stripeConnected ? "Connected" : "Not connected yet"],
+                  ["Insurance", insuranceSaved ? "On file ✓" : "Not yet — add from dashboard"],
                   ["Profile", "Pending review"],
                 ].map(([l,v])=>(
                   <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${T.rim}`}}>
