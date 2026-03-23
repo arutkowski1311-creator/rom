@@ -3,6 +3,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getSupabaseAdmin } from "@/app/lib/supabase-server";
 import { Resend } from "resend";
 
+export const maxDuration = 60;
+
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const resend = new Resend(process.env.RESEND_API_KEY);
 
