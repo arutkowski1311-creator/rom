@@ -94,6 +94,7 @@ function BookingPanel({ guide, onClose }) {
   const [guests, setGuests] = useState(1);
   const [requests, setRequests] = useState("");
   const [selectedDate, setSelectedDate] = useState(null);
+  const [timePreference, setTimePreference] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [confirmCode, setConfirmCode] = useState("");
@@ -162,6 +163,7 @@ function BookingPanel({ guide, onClose }) {
           trip_date: selectedDate,
           guests: guests,
           special_requests: requests,
+          time_slot: timePreference.toLowerCase() === "flexible" ? null : timePreference.toLowerCase(),
           package_price: pkg.price,
           price_type: pkg.priceType || "person",
           subtotal: tripPrice,
@@ -370,7 +372,19 @@ function BookingPanel({ guide, onClose }) {
                   return<button key={i} onClick={()=>!unavailable&&setSelectedDate(ds)} style={{padding:"8px 4px",textAlign:"center",fontFamily:FONT_BODY,fontSize:13,background:sel?T.gold:isBlocked?T.lifted:"transparent",color:unavailable?T.muted:sel?T.ink:T.parchment,border:isBlocked?`1px solid ${T.rim}`:"none",borderRadius:4,cursor:unavailable?"default":"pointer",fontWeight:sel?700:400,textDecoration:isBlocked?"line-through":"none"}}>{day}</button>;
                 })}
               </div>
-              {selectedDate&&<div style={{marginTop:16,padding:12,background:T.goldGlow,border:`1px solid ${T.gold}`,borderRadius:6,fontFamily:FONT_BODY,fontSize:13,color:T.gold,fontWeight:600}}>✓ {new Date(selectedDate+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"})}</div>}
+              {selectedDate&&(
+                <div style={{marginTop:16}}>
+                  <div style={{padding:12,background:T.goldGlow,border:`1px solid ${T.gold}`,borderRadius:6,fontFamily:FONT_BODY,fontSize:13,color:T.gold,fontWeight:600,marginBottom:16}}>✓ {new Date(selectedDate+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"})}</div>
+                  <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,marginBottom:10,textTransform:"uppercase",letterSpacing:"0.08em"}}>Preferred time</div>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                    {[["Morning","☀️ Before noon"],["Afternoon","🌤️ Noon – 5pm"],["Evening","🌙 5pm+"],["Flexible","🤙 Guide's call"]].map(([val,label])=>(
+                      <button key={val} onClick={()=>setTimePreference(val)} style={{padding:"10px 16px",borderRadius:8,background:timePreference===val?T.goldGlow:T.steel,border:`1.5px solid ${timePreference===val?T.gold:T.wire}`,fontFamily:FONT_BODY,fontSize:13,color:timePreference===val?T.gold:T.ash,cursor:"pointer",fontWeight:timePreference===val?700:400}}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {step===3&&pkg&&(
@@ -457,8 +471,8 @@ function BookingPanel({ guide, onClose }) {
           {step<4&&(
             <button
               onClick={step===3 ? handlePreparePayment : ()=>setStep(s=>s+1)}
-              disabled={(step===1&&!selectedPkg)||(step===2&&!selectedDate)||submitting}
-              style={{width:"100%",padding:"15px",background:T.gold,border:"none",borderRadius:8,fontFamily:FONT_BODY,fontSize:15,fontWeight:700,color:T.ink,cursor:"pointer",opacity:(step===1&&!selectedPkg)||(step===2&&!selectedDate)||submitting?0.35:1}}>
+              disabled={(step===1&&!selectedPkg)||(step===2&&(!selectedDate||!timePreference))||submitting}
+              style={{width:"100%",padding:"15px",background:T.gold,border:"none",borderRadius:8,fontFamily:FONT_BODY,fontSize:15,fontWeight:700,color:T.ink,cursor:"pointer",opacity:(step===1&&!selectedPkg)||(step===2&&(!selectedDate||!timePreference))||submitting?0.35:1}}>
               {submitting ? "Setting up payment…" : step===3 ? "Review & Pay →" : "Continue →"}
             </button>
           )}
