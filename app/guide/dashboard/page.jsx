@@ -1282,28 +1282,30 @@ export default function GuideDashboard() {
 
           {/* ── OVERVIEW ── */}
           {tab==="Overview" && (
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))",gap:16}}>
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
               {/* Stats row */}
-              {[
-                ["◎","Total earnings this month",`$${stats.earningsThisMonth.toLocaleString()}`,`+$${stats.earningsThisMonth-stats.earningsLastMonth} vs last month`],
-                ["◷","Trips this month",stats.tripsThisMonth,`${stats.tripsAllTime} all time`],
-                ["★","Average rating",stats.avgRating,`${stats.reviewCount || 0} reviews`],
-                ["◉","Response rate",`${stats.responseRate}%`,"Goal: 95%+"],
-                ["◈","Profile views",stats.profileViews,"This month"],
-                ["✦","Conversion rate",`${stats.conversionRate}%`,"Views to bookings"],
-              ].map(([icon,label,val,sub])=>(
-                <div key={label} style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:"20px 22px"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-                    <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em"}}>{label}</div>
-                    <span style={{color:T.gold,fontSize:16}}>{icon}</span>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(150px, 1fr))",gap:12}}>
+                {[
+                  ["◎","Earnings this month",`$${stats.earningsThisMonth.toLocaleString()}`,`+$${stats.earningsThisMonth-stats.earningsLastMonth} vs last`],
+                  ["◷","Trips this month",stats.tripsThisMonth,`${stats.tripsAllTime} all time`],
+                  ["★","Avg rating",stats.avgRating,`${stats.reviewCount || 0} reviews`],
+                  ["◉","Response rate",`${stats.responseRate}%`,"Goal: 95%+"],
+                  ["◈","Profile views",stats.profileViews,"This month"],
+                  ["✦","Conversion",`${stats.conversionRate}%`,"Views → bookings"],
+                ].map(([icon,label,val,sub])=>(
+                  <div key={label} style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:"16px 16px"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                      <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.06em"}}>{label}</div>
+                      <span style={{color:T.gold,fontSize:14}}>{icon}</span>
+                    </div>
+                    <div style={{fontFamily:FONT_DISPLAY,fontSize:26,color:T.white,fontWeight:300,lineHeight:1,marginBottom:4}}>{val}</div>
+                    <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.silver}}>{sub}</div>
                   </div>
-                  <div style={{fontFamily:FONT_DISPLAY,fontSize:32,color:T.white,fontWeight:300,lineHeight:1,marginBottom:6}}>{val}</div>
-                  <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver}}>{sub}</div>
-                </div>
-              ))}
+                ))}
+              </div>
 
-              {/* Earnings chart — spans 2 cols */}
-              <div style={{gridColumn:"1 / 3",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:24}}>
+              {/* Earnings chart */}
+              <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:"20px 16px"}}>
                 <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:20}}>Earnings — Last 7 Months</div>
                 <EarningsChart data={earningsMonthly}/>
               </div>
@@ -1378,7 +1380,7 @@ export default function GuideDashboard() {
                 });
                 const visible = showAllNotifications ? sorted : sorted.slice(0,3);
                 return (
-                <div style={{gridColumn:"1 / -1",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,overflow:"hidden"}}>
+                <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,overflow:"hidden"}}>
                   <div style={{background:T.void,padding:"12px 16px",borderBottom:`1px solid ${T.wire}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <div style={{display:"flex",alignItems:"center",gap:8}}>
                       <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em"}}>Notifications</div>
@@ -1423,7 +1425,7 @@ export default function GuideDashboard() {
 
               {/* Stripe Connect prompt */}
               {!guide.stripeConnected && (
-                <div style={{gridColumn:"1 / -1",background:T.goldGlow,border:`1px solid ${T.gold}`,borderRadius:10,padding:"16px 16px"}}>
+                <div style={{background:T.goldGlow,border:`1px solid ${T.gold}`,borderRadius:10,padding:"16px 16px"}}>
                   <div style={{fontFamily:FONT_DISPLAY,fontSize:18,color:T.gold,fontWeight:400,marginBottom:4}}>Connect payments to start earning</div>
                   <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.ash,marginBottom:12}}>Set up Stripe to receive payouts. Takes about 2 minutes.</div>
                   <button onClick={handleStripeConnect} disabled={stripeLoading} style={{background:T.gold,border:"none",borderRadius:7,padding:"10px 20px",fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:T.ink,cursor:"pointer",width:"100%",opacity:stripeLoading?0.6:1}}>
@@ -1433,7 +1435,7 @@ export default function GuideDashboard() {
               )}
 
               {/* Recent messages — from real threads */}
-              <div style={{gridColumn:"1 / -1",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,overflow:"hidden"}}>
+              <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,overflow:"hidden"}}>
                 <div style={{background:T.void,padding:"14px 20px",borderBottom:`1px solid ${T.wire}`,display:"flex",justifyContent:"space-between"}}>
                   <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em"}}>Recent Messages</div>
                   <div onClick={()=>setTab("Messages")} style={{fontFamily:FONT_BODY,fontSize:12,color:T.gold,cursor:"pointer",fontWeight:600}}>View all →</div>
