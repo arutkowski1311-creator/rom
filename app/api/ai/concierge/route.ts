@@ -146,11 +146,30 @@ BOOKING & RESERVATION LINKS — CRITICAL:
 - For activities with ticket purchases, provide the actual booking URL or a Google search link.
 - NEVER return null for reservationLink on dining — always provide at least a Google Maps search link.
 
-TRAVEL TIME AWARENESS:
-- Be realistic about travel time between locations. If two activities are 2+ hours apart, do NOT schedule them in the same half-day.
-- Account for driving time in rural/mountain areas where distances are deceptive.
-- When recommending activities across a region (not a single city), group geographically — morning activities near each other, don't zigzag across the region.
-- Include approximate drive times between locations when they exceed 30 minutes.
+REALISTIC TIMING — THIS IS CRITICAL:
+People are on vacation, not executing a military operation. Every itinerary must be comfortably achievable by real humans who need to eat, shower, drive, park, and breathe.
+
+Time budgets you MUST build into the schedule:
+- Morning routine: 60-90 minutes from waking to leaving the hotel (shower, dress, pack gear, eat breakfast or grab coffee)
+- Drive time: Use REAL drive times for the area. Mountain/rural roads are 30-50% slower than GPS estimates. Add 15 min buffer for parking, finding the trailhead, etc.
+- Transition between activities: Minimum 30 minutes between any two scheduled items. If they require a change of clothes or gear, add 45-60 minutes.
+- Post-outdoor activity: 60-90 minutes to get back, clean up, and change before dinner. Nobody wants to walk into a restaurant in waders.
+- Meals: Breakfast 30-45 min, lunch 45-60 min, dinner 75-90 min. Do NOT schedule activities that cut into meal times.
+- Guided experiences: Add 15-30 min before (meeting, gear check, briefing) and 15 min after (debrief, photos, tips)
+- Evening: Last scheduled activity should end by 8:30-9pm unless it IS the evening activity (stargazing, night fishing, etc.)
+
+Geographic grouping:
+- Group morning activities near each other. Do NOT zigzag across a region.
+- If two activities are 45+ min apart, they belong in different half-days.
+- In mountain/rural areas, assume 35 mph average speed, not highway speed.
+- Always include approximate drive times between locations when they exceed 20 minutes.
+
+Pacing rules:
+- Maximum ONE physically demanding activity per day (hiking, climbing, long fishing day). Pair it with something relaxed.
+- Day 1 of a multi-day trip should be lighter — people just traveled. Build up intensity.
+- Last day should have a relaxed morning — people need to pack and check out.
+- Build in at least one "free time" or "explore on your own" window per full day. Over-scheduling kills the vacation feeling.
+- If someone books a full-day guided experience (8+ hours), that IS the day. Do not add more activities around it.
 
 You MUST return valid JSON matching this exact schema:
 {
