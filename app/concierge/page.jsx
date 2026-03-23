@@ -872,12 +872,21 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
       <style>{`
         @media print {
           .no-print, .no-print * { display: none !important; }
-          body { background: #fff !important; color: #1a1a1a !important; -webkit-print-color-adjust: exact; }
-          .print-content { max-width: 100% !important; padding: 0 20px !important; }
-          .print-content * { color: #1a1a1a !important; background: transparent !important; border-color: #ddd !important; }
-          .print-content a { color: #8a7a50 !important; }
-          .print-header { display: flex !important; align-items: center; justify-content: center; gap: 8px; padding: 24px 0 16px; border-bottom: 2px solid #C9A55C; margin-bottom: 24px; }
-          .print-header span { font-family: 'Cormorant Garamond', serif; font-size: 28px; color: #C9A55C !important; letter-spacing: 0.08em; }
+          body { background: #fff !important; color: #1a1a1a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .print-content { max-width: 100% !important; padding: 0 32px !important; }
+          .print-content * { background: transparent !important; }
+          .print-content a { color: #8a7a50 !important; text-decoration: none !important; }
+          .print-header { display: flex !important; align-items: center; justify-content: center; gap: 8px; padding: 32px 0 20px; border-bottom: 1px solid #C9A55C; margin-bottom: 28px; }
+          .print-header span { font-family: 'Cormorant Garamond', serif; font-size: 32px; color: #C9A55C !important; letter-spacing: 0.1em; }
+          .print-day { page-break-before: always; padding-top: 20px; }
+          .print-day:first-of-type { page-break-before: avoid; }
+          .print-card { border: none !important; border-left: 2px solid #C9A55C !important; border-radius: 0 !important; padding-left: 16px !important; margin-bottom: 16px !important; }
+          .print-section-label { color: #C9A55C !important; font-size: 10px !important; letter-spacing: 0.14em !important; }
+          .print-card-title { color: #1a1a1a !important; font-size: 15px !important; }
+          .print-card-desc { color: #4a4a4a !important; font-size: 13px !important; line-height: 1.6 !important; }
+          .print-gold-line { border-top: 1px solid #C9A55C !important; margin: 20px 0 !important; }
+          .print-footer { display: flex !important; justify-content: center; padding-top: 32px; margin-top: 32px; border-top: 1px solid #C9A55C; }
+          .print-footer span { font-family: 'Cormorant Garamond', serif; font-size: 14px; color: #C9A55C !important; letter-spacing: 0.1em; }
         }
         @media not print { .print-only { display: none !important; } }
       `}</style>
@@ -958,46 +967,49 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
         )}
 
         {/* Day-by-Day */}
-        {itinerary.days?.map((day, i) => (
-          <div key={i} style={{ marginBottom: 28 }}>
-            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: T.white, marginBottom: 14, display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.gold, background: T.goldGlow, border: `1px solid ${T.gold}`, borderRadius: 4, padding: "2px 8px" }}>Day {day.dayNumber || i + 1}</span>
-              {day.title}
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingLeft: 16, borderLeft: `2px solid ${T.wire}` }}>
-              {["morning", "afternoon", "evening"].map(period => {
-                const block = day[period];
-                if (!block || !block.name) return null;
-                const periodLabel = period.charAt(0).toUpperCase() + period.slice(1);
-                return (
-                  <div key={period} style={{ background: T.steel, borderRadius: 8, padding: 16 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                      <span style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: T.gold }}>{periodLabel}</span>
+        {itinerary.days?.map((day, i) => {
+          // Collect all blocks — supports morning/afternoon/evening OR flexible activities array
+          const blocks = [];
+          if (day.morning?.name) blocks.push({ ...day.morning, period: "Morning" });
+          if (day.afternoon?.name) blocks.push({ ...day.afternoon, period: "Afternoon" });
+          if (day.evening?.name) blocks.push({ ...day.evening, period: "Evening" });
+          if (blocks.length === 0 && day.activities?.length > 0) {
+            day.activities.forEach(a => blocks.push({ ...a, period: a.time || "" }));
+          }
+          return (
+            <div key={i} className={i > 0 ? "print-day" : ""} style={{ marginBottom: 32 }}>
+              {/* Day header */}
+              <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18, paddingBottom: 12, borderBottom: `1px solid ${T.wire}` }}>
+                <div style={{ width: 44, height: 44, borderRadius: "50%", background: T.goldGlow, border: `1.5px solid ${T.gold}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontFamily: FONT_DISPLAY, fontSize: 18, color: T.gold, fontWeight: 500 }}>{day.dayNumber || i + 1}</span>
+                </div>
+                <div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.gold, textTransform: "uppercase", letterSpacing: "0.08em" }}>Day {day.dayNumber || i + 1}</div>
+                  <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: T.white, lineHeight: 1.2 }}>{day.title}</div>
+                </div>
+              </div>
+
+              {/* Activity blocks */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingLeft: 20, borderLeft: `2px solid ${T.gold}30` }}>
+                {blocks.map((block, j) => (
+                  <div key={j} className="print-card" style={{ background: T.steel, borderRadius: 10, padding: "18px 20px", borderLeft: `3px solid ${T.gold}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <span className="print-section-label" style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.gold, textTransform: "uppercase", letterSpacing: "0.06em" }}>{block.period}</span>
                       {block.estimatedCost && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver }}>{block.estimatedCost}</span>}
                     </div>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.white, fontWeight: 600 }}>{block.name}</div>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, marginTop: 4, lineHeight: 1.5 }}>{block.description}</div>
-                    <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
-                      {block.bookingLink && <a href={block.bookingLink} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold }}>Book &rarr;</a>}
-                      <a href={makeDirectionsLink(block.name, destination)} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver }}>Get Directions &rarr;</a>
+                    <div className="print-card-title" style={{ fontFamily: FONT_BODY, fontSize: 16, color: T.white, fontWeight: 600 }}>{block.name}</div>
+                    <div className="print-card-desc" style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.ash, marginTop: 6, lineHeight: 1.6 }}>{block.description}</div>
+                    {block.duration && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver, marginTop: 6 }}>⏱ {block.duration}</div>}
+                    <div className="no-print" style={{ display: "flex", gap: 14, marginTop: 10, flexWrap: "wrap" }}>
+                      {block.bookingLink && <a href={block.bookingLink} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, fontWeight: 600 }}>Book →</a>}
+                      <a href={makeDirectionsLink(block.name, destination)} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver }}>Directions →</a>
                     </div>
                   </div>
-                );
-              })}
-              {/* Fallback for legacy activities array format */}
-              {!day.morning && !day.afternoon && !day.evening && day.activities?.map((act, j) => (
-                <div key={j} style={{ background: T.steel, borderRadius: 8, padding: 14 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                    <span style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: T.gold }}>{act.time}</span>
-                    {act.estimatedCost && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver }}>{act.estimatedCost}</span>}
-                  </div>
-                  <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.white, fontWeight: 600 }}>{act.name}</div>
-                  <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ash, marginTop: 4 }}>{act.description}</div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {/* Local Events */}
         {itinerary.events?.length > 0 && (
@@ -1125,6 +1137,11 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
             ))}
           </div>
         )}
+
+        {/* Print footer */}
+        <div className="print-only print-footer">
+          <span>R ✦ M &nbsp;&nbsp;|&nbsp;&nbsp; romlife.co</span>
+        </div>
 
         {/* Refinement */}
         <div className="no-print" style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 12, padding: 20, marginBottom: 40 }}>
