@@ -214,6 +214,7 @@ function BudgetSlider({ label, value, max, onChange }) {
 export default function ConciergePage() {
   const isMobile = useIsMobile();
   const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState("");
   const [itinerary, setItinerary] = useState(null);
   const [tripPlanId, setTripPlanId] = useState(null);
   const [shareToken, setShareToken] = useState(null);
@@ -406,6 +407,7 @@ export default function ConciergePage() {
 
   const handleGenerate = async () => {
     setGenerating(true);
+    setGenerateError("");
     try {
       const res = await fetch("/api/ai/concierge", {
         method: "POST",
@@ -429,14 +431,23 @@ export default function ConciergePage() {
           guestId: user?.id || undefined,
         }),
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        setGenerateError(errData.error || `Something went wrong (${res.status}). Please try again.`);
+        setGenerating(false);
+        return;
+      }
       const data = await res.json();
       if (data.itinerary) {
         setItinerary(data.itinerary);
         setTripPlanId(data.tripPlanId);
         setShareToken(data.shareToken);
+      } else {
+        setGenerateError(data.error || "We couldn't build your trip. Please try again or adjust your inputs.");
       }
     } catch (err) {
       console.error("Concierge error:", err);
+      setGenerateError("Connection error — please check your internet and try again.");
     }
     setGenerating(false);
   };
@@ -800,6 +811,16 @@ export default function ConciergePage() {
               <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.silver, marginBottom: 28 }}>Dietary needs, accessibility, specific interests. Optional.</div>
               <textarea value={specialRequests} onChange={e => setSpecialRequests(e.target.value)} placeholder="e.g., My wife is vegetarian, we'd love a place with a hot tub" rows={4}
                 style={{ width: "100%", background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 10, padding: "16px 20px", fontFamily: FONT_BODY, fontSize: 15, color: T.parchment, outline: "none", resize: "vertical", lineHeight: 1.6, boxSizing: "border-box" }} />
+            </div>
+          )}
+
+          {/* Error message */}
+          {generateError && (
+            <div style={{ marginTop: 20, background: "rgba(180,60,60,0.1)", border: "1px solid rgba(180,60,60,0.3)", borderRadius: 8, padding: "14px 16px" }}>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: "#cc8080", lineHeight: 1.5 }}>{generateError}</div>
+              <button onClick={() => { setGenerateError(""); handleGenerate(); }} style={{ marginTop: 10, background: T.gold, border: "none", borderRadius: 6, padding: "8px 18px", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, color: T.ink, cursor: "pointer" }}>
+                Try Again
+              </button>
             </div>
           )}
 
