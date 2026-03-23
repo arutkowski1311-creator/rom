@@ -1631,70 +1631,118 @@ export default function GuideDashboard() {
           )}
 
           {/* ── CALENDAR ── */}
-          {tab==="Calendar" && (
-            <div style={{display:"grid",gridTemplateColumns:"1fr",gap:32,alignItems:"start"}}>
-              <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:28}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
-                  <div style={{fontFamily:FONT_DISPLAY,fontSize:26,color:T.white}}>{MONTHS[calMonth]} {calYear}</div>
-                  <div style={{display:"flex",gap:8}}>
-                    <button onClick={()=>{if(calMonth===0){setCalMonth(11);setCalYear(y=>y-1);}else setCalMonth(m=>m-1);}} style={{background:T.lifted,border:`1px solid ${T.wire}`,borderRadius:4,color:T.ash,padding:"7px 14px",cursor:"pointer"}}>←</button>
-                    <button onClick={()=>{if(calMonth===11){setCalMonth(0);setCalYear(y=>y+1);}else setCalMonth(m=>m+1);}} style={{background:T.lifted,border:`1px solid ${T.wire}`,borderRadius:4,color:T.ash,padding:"7px 14px",cursor:"pointer"}}>→</button>
+          {tab==="Calendar" && (() => {
+            // Build employee color map for booked dates
+            const empMap = {};
+            employees.forEach(e => { empMap[e.id] = e; });
+            const dateBookings = {};
+            bookings.filter(b=>b.status==="confirmed"||b.status==="pending").forEach(b=>{
+              const d = b.date ? String(b.date).slice(0,10) : null;
+              if(d) { if(!dateBookings[d]) dateBookings[d]=[]; dateBookings[d].push(b); }
+            });
+            const upcomingBookings = bookings.filter(b=>b.status==="confirmed").sort((a,b)=>new Date(a.date)-new Date(b.date));
+            return (
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
+              <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:"20px 16px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+                  <div style={{fontFamily:FONT_DISPLAY,fontSize:22,color:T.white}}>{MONTHS[calMonth]} {calYear}</div>
+                  <div style={{display:"flex",gap:6}}>
+                    <button onClick={()=>{if(calMonth===0){setCalMonth(11);setCalYear(y=>y-1);}else setCalMonth(m=>m-1);}} style={{background:T.lifted,border:`1px solid ${T.wire}`,borderRadius:4,color:T.ash,padding:"6px 12px",cursor:"pointer",fontSize:13}}>←</button>
+                    <button onClick={()=>{if(calMonth===11){setCalMonth(0);setCalYear(y=>y+1);}else setCalMonth(m=>m+1);}} style={{background:T.lifted,border:`1px solid ${T.wire}`,borderRadius:4,color:T.ash,padding:"6px 12px",cursor:"pointer",fontSize:13}}>→</button>
                   </div>
                 </div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:8}}>
-                  {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=><div key={d} style={{textAlign:"center",fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.muted,padding:"6px 0"}}>{d}</div>)}
+                <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3,marginBottom:6}}>
+                  {["S","M","T","W","T","F","S"].map((d,i)=><div key={i} style={{textAlign:"center",fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.muted,padding:"4px 0"}}>{d}</div>)}
                 </div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3}}>
                   {calCells.map((day,i)=>{
                     if(!day) return <div key={i}/>;
                     const fullDate=`${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-                    const isBooked=bookedDates.includes(fullDate);
+                    const dayBookings=dateBookings[fullDate]||[];
+                    const isBooked=dayBookings.length>0;
                     const isBlocked=blockedDates.includes(fullDate);
                     const today=new Date(); today.setHours(0,0,0,0);
                     const isPast=new Date(fullDate+"T12:00:00")<today;
+                    const isToday=fullDate===`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
                     return (
                       <div key={i} onClick={()=>!isBooked&&!isPast&&toggleBlockDate(fullDate)} style={{
-                        padding:"10px 4px",textAlign:"center",
-                        fontFamily:FONT_BODY,fontSize:13,
+                        padding:"8px 2px",textAlign:"center",position:"relative",
+                        fontFamily:FONT_BODY,fontSize:13,fontWeight:isToday?700:400,
                         background:isBooked?"#1a3a5a":isBlocked?T.lifted:"transparent",
-                        color:isPast?T.rim:isBooked?"#aac8f0":isBlocked?T.muted:T.ash,
+                        color:isPast?T.rim:isToday?T.gold:isBooked?"#aac8f0":isBlocked?T.muted:T.ash,
                         borderRadius:5,cursor:isPast||isBooked?"default":"pointer",
-                        border:`1px solid ${isBooked?"#2a4a7a":isBlocked?T.gold:"transparent"}`,
-                        opacity:isPast?0.3:1,
-                        title:isPast?"Past date":isBooked?"Booked":isBlocked?"Click to unblock":"Click to block",
-                      }}>{day}</div>
+                        border:`1px solid ${isToday?T.gold:isBooked?"#2a4a7a":isBlocked?T.wire:"transparent"}`,
+                        opacity:isPast?0.3:1,minHeight:38,
+                      }}>
+                        {day}
+                        {/* Employee color dots for booked dates */}
+                        {isBooked && dayBookings.length>0 && (
+                          <div style={{display:"flex",justifyContent:"center",gap:2,marginTop:3}}>
+                            {dayBookings.slice(0,3).map((b,bi)=>{
+                              const emp=b.assigned_employee_id?empMap[b.assigned_employee_id]:null;
+                              return <div key={bi} style={{width:5,height:5,borderRadius:"50%",background:emp?.color||T.gold}}/>;
+                            })}
+                            {dayBookings.length>3&&<div style={{fontFamily:FONT_BODY,fontSize:8,color:"#aac8f0"}}>+{dayBookings.length-3}</div>}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
               </div>
-              <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                <SectionCard title="Calendar Key">
-                  {[["#2a4a7a","Booked dates"],["#272c31","Blocked / unavailable"],["transparent","Available"]].map(([bg,label])=>(
-                    <div key={label} style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                      <div style={{width:14,height:14,borderRadius:3,background:bg,border:`1px solid ${T.wire}`}}/>
-                      <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash}}>{label}</span>
-                    </div>
-                  ))}
-                </SectionCard>
-                <SectionCard title="This Month">
-                  {[["Trips booked",String(bookedDates.length)],["Days blocked",String(blockedDates.length)]].map(([l,v])=>(
-                    <div key={l} style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
-                      <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.silver}}>{l}</span>
-                      <span style={{fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:T.parchment}}>{v}</span>
-                    </div>
-                  ))}
-                </SectionCard>
-                <SectionCard title="Upcoming Trips">
-                  {bookings.filter(b=>b.status==="confirmed").map(b=>(
-                    <div key={b.id} onClick={()=>setActiveBooking(b)} style={{padding:"10px 0",borderBottom:`1px solid ${T.rim}`,cursor:"pointer"}}>
-                      <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment,fontWeight:600,marginBottom:3}}>{b.date}</div>
-                      <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver}}>{b.guest} · {b.package}</div>
-                    </div>
-                  ))}
-                </SectionCard>
+
+              {/* Calendar Key + Employee Legend */}
+              <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+                {[["#1a3a5a","Booked"],["#272c31","Blocked"],[T.gold,"Today"]].map(([bg,label])=>(
+                  <div key={label} style={{display:"flex",alignItems:"center",gap:6}}>
+                    <div style={{width:10,height:10,borderRadius:2,background:bg,border:`1px solid ${T.wire}`}}/>
+                    <span style={{fontFamily:FONT_BODY,fontSize:11,color:T.silver}}>{label}</span>
+                  </div>
+                ))}
+                {businessType==="outfitter"&&employees.filter(e=>e.status==="active"||e.status==="invited").map(emp=>(
+                  <div key={emp.id} style={{display:"flex",alignItems:"center",gap:6}}>
+                    <div style={{width:10,height:10,borderRadius:"50%",background:emp.color}}/>
+                    <span style={{fontFamily:FONT_BODY,fontSize:11,color:T.silver}}>{emp.display_name}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* This Month Stats */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:"14px 16px",textAlign:"center"}}>
+                  <div style={{fontFamily:FONT_DISPLAY,fontSize:24,color:T.white}}>{bookedDates.length}</div>
+                  <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.silver}}>Trips booked</div>
+                </div>
+                <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:"14px 16px",textAlign:"center"}}>
+                  <div style={{fontFamily:FONT_DISPLAY,fontSize:24,color:T.white}}>{blockedDates.length}</div>
+                  <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.silver}}>Days blocked</div>
+                </div>
+              </div>
+
+              {/* Upcoming Trips */}
+              <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,overflow:"hidden"}}>
+                <div style={{background:T.void,padding:"12px 16px",borderBottom:`1px solid ${T.wire}`}}>
+                  <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em"}}>Upcoming Trips</div>
+                </div>
+                <div style={{padding:"8px 12px"}}>
+                  {upcomingBookings.length===0&&<div style={{padding:"16px 0",textAlign:"center",fontFamily:FONT_BODY,fontSize:13,color:T.muted}}>No upcoming trips</div>}
+                  {upcomingBookings.slice(0,8).map(b=>{
+                    const emp=b.assigned_employee_id?empMap[b.assigned_employee_id]:null;
+                    return (
+                      <div key={b.id} onClick={()=>setActiveBooking(b)} style={{padding:"10px 6px",borderBottom:`1px solid ${T.rim}`,cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>
+                        {emp&&<div style={{width:8,height:8,borderRadius:"50%",background:emp.color,flexShrink:0}}/>}
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment,fontWeight:600}}>{b.date}{emp?` · ${emp.display_name}`:""}</div>
+                          <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver}}>{b.guest} · {b.package}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* ── PACKAGES ── */}
           {tab==="Packages" && (

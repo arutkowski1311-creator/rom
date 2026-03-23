@@ -52,6 +52,7 @@ export default function GuideOnboarding() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [businessName, setBusinessName] = useState("");
 
   // Step 1 — Interview
   const INTERVIEW_QUESTIONS = [
@@ -244,6 +245,8 @@ export default function GuideOnboarding() {
         categories: selectedCats,
         years_experience: yearsExp ? parseInt(yearsExp) : null,
         website: website || null,
+        business_name: businessName || fullName,
+        business_type: "solo",
         verified: false,
         insured: false,
         licensed: false,
@@ -367,6 +370,7 @@ export default function GuideOnboarding() {
               <div style={{fontFamily:FONT_DISPLAY,fontSize:42,color:T.white,fontWeight:400,marginBottom:8}}>Create your account</div>
               <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver,marginBottom:36,lineHeight:1.6}}>Start your guide application. Takes about 5 minutes.</p>
               <Input label="Full name" value={fullName} onChange={setFullName} placeholder="Your legal name" required/>
+              <Input label="Business name" value={businessName} onChange={setBusinessName} placeholder="e.g., Yellowstone Fly Co. (optional — use your name if solo)"/>
               <Input label="Email address" value={email} onChange={setEmail} placeholder="you@email.com" type="email" required/>
               <Input label="Password" value={password} onChange={setPassword} placeholder="At least 8 characters" type="password" required/>
               <div style={{marginTop:32,display:"flex",gap:16,alignItems:"center"}}>
