@@ -869,6 +869,9 @@ export default function GuideDashboard() {
   const [workingDays, setWorkingDays] = useState([1,2,3,4,5,6,0]);
   const [maxConcurrent, setMaxConcurrent] = useState(1);
   const [businessType, setBusinessType] = useState("solo");
+  const [isEmployee, setIsEmployee] = useState(false);
+  const [employeeRecord, setEmployeeRecord] = useState(null);
+  const [employeePermissions, setEmployeePermissions] = useState({});
   const [earningsMonthly, setEarningsMonthly] = useState([]);
   const [editingPkg, setEditingPkg] = useState(null); // package object being edited, or {} for new
   const [pkgSaving, setPkgSaving] = useState(false);
@@ -956,10 +959,34 @@ export default function GuideDashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { window.location.href = "/login"; return; }
 
-      // Fetch guide record (flat)
-      const { data: g } = await supabase
+      // Fetch guide record — either as owner or employee
+      let g = null;
+      const { data: ownGuide } = await supabase
         .from("guides").select("*")
         .eq("profile_id", user.id).single();
+
+      if (ownGuide) {
+        g = ownGuide;
+      } else {
+        // Check if user is an employee of a guide business
+        const { data: empRecord } = await supabase
+          .from("guide_employees").select("*, guide_id")
+          .eq("user_id", user.id)
+          .in("status", ["active", "invited"])
+          .single();
+        if (empRecord) {
+          const { data: empGuide } = await supabase
+            .from("guides").select("*")
+            .eq("id", empRecord.guide_id).single();
+          if (empGuide) {
+            g = empGuide;
+            setIsEmployee(true);
+            setEmployeeRecord(empRecord);
+            setEmployeePermissions(empRecord.permissions || {});
+          }
+        }
+      }
+
       console.log("Guide fetch result:", g, "user:", user.id);
       if (!g) { console.error("No guide row found for user", user.id); return; }
 
@@ -1238,6 +1265,8 @@ export default function GuideDashboard() {
     setSendingMsg(false);
   };
   const filteredBookings = bookings.filter(b=>{
+    // Employees only see their assigned bookings
+    if (isEmployee && employeeRecord && b.assigned_employee_id !== employeeRecord.id) return false;
     if(bookingFilter==="pending") return b.status==="pending";
     if(bookingFilter==="confirmed") return b.status==="confirmed";
     if(bookingFilter==="completed") return b.status==="completed";
@@ -1290,21 +1319,48 @@ export default function GuideDashboard() {
       <div style={{background:T.carbon,borderBottom:`1px solid ${T.wire}`}}>
         <div style={{maxWidth:1280,margin:"0 auto",padding:"20px 16px 0"}}>
           <div style={{marginBottom:16}}>
-            <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>Guide Dashboard</div>
-            <h1 style={{fontFamily:FONT_DISPLAY,fontSize:28,color:T.white,fontWeight:400,marginBottom:12}}>{guide.name}</h1>
-            <div style={{display:"flex",gap:20,flexWrap:"wrap"}}>
-              {[["$"+stats.earningsThisMonth.toLocaleString(),"This month"],["$"+(stats.earningsThisMonth-stats.earningsLastMonth>=0?"+":"")+((stats.earningsThisMonth-stats.earningsLastMonth)),"vs last month"],[stats.tripsThisMonth+" trips","This month"]].map(([val,label],i)=>(
-                <div key={label+i}>
-                  <div style={{fontFamily:FONT_DISPLAY,fontSize:20,color:T.white,fontWeight:300,lineHeight:1}}>{val}</div>
-                  <div style={{fontFamily:FONT_BODY,fontSize:10,color:T.silver,marginTop:2}}>{label}</div>
-                </div>
-              ))}
+            <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>
+              {isEmployee ? `${guide.name} · Team Member` : "Guide Dashboard"}
             </div>
+            <h1 style={{fontFamily:FONT_DISPLAY,fontSize:28,color:T.white,fontWeight:400,marginBottom:12}}>
+              {isEmployee ? employeeRecord?.display_name || "Team Member" : guide.name}
+            </h1>
+            {(!isEmployee || employeePermissions.financials) && (
+              <div style={{display:"flex",gap:20,flexWrap:"wrap"}}>
+                {[["$"+stats.earningsThisMonth.toLocaleString(),"This month"],["$"+(stats.earningsThisMonth-stats.earningsLastMonth>=0?"+":"")+((stats.earningsThisMonth-stats.earningsLastMonth)),"vs last month"],[stats.tripsThisMonth+" trips","This month"]].map(([val,label],i)=>(
+                  <div key={label+i}>
+                    <div style={{fontFamily:FONT_DISPLAY,fontSize:20,color:T.white,fontWeight:300,lineHeight:1}}>{val}</div>
+                    <div style={{fontFamily:FONT_BODY,fontSize:10,color:T.silver,marginTop:2}}>{label}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {isEmployee && !employeePermissions.financials && (
+              <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver}}>
+                {filteredBookings.filter(b=>b.status==="confirmed"||b.status==="pending").length} assigned trip{filteredBookings.filter(b=>b.status==="confirmed"||b.status==="pending").length!==1?"s":""}
+              </div>
+            )}
           </div>
           <div style={{display:"flex",overflowX:"auto",WebkitOverflowScrolling:"touch",scrollbarWidth:"none",msOverflowStyle:"none"}}>
             <style>{`.tab-scroll::-webkit-scrollbar{display:none;}`}</style>
             <div className="tab-scroll" style={{display:"flex",minWidth:"max-content"}}>
-            {TABS.map(t=>{
+            {(isEmployee ? TABS.filter(t => {
+              const p = employeePermissions;
+              if (t==="Overview") return true;
+              if (t==="Bookings") return p.bookings;
+              if (t==="Calendar") return p.calendar;
+              if (t==="Messages") return p.messages;
+              if (t==="Packages") return false;
+              if (t==="Earnings") return p.financials;
+              if (t==="Finances") return p.financials;
+              if (t==="Marketing") return p.marketing;
+              if (t==="Analytics") return p.analytics;
+              if (t==="Guests") return p.guests;
+              if (t==="Licenses") return false;
+              if (t==="Team") return false;
+              if (t==="Profile") return false;
+              return false;
+            }) : TABS).map(t=>{
               const badge = (t==="Bookings"&&pendingCount) ? pendingCount : (t==="Messages"&&unreadMsgs) ? unreadMsgs : null;
               return (
                 <button key={t} onClick={()=>setTab(t)} style={{
