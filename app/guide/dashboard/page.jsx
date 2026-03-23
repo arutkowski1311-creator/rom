@@ -829,6 +829,7 @@ export default function GuideDashboard() {
   const [uploadError, setUploadError] = useState("");
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [showAllNotifications, setShowAllNotifications] = useState(false);
   const [earningsMonthly, setEarningsMonthly] = useState([]);
   const [editingPkg, setEditingPkg] = useState(null); // package object being edited, or {} for new
   const [pkgSaving, setPkgSaving] = useState(false);
@@ -1358,75 +1359,67 @@ export default function GuideDashboard() {
                 </div>
               </div>
 
-              {/* Notifications — Priority Queue */}
-              {notifications.length > 0 && (
+              {/* Notifications — Expandable, latest 3 by default */}
+              {notifications.length > 0 && (() => {
+                const NTYPE_ICONS = {
+                  trip_match: "🎯", booking_request: "📩", booking_cancelled: "❌", trip_completed: "✓",
+                  vip_detected: "✦", itinerary_generated: "📋", guest_briefing: "📌", lead_response_sent: "💬",
+                  content_ready: "✍️", business_health_weekly: "📊", calendar_fill_activated: "📈",
+                  repeat_guest_sent: "🔄", license_expiring: "⚠️", balance_charged: "💰", balance_charge_failed: "⚠️",
+                  review: "⭐", content: "✍️", booking: "📋", license: "⚠️", business_health: "📊",
+                };
+                const NTYPE_TAB = { content_ready: "Marketing", content: "Marketing", license_expiring: "Licenses", license: "Licenses", business_health_weekly: "Analytics", business_health: "Analytics" };
+                const sorted = [...notifications].sort((a,b) => {
+                  if (!a.read_at && b.read_at) return -1;
+                  if (a.read_at && !b.read_at) return 1;
+                  if (a.priority === "high" && b.priority !== "high") return -1;
+                  if (a.priority !== "high" && b.priority === "high") return 1;
+                  return new Date(b.created_at) - new Date(a.created_at);
+                });
+                const visible = showAllNotifications ? sorted : sorted.slice(0,3);
+                return (
                 <div style={{gridColumn:"1 / -1",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,overflow:"hidden"}}>
-                  <div style={{background:T.void,padding:"14px 20px",borderBottom:`1px solid ${T.wire}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div style={{background:T.void,padding:"12px 16px",borderBottom:`1px solid ${T.wire}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <div style={{display:"flex",alignItems:"center",gap:8}}>
                       <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em"}}>Notifications</div>
-                      {unreadCount>0&&<span style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.ink,background:T.gold,borderRadius:10,padding:"2px 8px"}}>{unreadCount} new</span>}
+                      {unreadCount>0&&<span style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.ink,background:T.gold,borderRadius:10,padding:"2px 7px"}}>{unreadCount}</span>}
                     </div>
-                    {unreadCount>0&&<div onClick={markNotificationsRead} style={{fontFamily:FONT_BODY,fontSize:12,color:T.gold,cursor:"pointer",fontWeight:600}}>Mark all read</div>}
+                    {unreadCount>0&&<div onClick={markNotificationsRead} style={{fontFamily:FONT_BODY,fontSize:11,color:T.gold,cursor:"pointer",fontWeight:600}}>Mark read</div>}
                   </div>
-                  <div style={{padding:16}}>
-                    {notifications
-                      .sort((a,b) => {
-                        // Unread first, then high priority, then by date
-                        if (!a.read_at && b.read_at) return -1;
-                        if (a.read_at && !b.read_at) return 1;
-                        if (a.priority === "high" && b.priority !== "high") return -1;
-                        if (a.priority !== "high" && b.priority === "high") return 1;
-                        return new Date(b.created_at) - new Date(a.created_at);
-                      })
-                      .slice(0,5).map(n=>{
-                      const NTYPE_ICONS = {
-                        trip_match: "🎯", booking_request: "📩", booking_cancelled: "❌", trip_completed: "✓",
-                        vip_detected: "✦", itinerary_generated: "📋", guest_briefing: "📌", lead_response_sent: "💬",
-                        content_ready: "✍️", business_health_weekly: "📊", calendar_fill_activated: "📈",
-                        repeat_guest_sent: "🔄", license_expiring: "⚠️", balance_charged: "💰", balance_charge_failed: "⚠️",
-                      };
+                  <div style={{padding:"8px 12px"}}>
+                    {visible.map(n=>{
                       const icon = NTYPE_ICONS[n.type] || "◉";
-                      const isAutoExec = !!n.auto_executed_at;
+                      const targetTab = NTYPE_TAB[n.type];
+                      const handleClick = async () => {
+                        if (!n.read_at) {
+                          await fetch("/api/notifications",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({notificationId:n.id,action:"read"})}).catch(()=>{});
+                          setNotifications(ns=>ns.map(x=>x.id===n.id?{...x,read_at:new Date().toISOString()}:x));
+                          setUnreadCount(c=>Math.max(0,c-1));
+                        }
+                        if (targetTab) setTab(targetTab);
+                      };
                       return (
-                        <div key={n.id} style={{padding:"10px 12px",borderBottom:`1px solid ${T.rim}`,background:!n.read_at?(n.priority==="high"?"rgba(180,60,60,0.06)":"rgba(193,163,98,0.05)"):"transparent",marginBottom:4,borderRadius:6,display:"flex",gap:10,alignItems:"flex-start"}}>
-                          <span style={{fontSize:14,flexShrink:0,marginTop:2}}>{icon}</span>
+                        <div key={n.id} onClick={handleClick} style={{padding:"10px 8px",borderBottom:`1px solid ${T.rim}`,background:!n.read_at?"rgba(193,163,98,0.05)":"transparent",borderRadius:6,cursor:"pointer",display:"flex",gap:10,alignItems:"flex-start"}}>
+                          <span style={{fontSize:14,flexShrink:0,marginTop:1}}>{icon}</span>
                           <div style={{flex:1,minWidth:0}}>
-                            <div style={{marginBottom:3}}>
-                              <div style={{fontFamily:FONT_BODY,fontSize:12,fontWeight:700,color:!n.read_at?T.gold:T.parchment,marginBottom:2}}>{n.title}</div>
-                              <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-                                {n.priority==="high"&&<span style={{fontFamily:FONT_BODY,fontSize:9,fontWeight:700,color:T.red,background:T.redGlow,borderRadius:3,padding:"1px 5px"}}>URGENT</span>}
-                                {isAutoExec&&<span style={{fontFamily:FONT_BODY,fontSize:9,fontWeight:700,color:T.green,background:T.greenGlow,borderRadius:3,padding:"1px 5px"}}>AUTO</span>}
-                                <span style={{fontFamily:FONT_BODY,fontSize:10,color:T.muted}}>{new Date(n.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>
-                              </div>
+                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+                              <div style={{fontFamily:FONT_BODY,fontSize:12,fontWeight:!n.read_at?700:500,color:!n.read_at?T.gold:T.parchment,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.title}</div>
+                              <span style={{fontFamily:FONT_BODY,fontSize:10,color:T.muted,flexShrink:0}}>{new Date(n.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>
                             </div>
-                            <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.ash,lineHeight:1.5}}>{n.body}</div>
-                            {n.metadata?.date_start && <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.silver,marginTop:4}}>Dates: {n.metadata.date_start} to {n.metadata.date_end}</div>}
-                            {/* Action buttons for actionable notification types */}
-                            {!n.read_at && !isAutoExec && ["content_ready","calendar_fill_activated","license_expiring"].includes(n.type) && (
-                              <div style={{display:"flex",gap:8,marginTop:8}}>
-                                <button onClick={async()=>{
-                                  await fetch("/api/notifications",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({notificationId:n.id,action:"read"})});
-                                  setNotifications(ns=>ns.map(x=>x.id===n.id?{...x,read_at:new Date().toISOString()}:x));
-                                  setUnreadCount(c=>Math.max(0,c-1));
-                                  if (n.type==="content_ready") setTab("Marketing");
-                                  if (n.type==="license_expiring") setTab("Licenses");
-                                }} style={{background:T.gold,border:"none",borderRadius:5,padding:"5px 14px",fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.ink,cursor:"pointer"}}>
-                                  {n.type==="content_ready"?"Review Content":n.type==="license_expiring"?"View License":"View Details"}
-                                </button>
-                                <button onClick={async()=>{
-                                  await fetch("/api/notifications",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({notificationId:n.id,action:"dismiss"})});
-                                  setNotifications(ns=>ns.map(x=>x.id===n.id?{...x,dismissed_at:new Date().toISOString(),read_at:new Date().toISOString()}:x));
-                                  setUnreadCount(c=>Math.max(0,c-1));
-                                }} style={{background:"none",border:`1px solid ${T.wire}`,borderRadius:5,padding:"5px 14px",fontFamily:FONT_BODY,fontSize:11,color:T.muted,cursor:"pointer"}}>Dismiss</button>
-                              </div>
-                            )}
+                            {!n.read_at && <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.ash,lineHeight:1.4,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.body}</div>}
                           </div>
                         </div>
                       );
                     })}
                   </div>
+                  {sorted.length > 3 && (
+                    <div onClick={()=>setShowAllNotifications(v=>!v)} style={{padding:"10px 16px",borderTop:`1px solid ${T.wire}`,textAlign:"center",cursor:"pointer"}}>
+                      <span style={{fontFamily:FONT_BODY,fontSize:12,color:T.gold,fontWeight:600}}>{showAllNotifications ? "Show less" : `Show all ${sorted.length} notifications`}</span>
+                    </div>
+                  )}
                 </div>
-              )}
+                );
+              })()}
 
               {/* Stripe Connect prompt */}
               {!guide.stripeConnected && (
