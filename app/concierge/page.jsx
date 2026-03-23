@@ -871,22 +871,45 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
     <div style={{ minHeight: "100vh", background: T.void, color: T.parchment }}>
       <style>{`
         @media print {
+          * { box-shadow: none !important; text-shadow: none !important; }
           .no-print, .no-print * { display: none !important; }
-          body { background: #fff !important; color: #1a1a1a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .print-content { max-width: 100% !important; padding: 0 32px !important; }
-          .print-content * { background: transparent !important; }
+          html, body { background: #fff !important; color: #1a1a1a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0; }
+          body > div, body > div > div { background: #fff !important; }
+          .print-content { max-width: 100% !important; padding: 0 40px !important; background: #fff !important; }
+          .print-content div, .print-content span, .print-content p {
+            background: #fff !important;
+            background-color: #fff !important;
+            color: #1a1a1a !important;
+            border-color: #e0ddd6 !important;
+          }
           .print-content a { color: #8a7a50 !important; text-decoration: none !important; }
-          .print-header { display: flex !important; align-items: center; justify-content: center; gap: 8px; padding: 32px 0 20px; border-bottom: 1px solid #C9A55C; margin-bottom: 28px; }
-          .print-header span { font-family: 'Cormorant Garamond', serif; font-size: 32px; color: #C9A55C !important; letter-spacing: 0.1em; }
-          .print-day { page-break-before: always; padding-top: 20px; }
+          .print-header {
+            display: flex !important; align-items: center; justify-content: center; gap: 10px;
+            padding: 40px 0 24px; margin-bottom: 32px;
+            border-bottom: 1px solid #C9A55C !important;
+            background: #fff !important;
+          }
+          .print-header span { font-family: 'Cormorant Garamond', serif; font-size: 28px; color: #C9A55C !important; letter-spacing: 0.12em; }
+          .print-day { page-break-before: always; padding-top: 24px; }
           .print-day:first-of-type { page-break-before: avoid; }
-          .print-card { border: none !important; border-left: 2px solid #C9A55C !important; border-radius: 0 !important; padding-left: 16px !important; margin-bottom: 16px !important; }
-          .print-section-label { color: #C9A55C !important; font-size: 10px !important; letter-spacing: 0.14em !important; }
-          .print-card-title { color: #1a1a1a !important; font-size: 15px !important; }
-          .print-card-desc { color: #4a4a4a !important; font-size: 13px !important; line-height: 1.6 !important; }
-          .print-gold-line { border-top: 1px solid #C9A55C !important; margin: 20px 0 !important; }
-          .print-footer { display: flex !important; justify-content: center; padding-top: 32px; margin-top: 32px; border-top: 1px solid #C9A55C; }
-          .print-footer span { font-family: 'Cormorant Garamond', serif; font-size: 14px; color: #C9A55C !important; letter-spacing: 0.1em; }
+          .print-card {
+            border: none !important;
+            border-left: 2px solid #C9A55C !important;
+            border-radius: 0 !important;
+            padding: 12px 0 12px 18px !important;
+            margin-bottom: 14px !important;
+            background: #fff !important;
+          }
+          .print-section-label { color: #C9A55C !important; font-size: 9px !important; letter-spacing: 0.14em !important; }
+          .print-card-title { color: #1a1a1a !important; font-size: 14px !important; font-weight: 600 !important; }
+          .print-card-desc { color: #4a4a4a !important; font-size: 12px !important; line-height: 1.65 !important; }
+          .print-footer {
+            display: flex !important; justify-content: center;
+            padding-top: 40px; margin-top: 40px;
+            border-top: 1px solid #C9A55C !important;
+            background: #fff !important;
+          }
+          .print-footer span { font-family: 'Cormorant Garamond', serif; font-size: 13px; color: #C9A55C !important; letter-spacing: 0.12em; }
         }
         @media not print { .print-only { display: none !important; } }
       `}</style>
