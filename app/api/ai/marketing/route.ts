@@ -56,8 +56,33 @@ export async function POST(req: NextRequest) {
     const voiceProfile = guide.voice_profile;
     const currentMonth = new Date().toLocaleString("en-US", { month: "long" }).toLowerCase();
 
-    // Fetch vertical config for seasonal intelligence and prompts
-    const verticalSlug = (activity || "").toLowerCase().replace(/[^a-z_]/g, "_").replace(/_+/g, "_");
+    // Map guide category to vertical config slug
+    const categoryMap: Record<string, string> = {
+      "Fly Fishing": "fly_fishing", "Fishing": "fly_fishing",
+      "Hiking": "hiking", "Mountaineering": "hiking",
+      "Rock Climbing": "rock_climbing", "Climbing": "rock_climbing",
+      "Ice Climbing": "ice_climbing",
+      "Backcountry Skiing": "backcountry_skiing", "Skiing": "backcountry_skiing",
+      "Food Tour": "food_tour", "Culinary": "food_tour",
+      "Wildlife": "wildlife_safari", "Safari": "wildlife_safari",
+      "4WD": "four_wheel_drive", "Jeep": "four_wheel_drive",
+      "Mountain Biking": "mountain_biking", "MTB": "mountain_biking",
+      "Rafting": "whitewater", "Whitewater": "whitewater",
+      "Kayaking": "paddling", "Canoeing": "paddling", "Paddling": "paddling",
+      "Stargazing": "stargazing", "Astronomy": "stargazing",
+      "Photography": "photography",
+      "Cultural": "cultural_history", "Historical": "cultural_history",
+      "Via Ferrata": "via_ferrata",
+      "Hunting": "hunting",
+      "Snowmobiling": "snowmobiling",
+      "Foraging": "foraging",
+      "Brewery": "brewery_tour", "Beer": "brewery_tour",
+      "Diving": "whitewater", "Surfing": "whitewater",
+      "Camping": "hiking", "Backpacking": "hiking",
+      "Sailing": "paddling", "Snowshoeing": "backcountry_skiing",
+      "Ice Fishing": "fly_fishing",
+    };
+    const verticalSlug = categoryMap[activity] || (activity || "").toLowerCase().replace(/[^a-z_]/g, "_").replace(/_+/g, "_");
     const { data: verticalConfig } = await supabase
       .from("vertical_configs").select("*")
       .eq("vertical", verticalSlug).maybeSingle();
