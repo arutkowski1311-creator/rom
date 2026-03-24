@@ -53,6 +53,18 @@ export async function POST(req: NextRequest) {
     const location = guide.location || "";
     const reviewTexts = (reviews || []).map((r: any) => r.text || r.body).filter(Boolean);
     const packageList = (packages || []).map((p: any) => `${p.title} ($${p.price}, ${p.duration})`).join("; ");
+    const voiceProfile = guide.voice_profile;
+    const currentMonth = new Date().toLocaleString("en-US", { month: "long" }).toLowerCase();
+
+    // Fetch vertical config for seasonal intelligence and prompts
+    const verticalSlug = (activity || "").toLowerCase().replace(/[^a-z_]/g, "_").replace(/_+/g, "_");
+    const { data: verticalConfig } = await supabase
+      .from("vertical_configs").select("*")
+      .eq("vertical", verticalSlug).maybeSingle();
+
+    const seasonalHint = verticalConfig?.seasonal_intelligence?.[currentMonth] || "";
+    const promptPersonality = verticalConfig?.prompt_personality || "";
+    const notePrompt = verticalConfig?.notes_from_guide_prompt || "";
 
     // Fetch stock photos based on guide's activity + location
     const photoQuery = `${activity} ${location}`.trim();
@@ -73,9 +85,17 @@ export async function POST(req: NextRequest) {
 Location: ${location}
 Activity: ${guide.categories?.join(", ") || "Adventure"}
 Bio: ${guide.bio || guide.tagline || ""}
+${voiceProfile ? `Voice/tone: ${typeof voiceProfile === "object" ? JSON.stringify(voiceProfile) : voiceProfile}` : ""}
 Packages: ${packageList || "Not set"}
+Guide's profile URL: https://romlife.co/guides/${guide.slug || ""}
 ${reviewTexts.length > 0 ? `Recent reviews:\n${reviewTexts.slice(0, 3).join("\n---\n")}` : ""}
-${context?.topic ? `Focus topic: ${context.topic}` : ""}`;
+${context?.topic ? `Focus topic: ${context.topic}` : ""}
+
+CURRENT MONTH: ${currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1)}
+${seasonalHint ? `WHAT'S HAPPENING RIGHT NOW (${currentMonth}): ${seasonalHint}` : ""}
+${promptPersonality ? `VOICE GUIDANCE: ${promptPersonality}` : ""}
+
+USE YOUR REAL KNOWLEDGE of ${location} to reference actual geography, waterways, trails, terrain, local culture, and seasonal conditions. Be specific — name real places, real species, real conditions. This content should feel like it was written by someone who LIVES there.`;
 
     if (contentType === "reel") {
       systemPrompt = `You are a short-form video strategist for outdoor adventure guides. You create reel/TikTok storyboards that guides can film with their phone. You understand that guides have incredible footage — they just need structure.
@@ -107,7 +127,7 @@ Create 3 reel concepts. Each should be 15-45 seconds. Mix formats: one storytell
       userPrompt = `Create 3 reel storyboards for ${guideName}. They guide ${activity} in ${location}. Make these filmable with a phone — no fancy equipment needed.`;
 
     } else if (contentType === "email") {
-      systemPrompt = `You are an email marketing specialist for outdoor adventure guides. You write newsletters that feel personal, not corporate. The guide's past guests should feel like they got a letter from a friend who happens to know the best fishing spots.
+      systemPrompt = `You are an email marketing specialist for outdoor adventure guides. You write newsletters that feel personal, not corporate. The guide's past guests should feel like they got a letter from a friend who happens to know the best spots.
 
 ${baseContext}
 
@@ -116,23 +136,36 @@ Return JSON:
   "options": [
     {
       "title": "Email concept name",
-      "subject": "Email subject line (max 50 chars, no spam words)",
+      "subject": "Email subject line (max 50 chars, compelling, no spam words)",
       "preheader": "Preview text shown in inbox (max 90 chars)",
       "sections": [
-        { "type": "hero", "headline": "Big bold headline", "body": "1-2 sentence intro" },
-        { "type": "conditions", "headline": "Section headline", "body": "Current conditions update — what's happening on the water/trail/mountain right now" },
-        { "type": "spotlight", "headline": "Featured trip or package name", "body": "Description with specific dates/availability", "price": "$275", "cta": "Book This Trip" },
-        { "type": "testimonial", "quote": "A real or realistic guest quote", "guest": "Guest Name" },
-        { "type": "cta", "headline": "Don't wait", "body": "Closing urgency line", "buttonText": "View Availability", "buttonUrl": "https://romlife.co/guides/SLUG" }
+        { "type": "hero", "headline": "Big bold seasonal headline", "body": "2-3 sentences setting the scene. Reference what's happening RIGHT NOW in ${location} — conditions, season, weather, what's biting/blooming/running. Make the reader feel like they're missing something." },
+        { "type": "conditions_report", "headline": "What's Happening Right Now", "body": "3-4 sentences of REAL current conditions for ${activity} in ${location} this ${currentMonth}. Reference specific waterways, trails, or terrain. What species are active? What conditions are optimal? What's the window? This section should make someone who's been here before say 'I need to get back.'" },
+        { "type": "featured_trip", "headline": "Featured package name", "body": "2-3 sentences selling the experience (not the logistics). Paint a picture of what the day feels like.", "price": "Real price from packages", "cta": "Book This Trip", "ctaUrl": "https://romlife.co/guides/${guide.slug || ""}" },
+        { "type": "local_intel", "headline": "Local Intel", "body": "2-3 sentences of insider knowledge — a new access point, a regulation change, a seasonal tip, what the locals know that visitors don't. This is the section that makes the newsletter worth opening." },
+        { "type": "testimonial", "quote": "A real guest review quote if available, or a realistic one", "guest": "Guest Name", "trip": "Trip they took" },
+        { "type": "gear_tip", "headline": "Gear Corner", "body": "One specific gear recommendation relevant to the season. Not a sales pitch — a genuine suggestion from experience." },
+        { "type": "upcoming", "headline": "Coming Up", "body": "What's on the horizon — next month's conditions, upcoming events, seasonal transitions. Create anticipation for what's next." },
+        { "type": "cta", "headline": "Closing headline", "body": "1-2 sentences of warm urgency. Not 'book now or miss out' — more like 'the window is open and I'd love to get you out here.'", "buttonText": "View Availability", "buttonUrl": "https://romlife.co/guides/${guide.slug || ""}" }
       ],
       "headline": "Short headline for preview card (max 8 words)"
     }
   ]
 }
 
-Create 2 email newsletter options. Each should have 4-6 sections. The tone should match the guide's voice. Include real package names and prices if available. The hero section sets the mood — seasonal, specific, evocative.`;
+RULES FOR NEWSLETTERS:
+- Every newsletter must have 7-8 sections minimum — this should feel SUBSTANTIAL, like a letter worth reading
+- The conditions report is the centerpiece — it must reference REAL geography and conditions for ${location}
+- Use the guide's voice throughout — warm, expert, personal
+- Include at least one specific package with real price
+- The local intel section is what makes people open the NEXT newsletter — give genuine insider knowledge
+- Never use corporate language (leverage, optimize, solutions) — write like a human
+- Reference the current month and season specifically
+- If you have real review quotes, use them verbatim
 
-      userPrompt = `Create 2 email newsletter options for ${guideName} to send to past guests. Current month: ${new Date().toLocaleString("en-US", { month: "long" })}. Make them want to book again.`;
+Create 2 email newsletter options. Each MUST have 7-8 sections. One newsletter focused on "what's happening now" (conditions-forward), one focused on "plan ahead" (upcoming season preview).`;
+
+      userPrompt = `Create 2 beefy email newsletters for ${guideName} to send to past guests. Current month: ${currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1)}. ${seasonalHint ? `Seasonal context: ${seasonalHint}` : ""} Make these newsletters so good that people forward them to friends. Each must have 7-8 substantial sections with real geographic and seasonal detail about ${location}.`;
 
     } else {
       // Instagram, Facebook, Review Spotlight
@@ -161,12 +194,13 @@ Return hashtags WITHOUT the # symbol. Never use banned/spammy tags (follow, like
         review_spotlight: `Take one of the real guest reviews and create 3 shareable social card captions. Highlight the guest's words. Add brief guide-perspective intro.`,
       };
 
-      userPrompt = contentPrompts[contentType] || contentPrompts.instagram;
+      userPrompt = (contentPrompts[contentType] || contentPrompts.instagram) +
+        (seasonalHint ? `\n\nSEASONAL CONTEXT FOR ${currentMonth.toUpperCase()}: ${seasonalHint}\nUse this to make the content timely and specific to what's happening RIGHT NOW.` : "");
     }
 
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 2500,
+      max_tokens: contentType === "email" ? 4500 : 2500,
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     });
