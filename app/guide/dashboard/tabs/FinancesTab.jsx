@@ -72,15 +72,56 @@ export default function FinancesTab({ guide }) {
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Quick-add flash state
-  const [quickFlash, setQuickFlash] = useState(null); // preset index that just fired
-  const [quickEditIdx, setQuickEditIdx] = useState(null); // which preset is being edited
+  // Quick-add flash state (legacy — kept for compatibility)
+  const [quickFlash, setQuickFlash] = useState(null);
+  const [quickEditIdx, setQuickEditIdx] = useState(null);
   const [quickEditAmt, setQuickEditAmt] = useState("");
   const [presetAmounts, setPresetAmounts] = useState(() => QUICK_PRESETS.map(p => p.defaultAmount));
 
+  // Receipt scanning
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
+  const [scanError, setScanError] = useState("");
+  const [receiptPreview, setReceiptPreview] = useState(null);
+
+  const handleReceiptScan = async (file) => {
+    if (!file) return;
+    setScanning(true);
+    setScanError("");
+    setScanResult(null);
+    setReceiptPreview(URL.createObjectURL(file));
+
+    try {
+      const formData = new FormData();
+      formData.append("receipt", file);
+      const res = await fetch("/api/expenses/scan", { method: "POST", body: formData });
+      const data = await res.json();
+
+      if (data.success && data.expense) {
+        setScanResult(data.expense);
+        // Pre-fill the expense form
+        setNewExpense({
+          category: data.expense.category || "Other",
+          amount: data.expense.amount ? String(data.expense.amount) : "",
+          description: data.expense.description || "",
+          date: data.expense.date || new Date().toISOString().split("T")[0],
+          bookingId: "",
+          receiptUrl: "",
+        });
+        setShowAddExpense(true);
+      } else {
+        setScanError(data.suggestion || data.error || "Could not read receipt. Try a clearer photo.");
+        setShowAddExpense(true);
+      }
+    } catch (e) {
+      setScanError("Failed to scan receipt. Check your connection and try again.");
+      setShowAddExpense(true);
+    }
+    setScanning(false);
+  };
+
   // Receipt capture
   const receiptInputRef = useRef(null);
-  const [receiptPreview, setReceiptPreview] = useState(null);
 
   // Recurring expenses
   const [recurringTemplates, setRecurringTemplates] = useState([]);
@@ -517,81 +558,80 @@ export default function FinancesTab({ guide }) {
           </GoldBtn>
         </div>
 
-        {/* ── Quick-Add Presets ── */}
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-          {QUICK_PRESETS.map((preset, idx) => (
-            <div key={idx} style={{ position: "relative" }}>
-              <button
-                onClick={() => {
-                  if (quickEditIdx === idx) return;
-                  handleQuickAdd(idx);
-                }}
-                onContextMenu={(e) => { e.preventDefault(); setQuickEditIdx(idx); setQuickEditAmt(String(presetAmounts[idx])); }}
-                style={{
-                  background: quickFlash === idx ? "#22c55e22" : T.steel,
-                  border: `1px solid ${quickFlash === idx ? "#22c55e" : T.wire}`,
-                  borderRadius: 8, padding: "10px 16px", cursor: "pointer",
-                  fontFamily: FONT_BODY, fontSize: 14, color: quickFlash === idx ? "#22c55e" : T.parchment,
-                  transition: "all 0.2s", display: "flex", alignItems: "center", gap: 6,
-                  minWidth: 0,
-                }}
-              >
-                <span style={{ fontSize: 18 }}>{preset.emoji}</span>
-                <span>{quickFlash === idx ? "Logged!" : `${preset.label} $${presetAmounts[idx]}`}</span>
-              </button>
-              {/* Inline amount editor on right-click/long-press */}
-              {quickEditIdx === idx && (
-                <div style={{
-                  position: "absolute", top: "100%", left: 0, zIndex: 10, marginTop: 4,
-                  background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: 8,
-                  display: "flex", gap: 6, alignItems: "center",
-                }}>
-                  <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver }}>$</span>
-                  <input
-                    type="number"
-                    value={quickEditAmt}
-                    onChange={e => setQuickEditAmt(e.target.value)}
-                    style={{ width: 60, background: T.lifted, border: `1px solid ${T.wire}`, borderRadius: 4, padding: "4px 6px", fontFamily: FONT_BODY, fontSize: 13, color: T.parchment }}
-                    autoFocus
-                    onKeyDown={e => {
-                      if (e.key === "Enter") {
-                        const val = parseFloat(quickEditAmt);
-                        if (val > 0) {
-                          setPresetAmounts(prev => prev.map((a, i) => i === idx ? val : a));
-                        }
-                        setQuickEditIdx(null);
-                      } else if (e.key === "Escape") {
-                        setQuickEditIdx(null);
-                      }
-                    }}
-                    onBlur={() => {
-                      const val = parseFloat(quickEditAmt);
-                      if (val > 0) {
-                        setPresetAmounts(prev => prev.map((a, i) => i === idx ? val : a));
-                      }
-                      setQuickEditIdx(null);
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          ))}
+        {/* ── Scan Receipt + Quick Add ── */}
+        <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+          <label style={{
+            display: "flex", alignItems: "center", gap: 8,
+            background: T.gold, border: "none", borderRadius: 8,
+            padding: "12px 20px", cursor: "pointer",
+            fontFamily: FONT_BODY, fontSize: 14, fontWeight: 700, color: T.ink,
+            opacity: scanning ? 0.6 : 1,
+          }}>
+            <span style={{ fontSize: 18 }}>📸</span>
+            {scanning ? "Scanning..." : "Scan Receipt"}
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              style={{ display: "none" }}
+              onChange={e => { if (e.target.files?.[0]) handleReceiptScan(e.target.files[0]); e.target.value = ""; }}
+              disabled={scanning}
+            />
+          </label>
           <button
-            onClick={() => setShowAddExpense(true)}
+            onClick={() => { setScanResult(null); setReceiptPreview(null); setScanError(""); setShowAddExpense(true); }}
             style={{
-              background: "none", border: `1px dashed ${T.wire}`, borderRadius: 8,
-              padding: "10px 16px", cursor: "pointer",
-              fontFamily: FONT_BODY, fontSize: 14, color: T.silver,
-              display: "flex", alignItems: "center", gap: 6,
+              background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 8,
+              padding: "12px 20px", cursor: "pointer",
+              fontFamily: FONT_BODY, fontSize: 14, color: T.parchment,
+              display: "flex", alignItems: "center", gap: 8,
             }}
           >
-            <span style={{ fontSize: 16 }}>{"\u270F\uFE0F"}</span> Custom...
+            <span style={{ fontSize: 16 }}>✏️</span> Quick Add
           </button>
         </div>
+
+        {/* Scan result preview */}
+        {scanResult && !showAddExpense && (
+          <div style={{ background: T.goldGlow, border: `1px solid ${T.gold}`, borderRadius: 10, padding: 16, marginBottom: 16, display: "flex", gap: 16, alignItems: "center" }}>
+            {receiptPreview && <img src={receiptPreview} alt="Receipt" style={{ width: 48, height: 48, borderRadius: 6, objectFit: "cover" }} />}
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 14, fontWeight: 700, color: T.gold }}>
+                {scanResult.vendor || "Receipt scanned"} — ${scanResult.amount || "?"}
+              </div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.parchment }}>
+                {scanResult.category} · {scanResult.date} · {scanResult.confidence === "high" ? "✓ High confidence" : scanResult.confidence === "medium" ? "◐ Review suggested" : "⚠ Low confidence — please verify"}
+              </div>
+            </div>
+            <button onClick={() => setShowAddExpense(true)} style={{ background: T.gold, border: "none", borderRadius: 6, padding: "8px 14px", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, color: T.ink, cursor: "pointer" }}>
+              Save
+            </button>
+          </div>
+        )}
+
+        {scanError && (
+          <div style={{ background: "rgba(231,76,60,0.08)", border: "1px solid rgba(231,76,60,0.3)", borderRadius: 8, padding: 12, marginBottom: 16 }}>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: "#e8a0a0" }}>⚠ {scanError}</div>
+          </div>
+        )}
 
         {/* ── Full expense form ── */}
         {showAddExpense && (
           <div style={{ background: T.lifted, borderRadius: 8, padding: 16, marginBottom: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+            {/* Scanned receipt preview */}
+            {scanResult && receiptPreview && (
+              <div style={{ display: "flex", gap: 12, alignItems: "center", padding: 12, background: T.goldGlow, borderRadius: 8, border: `1px solid ${T.gold}` }}>
+                <img src={receiptPreview} alt="Receipt" style={{ width: 56, height: 56, borderRadius: 6, objectFit: "cover" }} />
+                <div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, color: T.gold }}>
+                    {scanResult.vendor || "Receipt scanned"} {scanResult.confidence === "high" ? "✓" : scanResult.confidence === "medium" ? "◐" : "⚠"}
+                  </div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.silver }}>
+                    {scanResult.items?.length > 0 ? scanResult.items.slice(0, 3).join(", ") : "Fields auto-filled from receipt — review and save"}
+                  </div>
+                </div>
+              </div>
+            )}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
                 <label style={labelStyle}>Category</label>
