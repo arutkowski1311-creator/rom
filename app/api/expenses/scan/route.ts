@@ -13,9 +13,14 @@ const CATEGORY_HINTS: Record<string, string> = {
   "walmart": "Supplies", "target": "Supplies", "home depot": "Supplies",
   "bass pro": "Gear", "cabela": "Gear", "rei": "Gear", "orvis": "Gear",
   "fly shop": "Gear", "tackle": "Gear", "bait": "Gear",
-  "parking": "Parking", "marina": "Parking", "launch": "Parking",
+  "parking": "Parking & Tolls", "marina": "Parking & Tolls", "launch": "Parking & Tolls", "toll": "Parking & Tolls",
   "insurance": "Insurance", "license": "License & Permits", "permit": "License & Permits",
-  "mechanic": "Vehicle", "tire": "Vehicle", "auto": "Vehicle", "oil change": "Vehicle",
+  "mechanic": "Repairs & Maintenance", "tire": "Vehicle", "auto": "Vehicle", "oil change": "Vehicle",
+  "hotel": "Travel & Lodging", "motel": "Travel & Lodging", "airbnb": "Travel & Lodging", "lodge": "Travel & Lodging", "inn": "Travel & Lodging",
+  "verizon": "Phone & Internet", "t-mobile": "Phone & Internet", "at&t": "Phone & Internet", "comcast": "Phone & Internet",
+  "storage": "Rent & Storage", "dock": "Rent & Storage", "slip": "Rent & Storage", "marina fee": "Rent & Storage",
+  "accountant": "Professional Services", "attorney": "Professional Services", "lawyer": "Professional Services", "cpa": "Professional Services",
+  "course": "Education & Training", "certification": "Education & Training", "training": "Education & Training", "nols": "Education & Training",
 };
 
 export async function POST(req: Request) {
@@ -53,7 +58,7 @@ export async function POST(req: Request) {
   "amount": 0.00,
   "date": "YYYY-MM-DD",
   "description": "Brief 3-5 word description of what was purchased",
-  "category": "One of: Fuel, Food & Meals, Gear, Supplies, Insurance, License & Permits, Vehicle, Parking, Marketing, Software, Other",
+  "category": "One of: Fuel, Vehicle, Parking & Tolls, Insurance, Gear, Supplies, Food & Meals, Travel & Lodging, Marketing, Software, Phone & Internet, License & Permits, Rent & Storage, Repairs & Maintenance, Contract Labor, Professional Services, Education & Training, Other",
   "items": ["List of main items if visible"],
   "tax": 0.00,
   "confidence": "high/medium/low"

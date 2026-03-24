@@ -5,27 +5,34 @@ import { getSupabase } from "@/app/lib/supabase-browser";
 import { GoldBtn, SectionCard, SectionHeader } from "@/app/components/ui";
 import MileageTracker from "./MileageTracker";
 
-const EXPENSE_CATEGORIES = [
-  "Fuel", "Gear", "Food & Meals", "Insurance", "Vehicle", "License & Permits",
-  "Supplies", "Marketing", "Software", "Mileage", "Other",
-];
-
 const IRS_MILEAGE_RATE = 0.70; // 2025 IRS standard mileage rate
 
-// ── Schedule C mapping ──
+// ── Schedule C mapping (IRS Form 1040, Schedule C) ──
 const SCHEDULE_C_MAP = {
-  "Fuel":              { line: "Line 9",  label: "Car and truck expenses" },
-  "Vehicle":           { line: "Line 9",  label: "Car and truck expenses" },
-  "Insurance":         { line: "Line 15", label: "Insurance" },
-  "Gear":              { line: "Line 22", label: "Supplies" },
-  "Supplies":          { line: "Line 22", label: "Supplies" },
-  "Food & Meals":      { line: "Line 24b", label: "Meals (50% deductible)" },
-  "Marketing":         { line: "Line 8",  label: "Advertising" },
-  "Software":          { line: "Line 18", label: "Office expense" },
-  "License & Permits": { line: "Line 23", label: "Taxes and licenses" },
-  "Mileage":           { line: "Form 2106", label: "Standard mileage deduction" },
-  "Other":             { line: "Line 27a", label: "Other expenses" },
+  "Fuel":                 { line: "Line 9",    label: "Car and truck expenses" },
+  "Vehicle":              { line: "Line 9",    label: "Car and truck expenses" },
+  "Parking & Tolls":      { line: "Line 9",    label: "Car and truck expenses" },
+  "Insurance":            { line: "Line 15",   label: "Insurance (other than health)" },
+  "Gear":                 { line: "Line 22",   label: "Supplies" },
+  "Supplies":             { line: "Line 22",   label: "Supplies" },
+  "Food & Meals":         { line: "Line 24b",  label: "Meals (50% deductible)" },
+  "Travel & Lodging":     { line: "Line 24a",  label: "Travel" },
+  "Marketing":            { line: "Line 8",    label: "Advertising" },
+  "Software":             { line: "Line 18",   label: "Office expense" },
+  "Phone & Internet":     { line: "Line 25",   label: "Utilities" },
+  "License & Permits":    { line: "Line 23",   label: "Taxes and licenses" },
+  "Rent & Storage":       { line: "Line 20b",  label: "Rent — other business property" },
+  "Repairs & Maintenance":{ line: "Line 21",   label: "Repairs and maintenance" },
+  "Contract Labor":       { line: "Line 11",   label: "Contract labor" },
+  "Professional Services":{ line: "Line 17",   label: "Legal and professional services" },
+  "Education & Training": { line: "Line 27a",  label: "Other expenses — education" },
+  "Equipment Depreciation":{ line: "Line 13",  label: "Depreciation (Form 4562)" },
+  "Mileage":              { line: "Form 2106", label: "Standard mileage deduction" },
+  "Other":                { line: "Line 27a",  label: "Other expenses" },
 };
+
+// All expense categories available in the UI
+const EXPENSE_CATEGORIES = Object.keys(SCHEDULE_C_MAP).filter(k => k !== "Mileage");
 
 // ── Quick-Add Presets ──
 const QUICK_PRESETS = [
