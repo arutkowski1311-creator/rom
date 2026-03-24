@@ -9,8 +9,8 @@ const CATEGORIES = [
   "Snowshoeing","Ice Fishing","Backpacking","Mountain Biking",
 ];
 
-const STEPS = ["Account","Interview","Profile","Activities","Packages","Plan","Payments","Done"];
-const PROGRESS_STEPS = STEPS.slice(0, 7); // progress bar shows first 7
+const STEPS = ["Account","Interview","Profile","Activities","Packages","Insurance","Plan","Payments","Done"];
+const PROGRESS_STEPS = STEPS.slice(0, 8); // progress bar shows first 8
 
 function Input({ label, value, onChange, placeholder, type="text", multiline=false, required=false }) {
   return (
@@ -95,31 +95,51 @@ export default function GuideOnboarding() {
   const [stripeLoading, setStripeLoading] = useState(false);
   const [stripeConnected, setStripeConnected] = useState(false);
 
-  // Insurance (collected on Done step)
+  // Insurance
+  const [insuranceChoice, setInsuranceChoice] = useState(""); // "own", "per_booking", "opt_out"
   const [insuranceProvider, setInsuranceProvider] = useState("");
   const [insurancePolicyNumber, setInsurancePolicyNumber] = useState("");
   const [insuranceExpiry, setInsuranceExpiry] = useState("");
+  const [insuranceCoverageAmount, setInsuranceCoverageAmount] = useState("");
   const [insuranceSaving, setInsuranceSaving] = useState(false);
   const [insuranceSaved, setInsuranceSaved] = useState(false);
+  const [indemnificationSigned, setIndemnificationSigned] = useState(false);
+  const [indemnificationName, setIndemnificationName] = useState("");
+  const [showIndemnification, setShowIndemnification] = useState(false);
 
   const [guideId, setGuideId] = useState(null);
 
   const handleSaveInsurance = async () => {
-    if (!guideId || !insuranceProvider || !insurancePolicyNumber) return;
+    if (!guideId) return;
     setInsuranceSaving(true);
     try {
       const supabase = getSupabase();
-      await supabase.from("guides").update({
-        insurance_provider: insuranceProvider,
-        insurance_policy_number: insurancePolicyNumber,
-        insurance_expiry_date: insuranceExpiry || null,
-        has_own_liability_insurance: true,
-        insured: true,
-      }).eq("id", guideId);
+      const updates = {
+        business_name: businessName || null,
+        per_booking_insurance: insuranceChoice === "per_booking" || insuranceChoice === "opt_out",
+        insurance_auto_purchase: insuranceChoice === "per_booking",
+        has_own_liability_insurance: insuranceChoice === "own",
+      };
+      if (insuranceChoice === "own" && insuranceProvider) {
+        updates.insurance_provider = insuranceProvider;
+        updates.insurance_policy_number = insurancePolicyNumber;
+        updates.insurance_expiry_date = insuranceExpiry || null;
+        updates.insured = true;
+      }
+      if (insuranceChoice === "per_booking") {
+        updates.insured = true;
+      }
+      await supabase.from("guides").update(updates).eq("id", guideId);
       setInsuranceSaved(true);
     } catch(e) { console.error("Insurance save error:", e); }
     setInsuranceSaving(false);
   };
+
+  const canContinueInsurance = indemnificationSigned && indemnificationName.trim().length > 2 && (
+    insuranceChoice === "per_booking" ||
+    insuranceChoice === "opt_out" ||
+    (insuranceChoice === "own" && insuranceProvider && insurancePolicyNumber)
+  );
 
   // Check for Stripe return redirect
   useEffect(() => {
@@ -136,7 +156,7 @@ export default function GuideOnboarding() {
     if (params.get("stripe") === "refresh") {
       const gId = params.get("guide_id");
       if (gId) setGuideId(gId);
-      setStep(6);
+      setStep(7);
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
@@ -151,12 +171,12 @@ export default function GuideOnboarding() {
       const data = await res.json();
       if (data.complete) {
         setStripeConnected(true);
-        setStep(7); // → Done
+        setStep(8); // → Done
       } else {
-        setStep(6); // Not complete, show retry
+        setStep(7); // Not complete, show retry
       }
     } catch(e) {
-      setStep(5);
+      setStep(6);
     }
   };
 
@@ -317,7 +337,7 @@ export default function GuideOnboarding() {
     try {
       const supabase = getSupabase();
       await supabase.from("guides").update({ subscription_tier: selectedTier }).eq("id", guideId);
-      setStep(6); // → Connect Stripe (for payouts, not subscription)
+      setStep(7); // → Connect Stripe (for payouts, not subscription)
     } catch(e) { setError("Failed to save plan. Please try again."); }
     setLoading(false);
   };
@@ -584,8 +604,196 @@ export default function GuideOnboarding() {
             </div>
           )}
 
-          {/* Step 5 — Choose Plan */}
+          {/* Step 5 — Insurance & Protection */}
           {step === 5 && (
+            <div style={{maxWidth:700,margin:"0 auto"}}>
+              <div style={{textAlign:"center",marginBottom:36}}>
+                <div style={{width:72,height:72,borderRadius:"50%",background:"rgba(201,165,92,0.12)",border:`2px solid ${T.gold}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px",fontSize:32}}>🛡️</div>
+                <div style={{fontFamily:FONT_DISPLAY,fontSize:38,color:T.white,fontWeight:400,marginBottom:8}}>Protect your business</div>
+                <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver,lineHeight:1.7,maxWidth:520,margin:"0 auto"}}>
+                  Commercial liability insurance is essential for adventure guides. Here's why it matters — and how RŌM makes it easy.
+                </p>
+              </div>
+
+              {/* Business Name */}
+              <div style={{marginBottom:28}}>
+                <label style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:600,color:T.ash,display:"block",marginBottom:8}}>Business Name <span style={{color:T.muted,fontWeight:400}}>(if applicable)</span></label>
+                <input placeholder="e.g., Whitfield Fly Fishing LLC" value={businessName} onChange={e=>setBusinessName(e.target.value)}
+                  style={{width:"100%",boxSizing:"border-box",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:"12px 16px",fontFamily:FONT_BODY,fontSize:15,color:T.parchment,outline:"none"}}/>
+              </div>
+
+              {/* Reality Check — lawsuit costs */}
+              <div style={{background:"rgba(231,76,60,0.06)",border:"1px solid rgba(231,76,60,0.25)",borderRadius:10,padding:24,marginBottom:28}}>
+                <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:"#e8a0a0",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:14}}>Why this matters</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                  {[
+                    ["Medical evacuation helicopter","$80,000 — $150,000"],
+                    ["Spinal injury with ongoing care","$1M — $5M"],
+                    ["Traumatic brain injury","$3M — $15M"],
+                    ["Wrongful death claim","$2M — $10M"],
+                    ["Average outdoor recreation settlement","$750K — $1.5M"],
+                    ["Legal defense costs (even if you win)","$100K — $500K"],
+                  ].map(([item,cost])=>(
+                    <div key={item} style={{padding:"10px 0",borderBottom:`1px solid rgba(231,76,60,0.12)`}}>
+                      <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash,marginBottom:2}}>{item}</div>
+                      <div style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:"#e8a0a0"}}>{cost}</div>
+                    </div>
+                  ))}
+                </div>
+                <p style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,marginTop:14,lineHeight:1.6,fontStyle:"italic"}}>
+                  These are real numbers from outdoor recreation liability cases. A single incident without insurance can end a business permanently.
+                </p>
+              </div>
+
+              {/* Three Options */}
+              <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:14}}>Choose your coverage</div>
+              <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:28}}>
+
+                {/* Option 1 — Per-booking (recommended) */}
+                <div onClick={()=>setInsuranceChoice("per_booking")} style={{
+                  background:insuranceChoice==="per_booking"?T.goldGlow:T.steel,
+                  border:`2px solid ${insuranceChoice==="per_booking"?T.gold:T.wire}`,
+                  borderRadius:10,padding:"20px 24px",cursor:"pointer",transition:"all 0.2s",position:"relative"
+                }}>
+                  <div style={{position:"absolute",top:-10,right:16,background:T.gold,color:T.ink,fontFamily:FONT_BODY,fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:8,textTransform:"uppercase",letterSpacing:"0.06em"}}>Recommended</div>
+                  <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8}}>
+                    <div style={{width:20,height:20,borderRadius:"50%",border:`2px solid ${insuranceChoice==="per_booking"?T.gold:T.wire}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                      {insuranceChoice==="per_booking"&&<div style={{width:10,height:10,borderRadius:"50%",background:T.gold}}/>}
+                    </div>
+                    <div style={{fontFamily:FONT_BODY,fontSize:16,fontWeight:700,color:T.white}}>Per-booking coverage through RŌM</div>
+                  </div>
+                  <p style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash,lineHeight:1.6,marginLeft:32}}>
+                    Liability insurance is automatically purchased for every booking. Cost starts at ~$20-50 per trip depending on activity type. You're covered from the moment the booking confirms until the trip ends. No annual premium, no paperwork.
+                  </p>
+                  <div style={{marginLeft:32,marginTop:10,display:"flex",gap:16}}>
+                    {[["$1M+","per occurrence"],["Auto","every booking"],["$0","upfront cost"]].map(([big,small])=>(
+                      <div key={big}>
+                        <div style={{fontFamily:FONT_DISPLAY,fontSize:22,color:T.gold,fontWeight:400}}>{big}</div>
+                        <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.silver}}>{small}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Option 2 — Own insurance */}
+                <div onClick={()=>setInsuranceChoice("own")} style={{
+                  background:insuranceChoice==="own"?T.goldGlow:T.steel,
+                  border:`2px solid ${insuranceChoice==="own"?T.gold:T.wire}`,
+                  borderRadius:10,padding:"20px 24px",cursor:"pointer",transition:"all 0.2s"
+                }}>
+                  <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8}}>
+                    <div style={{width:20,height:20,borderRadius:"50%",border:`2px solid ${insuranceChoice==="own"?T.gold:T.wire}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                      {insuranceChoice==="own"&&<div style={{width:10,height:10,borderRadius:"50%",background:T.gold}}/>}
+                    </div>
+                    <div style={{fontFamily:FONT_BODY,fontSize:16,fontWeight:700,color:T.white}}>I have my own liability insurance</div>
+                  </div>
+                  <p style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash,lineHeight:1.6,marginLeft:32}}>
+                    Upload your Certificate of Insurance. We recommend $1M per occurrence / $2M aggregate minimum, and naming RŌM as an additional insured party.
+                  </p>
+                  {insuranceChoice==="own"&&(
+                    <div style={{marginLeft:32,marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
+                      <input placeholder="Insurance provider *" value={insuranceProvider} onChange={e=>setInsuranceProvider(e.target.value)}
+                        style={{width:"100%",boxSizing:"border-box",background:"rgba(0,0,0,0.3)",border:`1px solid ${T.wire}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none"}}/>
+                      <input placeholder="Policy number *" value={insurancePolicyNumber} onChange={e=>setInsurancePolicyNumber(e.target.value)}
+                        style={{width:"100%",boxSizing:"border-box",background:"rgba(0,0,0,0.3)",border:`1px solid ${T.wire}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none"}}/>
+                      <div style={{display:"flex",gap:10}}>
+                        <input type="date" placeholder="Expiry date" value={insuranceExpiry} onChange={e=>setInsuranceExpiry(e.target.value)}
+                          style={{flex:1,background:"rgba(0,0,0,0.3)",border:`1px solid ${T.wire}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none"}}/>
+                        <input placeholder="Coverage amount (e.g., $1M)" value={insuranceCoverageAmount} onChange={e=>setInsuranceCoverageAmount(e.target.value)}
+                          style={{flex:1,background:"rgba(0,0,0,0.3)",border:`1px solid ${T.wire}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none"}}/>
+                      </div>
+                      <p style={{fontFamily:FONT_BODY,fontSize:11,color:T.silver,lineHeight:1.5}}>
+                        We strongly recommend naming "RŌM Inc." as an additional insured party on your policy. Contact your provider to add this — it typically costs nothing and provides mutual protection.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Option 3 — Opt out (not recommended) */}
+                <div onClick={()=>setInsuranceChoice("opt_out")} style={{
+                  background:insuranceChoice==="opt_out"?"rgba(231,76,60,0.06)":T.steel,
+                  border:`2px solid ${insuranceChoice==="opt_out"?"rgba(231,76,60,0.4)":T.wire}`,
+                  borderRadius:10,padding:"20px 24px",cursor:"pointer",transition:"all 0.2s"
+                }}>
+                  <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8}}>
+                    <div style={{width:20,height:20,borderRadius:"50%",border:`2px solid ${insuranceChoice==="opt_out"?"#e74c3c":T.wire}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                      {insuranceChoice==="opt_out"&&<div style={{width:10,height:10,borderRadius:"50%",background:"#e74c3c"}}/>}
+                    </div>
+                    <div style={{fontFamily:FONT_BODY,fontSize:16,fontWeight:700,color:insuranceChoice==="opt_out"?"#e8a0a0":T.white}}>I'll handle insurance myself later</div>
+                  </div>
+                  <p style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash,lineHeight:1.6,marginLeft:32}}>
+                    You assume all liability risk. RŌM will not provide coverage. Your profile will show as "uninsured" to guests, which may significantly reduce bookings.
+                  </p>
+                </div>
+              </div>
+
+              {/* Indemnification Agreement */}
+              <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:24,marginBottom:28}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+                  <span style={{fontSize:18}}>📋</span>
+                  <div style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:T.white}}>Independent Guide Agreement</div>
+                </div>
+
+                <div style={{maxHeight:showIndemnification?400:0,overflow:"hidden",transition:"max-height 0.3s"}}>
+                  <div style={{background:"rgba(0,0,0,0.3)",border:`1px solid ${T.rim}`,borderRadius:8,padding:16,marginBottom:16,maxHeight:280,overflowY:"auto"}}>
+                    <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.ash,lineHeight:1.8,whiteSpace:"pre-line"}}>{`INDEPENDENT GUIDE AGREEMENT & INDEMNIFICATION
+
+By signing below, I acknowledge and agree to the following:
+
+1. INDEPENDENT CONTRACTOR STATUS
+I am an independent contractor and not an employee, agent, or representative of RŌM Inc. I maintain full control over how I conduct my guide services, including routes, methods, schedules, equipment, safety protocols, and pricing.
+
+2. NO PLATFORM CONTROL
+RŌM Inc. is a technology platform that connects travelers with independent guides. RŌM does not provide guide services, does not direct or supervise guide operations, does not set guide pricing, and does not control how guides conduct their trips. The sole operational standard RŌM enforces is that guides maintain appropriate insurance coverage or acknowledge the risks of operating without it.
+
+3. ASSUMPTION OF LIABILITY
+I accept sole responsibility for the safety of all guests during my trips. I understand that any claims, injuries, property damage, or losses arising from my guide services are my responsibility, not RŌM's.
+
+4. INDEMNIFICATION
+I agree to indemnify, defend, and hold harmless RŌM Inc., its officers, directors, employees, and agents from and against any and all claims, damages, losses, liabilities, costs, and expenses (including reasonable attorneys' fees) arising out of or related to my guide services, my acts or omissions, or any breach of this agreement.
+
+5. INSURANCE ACKNOWLEDGMENT
+I understand that RŌM strongly recommends commercial general liability insurance with minimum limits of $1,000,000 per occurrence and $2,000,000 aggregate. RŌM offers per-booking coverage through its insurance partners. If I choose not to carry adequate insurance, I assume all financial risk associated with liability claims.
+
+6. GUEST WAIVERS
+I understand that RŌM facilitates digital liability waivers between guests and guides. These waivers are between the guest and the guide — not between the guest and RŌM.
+
+7. GOVERNING LAW
+This agreement shall be governed by the laws of the State of Delaware.`}</div>
+                  </div>
+                </div>
+
+                <button onClick={()=>setShowIndemnification(!showIndemnification)} style={{background:"none",border:"none",fontFamily:FONT_BODY,fontSize:13,color:T.gold,cursor:"pointer",marginBottom:16}}>
+                  {showIndemnification ? "Hide full agreement ▲" : "Read full agreement ▼"}
+                </button>
+
+                <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+                  <div onClick={()=>setIndemnificationSigned(!indemnificationSigned)} style={{
+                    width:22,height:22,borderRadius:4,border:`2px solid ${indemnificationSigned?T.gold:T.wire}`,
+                    background:indemnificationSigned?T.gold:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0
+                  }}>
+                    {indemnificationSigned&&<span style={{color:T.ink,fontSize:14,fontWeight:700}}>✓</span>}
+                  </div>
+                  <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment,lineHeight:1.5}}>
+                    I have read and agree to the Independent Guide Agreement & Indemnification terms above.
+                  </span>
+                </div>
+
+                <input placeholder="Type your full legal name to sign *" value={indemnificationName} onChange={e=>setIndemnificationName(e.target.value)}
+                  style={{width:"100%",boxSizing:"border-box",background:"rgba(0,0,0,0.3)",border:`1px solid ${indemnificationSigned&&indemnificationName.trim().length>2?T.gold:T.wire}`,borderRadius:6,padding:"10px 14px",fontFamily:"'Cormorant Garamond', serif",fontSize:18,color:T.parchment,outline:"none",fontStyle:"italic"}}/>
+              </div>
+
+              <div style={{display:"flex",gap:16}}>
+                <GoldBtn outline small onClick={()=>setStep(4)}>← Back</GoldBtn>
+                <GoldBtn onClick={async()=>{await handleSaveInsurance();setStep(6);}} disabled={!canContinueInsurance||insuranceSaving}>
+                  {insuranceSaving?"Saving…":"Continue →"}
+                </GoldBtn>
+              </div>
+            </div>
+          )}
+
+          {/* Step 6 — Choose Plan */}
+          {step === 6 && (
             <div>
               <div style={{textAlign:"center",marginBottom:40}}>
                 <div style={{fontFamily:FONT_DISPLAY,fontSize:42,color:T.white,fontWeight:400,marginBottom:8}}>Choose your plan</div>
@@ -650,15 +858,15 @@ export default function GuideOnboarding() {
                   </div>
                 </div>
                 <div style={{display:"flex",gap:16}}>
-                  <GoldBtn outline small onClick={()=>setStep(4)}>← Back</GoldBtn>
+                  <GoldBtn outline small onClick={()=>setStep(5)}>← Back</GoldBtn>
                   <GoldBtn onClick={handleTierSelect} disabled={loading}>{loading?"Saving…":`Continue with ${TIERS[selectedTier].name} →`}</GoldBtn>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Step 6 — Connect Stripe */}
-          {step === 6 && (
+          {/* Step 7 — Connect Stripe */}
+          {step === 7 && (
             <div style={{maxWidth:600,margin:"0 auto",textAlign:"center"}}>
               <div style={{width:80,height:80,borderRadius:"50%",background:T.steel,border:`2px solid ${T.gold}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 24px",fontSize:36}}>
                 💳
@@ -690,14 +898,14 @@ export default function GuideOnboarding() {
                 {stripeLoading ? "Connecting…" : "Connect with Stripe →"}
               </GoldBtn>
 
-              <button onClick={()=>setStep(7)} style={{display:"block",margin:"16px auto 0",background:"none",border:"none",fontFamily:FONT_BODY,fontSize:13,color:T.muted,cursor:"pointer"}}>
+              <button onClick={()=>setStep(8)} style={{display:"block",margin:"16px auto 0",background:"none",border:"none",fontFamily:FONT_BODY,fontSize:13,color:T.muted,cursor:"pointer"}}>
                 Skip for now — I'll set this up later
               </button>
             </div>
           )}
 
-          {/* Step 7 — Done */}
-          {step === 7 && (
+          {/* Step 8 — Done */}
+          {step === 8 && (
             <div style={{textAlign:"center",padding:"40px 0",maxWidth:600,margin:"0 auto"}}>
               <div style={{width:80,height:80,borderRadius:"50%",background:"#3a7a5420",border:`2px solid #3a7a54`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 24px",fontSize:36,color:"#3a7a54"}}>
                 ✓
@@ -711,42 +919,14 @@ export default function GuideOnboarding() {
                 Head to your dashboard to manage bookings, customize your profile, and start getting discovered.
               </p>
 
-              {/* Insurance Collection */}
-              <div style={{background:T.goldGlow,border:`1px solid ${T.gold}`,borderRadius:10,padding:24,marginBottom:24,textAlign:"left"}}>
-                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
-                  <span style={{fontSize:22}}>🛡️</span>
-                  <div style={{fontFamily:FONT_BODY,fontSize:15,fontWeight:700,color:T.gold}}>Liability Insurance</div>
-                </div>
-                <p style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment,lineHeight:1.6,marginBottom:16}}>
-                  All RŌM guides need commercial general liability insurance on file before accepting bookings. You can add it now or from your dashboard — your profile stays in review until it's uploaded.
-                </p>
-                <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                  <input placeholder="Insurance provider (e.g., State Farm, NICA)" value={insuranceProvider||""} onChange={e=>setInsuranceProvider(e.target.value)}
-                    style={{width:"100%",boxSizing:"border-box",background:"rgba(0,0,0,0.3)",border:`1px solid ${T.wire}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none"}}/>
-                  <input placeholder="Policy number" value={insurancePolicyNumber||""} onChange={e=>setInsurancePolicyNumber(e.target.value)}
-                    style={{width:"100%",boxSizing:"border-box",background:"rgba(0,0,0,0.3)",border:`1px solid ${T.wire}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none"}}/>
-                  <div style={{display:"flex",gap:12}}>
-                    <input type="date" placeholder="Expiry date" value={insuranceExpiry||""} onChange={e=>setInsuranceExpiry(e.target.value)}
-                      style={{flex:1,background:"rgba(0,0,0,0.3)",border:`1px solid ${T.wire}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none"}}/>
-                    <GoldBtn small onClick={handleSaveInsurance} disabled={!insuranceProvider||!insurancePolicyNumber||insuranceSaving}>
-                      {insuranceSaving ? "Saving…" : insuranceSaved ? "✓ Saved" : "Save"}
-                    </GoldBtn>
-                  </div>
-                </div>
-                {!insuranceProvider && (
-                  <p style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,marginTop:12,fontStyle:"italic"}}>
-                    Don't have insurance yet? Thimble.com offers per-job liability coverage starting at $15/day.
-                  </p>
-                )}
-              </div>
-
               <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:24,marginBottom:32,textAlign:"left"}}>
                 <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:16}}>Your Setup</div>
                 {[
                   ["Plan", TIERS[selectedTier].name + (TIERS[selectedTier].monthlyPrice === 0 ? " — Free" : " — $" + TIERS[selectedTier].monthlyPrice + "/mo")],
                   ["Booking fee", "Keep 100% of your price — guests pay a 15% service fee"],
                   ["Payments", stripeConnected ? "Connected" : "Not connected yet"],
-                  ["Insurance", insuranceSaved ? "On file ✓" : "Not yet — add from dashboard"],
+                  ["Insurance", insuranceChoice === "own" ? `${insuranceProvider} — on file ✓` : insuranceChoice === "per_booking" ? "Per-booking coverage ✓" : "Not covered — add from dashboard"],
+                  ["Agreement", indemnificationSigned ? "Signed ✓" : "Not signed"],
                   ["Profile", "Pending review"],
                 ].map(([l,v])=>(
                   <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${T.rim}`}}>
