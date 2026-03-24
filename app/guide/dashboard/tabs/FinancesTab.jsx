@@ -1036,6 +1036,11 @@ export default function FinancesTab({ guide }) {
         <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.muted, marginTop: 12 }}>
           Quarterly estimated payment: ${Math.round(Math.max(0, netProfit * 0.25) / 4).toLocaleString()} · Net profit: ${netProfit.toLocaleString()}
         </div>
+        <div style={{ marginTop: 16, padding: "12px 16px", background: "rgba(201,165,92,0.06)", border: `1px solid ${T.rim}`, borderRadius: 8 }}>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.silver, lineHeight: 1.7 }}>
+            <strong style={{ color: T.ash }}>Important:</strong> These figures are estimates based on your recorded income and expenses. RŌM is not a tax advisor. Tax rates, deduction eligibility, and filing requirements vary by individual circumstance, state, and entity type. Always consult a qualified tax professional (CPA or enrolled agent) before making tax decisions or filing your return.
+          </div>
+        </div>
       </SectionCard>
 
       {/* ── Tax Documents (Schedule C) ── */}
@@ -1051,7 +1056,7 @@ export default function FinancesTab({ guide }) {
 
         <div style={{ background: T.lifted, borderRadius: 8, padding: 20, marginBottom: 16 }}>
           <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.ash, lineHeight: 1.6, marginBottom: 16 }}>
-            Download your Schedule C-ready income summary. Expenses are mapped to IRS line items, with meals at 50% deductibility. Includes quarterly breakdown and mileage deductions.
+            Download your Schedule C-organized income and expense summary. Categories are mapped to IRS Schedule C line items for easy reference when working with your tax professional. Meals are shown at 50% deductibility. Includes quarterly breakdown and mileage deductions.
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <GoldBtn full onClick={generateScheduleCCSV}>Download Schedule C Summary (CSV)</GoldBtn>
@@ -1089,14 +1094,16 @@ export default function FinancesTab({ guide }) {
                 ))}
               </div>
               <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.muted, marginTop: 6 }}>
-                Meals shown at 50% deductible. Mileage uses standard rate (${IRS_MILEAGE_RATE}/mi).
+                Meals shown at 50% deductible. Mileage uses ${new Date().getFullYear()} standard rate ($${IRS_MILEAGE_RATE}/mi). Verify current rates with the IRS or your tax professional.
               </div>
             </div>
           );
         })()}
 
-        <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.muted, lineHeight: 1.5 }}>
-          This summary is for your records only. Consult your tax professional for filing.
+        <div style={{ marginTop: 8, padding: "14px 16px", background: "rgba(201,165,92,0.06)", border: `1px solid ${T.rim}`, borderRadius: 8 }}>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.silver, lineHeight: 1.7 }}>
+            <strong style={{ color: T.ash }}>Tax Disclaimer:</strong> RŌM provides expense categorization and Schedule C line mapping as a convenience tool to help organize your business records. This is not tax advice. RŌM does not guarantee the accuracy or completeness of any tax-related information. Deduction eligibility depends on your specific situation — business use percentages, entity structure, state laws, and IRS rules change frequently. <strong style={{ color: T.ash }}>You should consult a qualified tax professional (CPA, enrolled agent, or tax attorney) before relying on these figures for tax filing.</strong> RŌM assumes no liability for tax decisions made using this data.
+          </div>
         </div>
       </SectionCard>
     </div>
