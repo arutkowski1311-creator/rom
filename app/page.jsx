@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { T, FONT_DISPLAY, FONT_BODY } from "@/app/lib/theme";
 import { getSupabase } from "@/app/lib/supabase-browser";
 import { useIsMobile, Stars } from "@/app/components/ui";
+import Image from "next/image";
 
 // ─── MOCK DATA ────────────────────────────────────────────────────────────────
 const FEATURED_GUIDES = [
@@ -51,7 +52,7 @@ function Nav({ scrolled, user, userRole }) {
   const dashboardPath = userRole === "guide" ? "/guide/dashboard" : "/dashboard";
   return (
     <>
-    <div style={{position:"fixed",top:0,left:0,right:0,zIndex:100,height:64,background:scrolled||menuOpen?T.void:"transparent",borderBottom:`1px solid ${scrolled?T.wire:"transparent"}`,transition:"all 0.35s",display:"flex",alignItems:"center"}}>
+    <nav role="navigation" aria-label="Main navigation" style={{position:"fixed",top:0,left:0,right:0,zIndex:100,height:64,background:scrolled||menuOpen?T.void:"transparent",borderBottom:`1px solid ${scrolled?T.wire:"transparent"}`,transition:"all 0.35s",display:"flex",alignItems:"center"}}>
       <div style={{maxWidth:1200,margin:"0 auto",padding:"0 20px",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{fontFamily:FONT_DISPLAY,fontSize:28,color:T.gold,letterSpacing:"0.16em",fontWeight:500,cursor:"pointer"}} onClick={()=>window.location.href="/"}>RŌM</div>
         {!isMobile && (
@@ -81,7 +82,7 @@ function Nav({ scrolled, user, userRole }) {
           </button>
         )}
       </div>
-    </div>
+    </nav>
     {isMobile && menuOpen && (
       <div style={{position:"fixed",top:64,left:0,right:0,background:T.void,borderBottom:`1px solid ${T.wire}`,padding:20,display:"flex",flexDirection:"column",gap:16,zIndex:99}}>
         {[["Explore","/search"],["RŌM Concierge","/concierge"],["How It Works","#how-it-works"]].map(([item,href])=>(
@@ -122,7 +123,7 @@ function Hero() {
     <div style={{position:"relative", height:"100vh", minHeight:640, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center", width:"100%"}}>
       {/* Background */}
       <div style={{position:"absolute", inset:0, background:"linear-gradient(160deg, #0b1812f0 0%, #081018f0 40%, #120e04f0 100%)"}}>
-        <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600&q=80&fit=crop" alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:0.15,zIndex:0}}/>
+        <Image src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600&q=80&fit=crop" alt="Mountain landscape" fill style={{objectFit:"cover",opacity:0.15,zIndex:0}} priority sizes="100vw" quality={75}/>
         <div style={{position:"absolute", inset:0, backgroundImage:`radial-gradient(ellipse at 20% 60%, ${T.gold}30 0%, transparent 45%), radial-gradient(ellipse at 75% 25%, #1a3a5038 0%, transparent 40%), radial-gradient(ellipse at 55% 85%, #0a2a1828 0%, transparent 35%)`}}/>
         {/* Grain texture */}
         <div style={{position:"absolute", inset:0, opacity:0.025, backgroundImage:`url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`, backgroundSize:"200px 200px"}}/>
@@ -209,11 +210,11 @@ function StatsBar() {
 // ─── SECTION WRAPPER ──────────────────────────────────────────────────────────
 function Section({ children, bg=T.gunmetal, style={}, id }) {
   return (
-    <div id={id} style={{background:bg, borderBottom:`1px solid ${T.wire}`, ...style}}>
+    <section id={id} style={{background:bg, borderBottom:`1px solid ${T.wire}`, ...style}}>
       <div style={{maxWidth:1200, margin:"0 auto", padding:"60px 20px"}}>
         {children}
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -547,7 +548,10 @@ export default function HomePage() {
         .carousel-scroll::-webkit-scrollbar{display:none!important;}
       `}</style>
 
-      <Nav scrolled={scrolled} user={user} userRole={userRole}/>
+      <header role="banner">
+        <Nav scrolled={scrolled} user={user} userRole={userRole}/>
+      </header>
+      <main role="main">
       <Hero/>
 
       {/* RŌM Concierge — right after hero */}
@@ -642,16 +646,17 @@ export default function HomePage() {
       </Section>
 
       {/* Footer */}
-      <div style={{background:T.void, borderTop:`1px solid ${T.wire}`, padding:"28px 20px", textAlign:"center"}}>
+      </main>
+      <footer role="contentinfo" style={{background:T.void, borderTop:`1px solid ${T.wire}`, padding:"28px 20px", textAlign:"center"}}>
         <div style={{fontFamily:FONT_DISPLAY, fontSize:20, color:T.gold, letterSpacing:"0.14em", marginBottom:6}}>RŌM</div>
         <div style={{fontFamily:FONT_BODY, fontSize:12, color:T.silver, marginBottom:14}}>The world's best adventure guides, in one place.</div>
-        <div style={{display:"flex", justifyContent:"center", gap:20, flexWrap:"wrap", marginBottom:14}}>
+        <nav aria-label="Footer navigation" style={{display:"flex", justifyContent:"center", gap:20, flexWrap:"wrap", marginBottom:14}}>
           {[["Explore","/search"],["RŌM Concierge","/concierge"],["Become a Guide","/become-a-guide"]].map(([label,href])=>(
-            <span key={label} onClick={()=>window.location.href=href} style={{fontFamily:FONT_BODY, fontSize:12, color:T.ash, cursor:"pointer"}}>{label}</span>
+            <a key={label} href={href} style={{fontFamily:FONT_BODY, fontSize:12, color:T.ash, cursor:"pointer", textDecoration:"none"}}>{label}</a>
           ))}
-        </div>
+        </nav>
         <div style={{fontFamily:FONT_BODY, fontSize:11, color:T.muted}}>© 2026 RŌM, Inc.</div>
-      </div>
+      </footer>
     </>
   );
 }

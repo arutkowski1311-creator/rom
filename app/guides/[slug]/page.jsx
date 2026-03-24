@@ -1091,5 +1091,39 @@ export default function GuideProfilePage({ params }) {
 
   const guideData = guide && guide.packages.length > 0 ? guide : { ...guide, packages: GUIDE.packages, reviews: GUIDE.reviews };
 
-  return <GuideProfile guide={guideData}/>;
+  // JSON-LD structured data for search engines
+  const jsonLd = guide ? {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": guide.name,
+    "description": guide.tagline || guide.bio || "",
+    "url": `https://romlife.co/guides/${guide.slug}`,
+    "image": guide.profilePhotoUrl || guide.coverPhotoUrl || "",
+    "address": { "@type": "PostalAddress", "addressLocality": guide.location },
+    "geo": { "@type": "GeoCoordinates" },
+    "aggregateRating": guide.rating ? {
+      "@type": "AggregateRating",
+      "ratingValue": guide.rating,
+      "reviewCount": guide.reviewCount || 0,
+      "bestRating": 5,
+      "worstRating": 1,
+    } : undefined,
+    "priceRange": guide.packages?.[0] ? `$${Math.min(...guide.packages.map(p=>p.price))} - $${Math.max(...guide.packages.map(p=>p.price))}` : undefined,
+    "makesOffer": guide.packages?.map(p => ({
+      "@type": "Offer",
+      "name": p.title,
+      "price": p.price,
+      "priceCurrency": "USD",
+      "description": p.description,
+    })),
+  } : null;
+
+  return (
+    <>
+      {jsonLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      )}
+      <GuideProfile guide={guideData}/>
+    </>
+  );
 }

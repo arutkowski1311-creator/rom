@@ -17,19 +17,32 @@ const barlow = Barlow({
 });
 
 export const metadata: Metadata = {
-  title: "RŌM — Find Your Guide",
+  metadataBase: new URL("https://romlife.co"),
+  title: {
+    default: "RŌM — Find Your Guide",
+    template: "%s | RŌM",
+  },
   description: "The marketplace for independent adventure guides. Fly fishing, hiking, climbing, diving, hunting — find a verified local guide and book your next trip.",
+  keywords: ["adventure guide", "fly fishing guide", "hiking guide", "outdoor guide marketplace", "book a guide", "fishing trips", "climbing guide", "hunting guide"],
   openGraph: {
     title: "RŌM — Find Your Guide",
-    description: "The marketplace for independent adventure guides.",
+    description: "The world's best adventure guides, in one place. Book directly with verified local guides.",
     siteName: "RŌM",
     url: "https://romlife.co",
     type: "website",
+    locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
     title: "RŌM — Find Your Guide",
-    description: "The marketplace for independent adventure guides.",
+    description: "The world's best adventure guides, in one place.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  alternates: {
+    canonical: "https://romlife.co",
   },
 };
 
