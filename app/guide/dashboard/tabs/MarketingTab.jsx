@@ -95,30 +95,58 @@ function DownloadButton({ headline, subline, guideName, guideLocation, guideActi
     const tg = ctx.createLinearGradient(0, h * 0.3, 0, h);
     tg.addColorStop(0, "rgba(0,0,0,0)"); tg.addColorStop(1, "rgba(0,0,0,0.85)");
     ctx.fillStyle = tg; ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = "#c9973a"; ctx.fillRect(isWide ? 60 : 80, h - (isWide ? 220 : 400), 50, 3);
-    ctx.fillStyle = "#fff"; ctx.font = `bold ${isWide ? 44 : 68}px Georgia, serif`;
-    wrapText(ctx, headline || "Your Next Adventure", w - (isWide ? 140 : 160)).forEach((line, i) => {
-      ctx.fillText(line, isWide ? 60 : 80, h - (isWide ? 180 : 360) + i * (isWide ? 50 : 76));
+    // Margins
+    const mx = isWide ? 60 : 70;
+    const headSize = isWide ? 48 : 72;
+    const subSize = isWide ? 22 : 28;
+    const lineH = isWide ? 56 : 84;
+    const subGap = isWide ? 24 : 36;
+
+    // Gold accent bar
+    ctx.fillStyle = "#c9973a"; ctx.fillRect(mx, h - (isWide ? 240 : 440), 50, 3);
+
+    // Headline — bold serif with text shadow
+    ctx.font = `bold ${headSize}px Georgia, "Times New Roman", serif`;
+    ctx.shadowColor = "rgba(0,0,0,0.8)"; ctx.shadowBlur = 12; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 4;
+    ctx.fillStyle = "#fff";
+    const headLines = wrapText(ctx, headline || "Your Next Adventure", w - mx * 2);
+    const headStartY = h - (isWide ? 200 : 400);
+    headLines.forEach((line, i) => {
+      ctx.fillText(line, mx, headStartY + i * lineH);
     });
+
+    // Subtitle — lighter weight, more space from headline
     if (subline) {
-      ctx.fillStyle = "rgba(255,255,255,0.8)"; ctx.font = `${isWide ? 22 : 30}px -apple-system, sans-serif`;
-      const headLines = wrapText(ctx, headline || "", w - 160).length;
-      ctx.fillText(subline, isWide ? 60 : 80, h - (isWide ? 180 : 360) + headLines * (isWide ? 50 : 76) + 16);
+      ctx.font = `italic ${subSize}px Georgia, "Times New Roman", serif`;
+      ctx.fillStyle = "rgba(232,224,208,0.85)";
+      ctx.shadowBlur = 8;
+      const subY = headStartY + headLines.length * lineH + subGap;
+      ctx.fillText(subline, mx, subY);
     }
+
+    // Reset shadow for remaining elements
+    ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+
+    // Bottom bar
     const barY = h - (isWide ? 55 : 80);
-    ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(0, barY - 8, w, h - barY + 8);
-    ctx.fillStyle = "#c9973a"; ctx.font = `bold ${isWide ? 18 : 24}px -apple-system, sans-serif`;
-    ctx.fillText(`${guideName || "Guide"}  ·  ${guideLocation || ""}`, isWide ? 60 : 80, barY + (isWide ? 18 : 24));
-    ctx.textAlign = "right"; ctx.font = `500 ${isWide ? 22 : 30}px Georgia, serif`;
-    ctx.fillText("RŌM", w - (isWide ? 60 : 80), barY + (isWide ? 18 : 24));
-    ctx.textAlign = "left";
-    // Activity badge
-    ctx.font = `bold ${isWide ? 13 : 17}px -apple-system, sans-serif`;
-    const bw = ctx.measureText(guideActivity || "Adventure").width + 28;
-    ctx.fillStyle = "rgba(0,0,0,0.5)";
-    ctx.fillRect(isWide ? 55 : 75, isWide ? 30 : 45, bw, isWide ? 28 : 34);
+    ctx.fillStyle = "rgba(0,0,0,0.65)"; ctx.fillRect(0, barY - 12, w, h - barY + 12);
+    ctx.fillStyle = "#c9973a"; ctx.font = `600 ${isWide ? 16 : 22}px -apple-system, "Helvetica Neue", sans-serif`;
+    ctx.fillText(`${guideName || "Guide"}  ·  ${guideLocation || ""}`, mx, barY + (isWide ? 18 : 26));
+    ctx.textAlign = "right"; ctx.font = `500 ${isWide ? 24 : 32}px Georgia, "Times New Roman", serif`;
     ctx.fillStyle = "#c9973a";
-    ctx.fillText(guideActivity || "Adventure", isWide ? 69 : 89, isWide ? 49 : 71);
+    ctx.fillText("RŌM", w - mx, barY + (isWide ? 18 : 26));
+    ctx.textAlign = "left";
+
+    // Activity badge — top left
+    ctx.font = `bold ${isWide ? 12 : 15}px -apple-system, "Helvetica Neue", sans-serif`;
+    const badgeText = guideActivity || "Adventure";
+    const bw = ctx.measureText(badgeText).width + 24;
+    const bx = mx - 5; const by = isWide ? 28 : 42;
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    roundRect(ctx, bx, by, bw, isWide ? 26 : 32, 4);
+    ctx.fill();
+    ctx.fillStyle = "#c9973a";
+    ctx.fillText(badgeText, bx + 12, by + (isWide ? 17 : 22));
 
     canvas.toBlob((blob) => {
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
@@ -135,6 +163,16 @@ function DownloadButton({ headline, subline, guideName, guideLocation, guideActi
       {rendering ? "Rendering…" : `Download ${isWide ? "1200×630" : "1080×1080"}`}
     </button>
   );
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r); ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h); ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
 }
 
 function wrapText(ctx, text, maxWidth) {
