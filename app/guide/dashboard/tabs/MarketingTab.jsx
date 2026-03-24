@@ -361,7 +361,7 @@ function ReelStoryboard({ option }) {
     shots.forEach((s, i) => {
       text += `[${s.time}] ${s.visual}${s.textOverlay ? `\n  TEXT: "${s.textOverlay}"` : ""}${s.transition ? ` → ${s.transition}` : ""}\n`;
     });
-    text += `\nCaption: ${option.caption || ""}\n${(option.hashtags || []).map(h => `#${h}`).join(" ")}`;
+    text += `\nCaption: ${option.caption || ""}\n${(option.hashtags || []).map(h => `#${h.replace(/^#+/, "")}`).join(" ")}`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -415,7 +415,7 @@ function ReelStoryboard({ option }) {
           <div style={{ fontFamily: FONT_BODY, fontSize: 10, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Caption</div>
           <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.parchment, lineHeight: 1.6 }}>{option.caption}</div>
           {option.hashtags?.length > 0 && (
-            <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.gold, marginTop: 6 }}>{option.hashtags.map(h => `#${h}`).join(" ")}</div>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.gold, marginTop: 6 }}>{option.hashtags.map(h => `#${h.replace(/^#+/, "")}`).join(" ")}</div>
           )}
         </div>
       )}
@@ -544,11 +544,11 @@ export default function MarketingTab({ guide, contentQueue: initialQueue = [] })
                   ) : (
                     <div>
                       <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.parchment, lineHeight: 1.6, whiteSpace: "pre-wrap", marginBottom: 8, maxHeight: 120, overflow: "hidden" }}>{displayContent}</div>
-                      {piece.hashtags?.length > 0 && <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.gold, marginBottom: 10 }}>{piece.hashtags.map(h => `#${h}`).join(" ")}</div>}
+                      {piece.hashtags?.length > 0 && <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.gold, marginBottom: 10 }}>{piece.hashtags.map(h => `#${h.replace(/^#+/, "")}`).join(" ")}</div>}
                       <div style={{ display: "flex", gap: 8 }}>
                         <button onClick={() => handleContentAction(piece.id, "approve")} style={{ background: T.gold, border: "none", borderRadius: 5, padding: "6px 16px", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: T.ink, cursor: "pointer" }}>Approve ✓</button>
                         <button onClick={() => { setEditingContent(piece.id); setEditText(displayContent); }} style={{ background: "none", border: `1px solid ${T.wire}`, borderRadius: 5, padding: "6px 16px", fontFamily: FONT_BODY, fontSize: 12, color: T.ash, cursor: "pointer" }}>Edit</button>
-                        <button onClick={() => { navigator.clipboard.writeText(displayContent + (piece.hashtags?.length ? "\n\n" + piece.hashtags.map(h => `#${h}`).join(" ") : "")); }} style={{ background: "none", border: `1px solid ${T.wire}`, borderRadius: 5, padding: "6px 16px", fontFamily: FONT_BODY, fontSize: 12, color: T.ash, cursor: "pointer" }}>Copy</button>
+                        <button onClick={() => { navigator.clipboard.writeText(displayContent + (piece.hashtags?.length ? "\n\n" + piece.hashtags.map(h => `#${h.replace(/^#+/, "")}`).join(" ") : "")); }} style={{ background: "none", border: `1px solid ${T.wire}`, borderRadius: 5, padding: "6px 16px", fontFamily: FONT_BODY, fontSize: 12, color: T.ash, cursor: "pointer" }}>Copy</button>
                         <button onClick={() => handleContentAction(piece.id, "skip")} style={{ background: "none", border: `1px solid ${T.rim}`, borderRadius: 5, padding: "6px 16px", fontFamily: FONT_BODY, fontSize: 12, color: T.muted, cursor: "pointer" }}>Skip</button>
                       </div>
                     </div>
@@ -603,7 +603,7 @@ export default function MarketingTab({ guide, contentQueue: initialQueue = [] })
                   {opt.title || `Option ${i + 1}`}
                 </span>
                 {!isReel && !isEmail && (
-                  <button onClick={() => handleCopy(opt.content + (opt.hashtags?.length ? "\n\n" + opt.hashtags.map(h => `#${h}`).join(" ") : ""), i)}
+                  <button onClick={() => handleCopy(opt.content + (opt.hashtags?.length ? "\n\n" + opt.hashtags.map(h => `#${h.replace(/^#+/, "")}`).join(" ") : ""), i)}
                     style={{ background: copied === i ? "#1a3a2a" : T.steel, border: `1px solid ${copied === i ? "#4ade80" : T.wire}`, borderRadius: 4, padding: "4px 12px", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: copied === i ? "#4ade80" : T.ash, cursor: "pointer" }}>
                     {copied === i ? "Copied!" : "Copy Caption"}
                   </button>
@@ -646,7 +646,7 @@ export default function MarketingTab({ guide, contentQueue: initialQueue = [] })
                   <div style={{ flex: 1, minWidth: 220 }}>
                     <div style={{ fontFamily: FONT_BODY, fontSize: 10, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Caption</div>
                     <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.parchment, lineHeight: 1.65, whiteSpace: "pre-wrap", marginBottom: 10 }}>{opt.content}</div>
-                    {opt.hashtags?.length > 0 && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, lineHeight: 1.6 }}>{opt.hashtags.map(h => `#${h}`).join(" ")}</div>}
+                    {opt.hashtags?.length > 0 && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold, lineHeight: 1.6 }}>{opt.hashtags.map(h => `#${h.replace(/^#+/, "")}`).join(" ")}</div>}
                   </div>
                 </div>
               )}

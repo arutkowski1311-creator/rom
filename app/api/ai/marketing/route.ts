@@ -143,14 +143,20 @@ ${baseContext}
 Return JSON:
 {
   "options": [
-    { "title": "Option label", "content": "The caption", "hashtags": ["if applicable"], "headline": "Bold headline for image card (max 8 words)", "subline": "One supporting sentence for image card" }
+    { "title": "Option label", "content": "The caption", "hashtags": ["without hash symbol", "just the word"], "headline": "Bold headline for image card (max 8 words)", "subline": "One supporting sentence for image card" }
   ]
 }
 
 The headline and subline will be overlaid on photos as a branded content card. Keep the headline punchy — it needs to stop someone scrolling.`;
 
       const contentPrompts: Record<string, string> = {
-        instagram: `Write 3 Instagram caption options for ${guideName}. Each: 1-3 sentences, authentic voice, 8-12 hashtags, subtle CTA.`,
+        instagram: `Write 3 Instagram caption options for ${guideName}. Each: 1-3 sentences, authentic voice, subtle CTA.
+
+HASHTAG STRATEGY (critical for reach — generate exactly 12 per post):
+- 3 HIGH REACH (1M+ posts): broad activity hashtags like flyfishing, adventure, outdoors
+- 5 MEDIUM REACH (100K-1M): specific activity + region like montanaflyfishing, troutfishing
+- 4 NICHE/LOCAL (<100K): hyper-specific location + activity like bozemanfishing, madisonrivertrout
+Return hashtags WITHOUT the # symbol. Never use banned/spammy tags (follow, like4like, instagood). Include guide's city in at least 2 tags.`,
         facebook: `Write 3 Facebook post options for ${guideName}. Each: 2-4 sentences, tell a story or share insight, include CTA.`,
         review_spotlight: `Take one of the real guest reviews and create 3 shareable social card captions. Highlight the guest's words. Add brief guide-perspective intro.`,
       };
