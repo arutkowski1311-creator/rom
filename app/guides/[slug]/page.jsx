@@ -272,26 +272,6 @@ function BookingPanel({ guide, onClose }) {
     setConfirmed(true);
   };
 
-  // ── Insurance gate — guide must have liability insurance to accept bookings ──
-  if (!guide.hasLiabilityInsurance && step === 1) {
-    return (
-      <div style={{position:"fixed",inset:0,zIndex:200,display:"flex",justifyContent:"flex-end"}}>
-        <div onClick={onClose} style={{flex:1,background:"rgba(0,0,0,0.75)"}}/>
-        <div style={{width:"100%",maxWidth:500,background:T.carbon,height:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,padding:40,borderLeft:`2px solid ${T.wire}`}}>
-          <div style={{width:64,height:64,borderRadius:"50%",background:"rgba(201,165,92,0.15)",border:`2px solid ${T.gold}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}>🛡️</div>
-          <div style={{fontFamily:FONT_DISPLAY,fontSize:28,color:T.white,textAlign:"center"}}>Booking Coming Soon</div>
-          <p style={{fontFamily:FONT_BODY,fontSize:14,color:T.silver,textAlign:"center",lineHeight:1.7,maxWidth:360}}>
-            {guide.name} is finalizing their setup on RŌM. Online booking will be available shortly. In the meantime, you can message them directly.
-          </p>
-          <button onClick={()=>window.location.href=`/messages?guide=${guide.slug}`} style={{width:"100%",padding:"14px",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,fontFamily:FONT_BODY,fontSize:14,fontWeight:600,color:T.parchment,cursor:"pointer"}}>
-            Message {guide.name} →
-          </button>
-          <button onClick={onClose} style={{background:"none",border:"none",color:T.muted,fontFamily:FONT_BODY,fontSize:13,cursor:"pointer"}}>← Back to profile</button>
-        </div>
-      </div>
-    );
-  }
-
   // ── Auth redirect prompt ──
   if (authError) return (
     <div style={{position:"fixed",inset:0,zIndex:200,display:"flex",justifyContent:"flex-end"}}>

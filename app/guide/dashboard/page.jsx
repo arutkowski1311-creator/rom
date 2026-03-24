@@ -1017,6 +1017,11 @@ export default function GuideDashboard() {
         galleryPhotos: g.gallery_photos || [],
         subscription_tier: g.subscription_tier || "spark",
         categories: g.categories || [],
+        hasOwnInsurance: g.has_own_liability_insurance || false,
+        insuranceProvider: g.insurance_provider || null,
+        insuranceExpiry: g.insurance_expiry_date || null,
+        perBookingInsurance: g.per_booking_insurance || false,
+        insuranceAutoPurchase: g.insurance_auto_purchase || false,
       });
 
       // Business settings
@@ -1169,10 +1174,45 @@ export default function GuideDashboard() {
   const pendingCount = bookings.filter(b=>b.status==="pending").length;
   const unreadMsgs = threads.filter(t => (t.messages||[]).some(m => m.sender_id !== currentUserId && !m.read_at)).length;
 
+  // Per-booking insurance cost by activity category
+  const INSURANCE_COSTS = {
+    "Fly Fishing": 25, "Fishing": 25, "Kayaking": 25, "Diving": 25, "Surfing": 25, "Sailing": 25,
+    "Rock Climbing": 45, "Hiking": 20, "Backpacking": 20, "Wildlife": 20, "Photography": 20,
+    "Snowshoeing": 20, "Camping": 20, "Ice Fishing": 25,
+    "Mountain Biking": 35, "Hunting": 35,
+  };
+  const getInsuranceCost = () => {
+    const cat = (guide.categories || [])[0] || "";
+    return INSURANCE_COSTS[cat] || 30;
+  };
+
+  const [showInsuranceModal, setShowInsuranceModal] = useState(false);
+  const [pendingAcceptId, setPendingAcceptId] = useState(null);
+  const [insuranceAccepting, setInsuranceAccepting] = useState(false);
+
+  const guideHasValidInsurance = guide.hasOwnInsurance &&
+    guide.insuranceExpiry &&
+    new Date(guide.insuranceExpiry) > new Date();
+
   const accept = async (id) => {
+    // Check if guide has valid insurance
+    if (!guideHasValidInsurance) {
+      // Show insurance required modal
+      setPendingAcceptId(id);
+      setShowInsuranceModal(true);
+      return;
+    }
+    // Guide has own insurance — confirm normally
+    await confirmBooking(id, { guide_insurance_active: true });
+  };
+
+  const confirmBooking = async (id, insuranceFields = {}) => {
     try {
       const supabase = getSupabase();
-      await supabase.from("bookings").update({ status: "confirmed" }).eq("id", id);
+      await supabase.from("bookings").update({
+        status: "confirmed",
+        ...insuranceFields,
+      }).eq("id", id);
       // Auto-generate itinerary in background
       fetch("/api/ai/itinerary", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -1181,6 +1221,20 @@ export default function GuideDashboard() {
     } catch(e) { console.error(e); }
     setBookings(bs=>bs.map(b=>b.id===id?{...b,status:"confirmed"}:b));
     setActiveBooking(null);
+    setShowInsuranceModal(false);
+    setPendingAcceptId(null);
+  };
+
+  const acceptWithPerBookingInsurance = async () => {
+    if (!pendingAcceptId) return;
+    setInsuranceAccepting(true);
+    const cost = getInsuranceCost();
+    await confirmBooking(pendingAcceptId, {
+      guide_insurance_active: true,
+      guide_insurance_provider: "thimble",
+      guide_insurance_cost: cost,
+    });
+    setInsuranceAccepting(false);
   };
 
   const decline = async (id) => {
@@ -1291,6 +1345,62 @@ export default function GuideDashboard() {
 
   return (
     <>
+      {/* Insurance Required Modal */}
+      {showInsuranceModal && (
+        <div style={{position:"fixed",inset:0,zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.8)",backdropFilter:"blur(4px)"}}>
+          <div style={{background:T.carbon,border:`1px solid ${T.wire}`,borderRadius:16,padding:isMobile?"28px 20px":"40px",maxWidth:520,width:"90%",maxHeight:"90vh",overflowY:"auto"}}>
+            <div style={{textAlign:"center",marginBottom:28}}>
+              <div style={{width:64,height:64,borderRadius:"50%",background:"rgba(201,165,92,0.12)",border:`2px solid ${T.gold}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",fontSize:28}}>🛡️</div>
+              <div style={{fontFamily:FONT_DISPLAY,fontSize:28,color:T.white,fontWeight:400,marginBottom:8}}>Insurance Required</div>
+              <p style={{fontFamily:FONT_BODY,fontSize:14,color:T.silver,lineHeight:1.7}}>
+                Liability insurance is required to confirm bookings on RŌM. Choose how you'd like to be covered for this trip.
+              </p>
+            </div>
+
+            {/* Per-booking option */}
+            <div style={{background:T.goldGlow,border:`1px solid ${T.gold}`,borderRadius:10,padding:20,marginBottom:16}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                <div style={{fontFamily:FONT_BODY,fontSize:15,fontWeight:700,color:T.gold}}>Per-Trip Coverage</div>
+                <div style={{fontFamily:FONT_DISPLAY,fontSize:24,color:T.gold}}>${getInsuranceCost()}</div>
+              </div>
+              <p style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment,lineHeight:1.6,marginBottom:4}}>
+                $1M+ commercial general liability coverage for this specific booking. Covers you from confirmation through trip completion. Provided by our insurance partner.
+              </p>
+              <p style={{fontFamily:FONT_BODY,fontSize:11,color:T.silver,marginBottom:16}}>
+                This amount will be deducted from your payout for this booking.
+              </p>
+              <button onClick={acceptWithPerBookingInsurance} disabled={insuranceAccepting} style={{
+                width:"100%",padding:"14px",background:T.gold,border:"none",borderRadius:8,
+                fontFamily:FONT_BODY,fontSize:15,fontWeight:700,color:T.ink,cursor:insuranceAccepting?"not-allowed":"pointer",
+                opacity:insuranceAccepting?0.6:1
+              }}>
+                {insuranceAccepting ? "Confirming..." : `Accept Coverage & Confirm Booking — $${getInsuranceCost()}`}
+              </button>
+            </div>
+
+            {/* Own insurance option */}
+            <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:20,marginBottom:16}}>
+              <div style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:600,color:T.parchment,marginBottom:6}}>I have my own liability insurance</div>
+              <p style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,lineHeight:1.5,marginBottom:12}}>
+                Upload your Certificate of Insurance in the Licenses tab. Once verified, you can confirm bookings without per-trip charges.
+              </p>
+              <button onClick={()=>{setShowInsuranceModal(false);setPendingAcceptId(null);setTab("Licenses");}} style={{
+                width:"100%",padding:"12px",background:"transparent",border:`1px solid ${T.wire}`,borderRadius:8,
+                fontFamily:FONT_BODY,fontSize:13,fontWeight:600,color:T.ash,cursor:"pointer"
+              }}>
+                Go to Licenses & Insurance →
+              </button>
+            </div>
+
+            <button onClick={()=>{setShowInsuranceModal(false);setPendingAcceptId(null);}} style={{
+              display:"block",margin:"0 auto",background:"none",border:"none",fontFamily:FONT_BODY,fontSize:13,color:T.muted,cursor:"pointer",padding:8
+            }}>
+              Cancel — don't confirm yet
+            </button>
+          </div>
+        </div>
+      )}
+
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Barlow:wght@300;400;500;600;700&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
