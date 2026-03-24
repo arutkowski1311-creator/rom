@@ -14,25 +14,72 @@ const CONTENT_TYPES = [
 const PLATFORM_ICONS = { instagram: "IG", facebook: "FB", email: "✉", tiktok: "TT", reel: "🎬" };
 
 // ─── PHOTO PICKER ────────────────────────────────────────────────────────────
-function PhotoPicker({ guidePhotos, stockPhotos, selected, onSelect }) {
-  const allPhotos = [...(guidePhotos || []), ...(stockPhotos || [])];
-  if (allPhotos.length === 0) return null;
+function PhotoPicker({ guidePhotos, stockPhotos, selected, onSelect, onRefreshStock }) {
+  const hasGuide = guidePhotos?.length > 0;
+  const hasStock = stockPhotos?.length > 0;
+
+  const handleUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    onSelect(url);
+  };
+
   return (
-    <div style={{ marginBottom: 12 }}>
-      <div style={{ fontFamily: FONT_BODY, fontSize: 10, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
-        Choose photo {guidePhotos?.length > 0 && stockPhotos?.length > 0 ? "(your photos + stock)" : ""}
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontFamily: FONT_BODY, fontSize: 10, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
+        Choose Photo
       </div>
-      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4 }}>
-        {allPhotos.map((url, i) => (
-          <div key={i} onClick={() => onSelect(url)} style={{
-            width: 56, height: 56, borderRadius: 6, overflow: "hidden", cursor: "pointer", flexShrink: 0,
-            border: selected === url ? `2px solid ${T.gold}` : `1px solid ${T.wire}`,
-            opacity: selected === url ? 1 : 0.7,
-          }}>
-            <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+
+      {/* Stock photos — 3 options */}
+      {hasStock && (
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+            <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.silver }}>Stock Photos</span>
+            {onRefreshStock && <button onClick={onRefreshStock} style={{ background: "none", border: "none", fontFamily: FONT_BODY, fontSize: 11, color: T.gold, cursor: "pointer" }}>↻ New photos</button>}
           </div>
-        ))}
-      </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            {stockPhotos.slice(0, 3).map((url, i) => (
+              <div key={`stock-${i}`} onClick={() => onSelect(url)} style={{
+                width: 80, height: 80, borderRadius: 8, overflow: "hidden", cursor: "pointer", flexShrink: 0,
+                border: selected === url ? `3px solid ${T.gold}` : `2px solid ${T.wire}`,
+                opacity: selected === url ? 1 : 0.6, transition: "all 0.15s",
+              }}>
+                <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Guide's own photos */}
+      {hasGuide && (
+        <div style={{ marginBottom: 10 }}>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.silver, display: "block", marginBottom: 6 }}>Your Photos</span>
+          <div style={{ display: "flex", gap: 8, overflowX: "auto" }}>
+            {guidePhotos.map((url, i) => (
+              <div key={`guide-${i}`} onClick={() => onSelect(url)} style={{
+                width: 80, height: 80, borderRadius: 8, overflow: "hidden", cursor: "pointer", flexShrink: 0,
+                border: selected === url ? `3px solid ${T.gold}` : `2px solid ${T.wire}`,
+                opacity: selected === url ? 1 : 0.6, transition: "all 0.15s",
+              }}>
+                <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Upload from device */}
+      <label style={{
+        display: "inline-flex", alignItems: "center", gap: 6,
+        background: T.steel, border: `1px dashed ${T.wire}`, borderRadius: 8,
+        padding: "8px 14px", cursor: "pointer",
+        fontFamily: FONT_BODY, fontSize: 12, color: T.silver,
+      }}>
+        📁 Upload from device
+        <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleUpload} />
+      </label>
     </div>
   );
 }
@@ -95,58 +142,72 @@ function DownloadButton({ headline, subline, guideName, guideLocation, guideActi
     const tg = ctx.createLinearGradient(0, h * 0.3, 0, h);
     tg.addColorStop(0, "rgba(0,0,0,0)"); tg.addColorStop(1, "rgba(0,0,0,0.85)");
     ctx.fillStyle = tg; ctx.fillRect(0, 0, w, h);
-    // Margins
+    // Margins and sizes
     const mx = isWide ? 60 : 70;
-    const headSize = isWide ? 48 : 72;
-    const subSize = isWide ? 22 : 28;
-    const lineH = isWide ? 56 : 84;
-    const subGap = isWide ? 24 : 36;
+    const headSize = isWide ? 46 : 64;
+    const subSize = isWide ? 20 : 26;
+    const lineH = isWide ? 54 : 76;
+    const subGap = isWide ? 20 : 28;
+    const barHeight = isWide ? 60 : 90;
 
-    // Gold accent bar
-    ctx.fillStyle = "#c9973a"; ctx.fillRect(mx, h - (isWide ? 240 : 440), 50, 3);
+    // Calculate text content height first
+    ctx.font = `bold ${headSize}px Georgia, "Times New Roman", serif`;
+    const headLines = wrapText(ctx, headline || "Your Next Adventure", w - mx * 2);
+    const totalTextHeight = headLines.length * lineH + (subline ? subGap + subSize : 0) + 20;
+
+    // Position text so it ends above the bottom bar
+    const headStartY = h - barHeight - totalTextHeight - 20;
+
+    // Gold accent bar above headline
+    ctx.fillStyle = "#c9973a"; ctx.fillRect(mx, headStartY - 20, 50, 3);
 
     // Headline — bold serif with text shadow
     ctx.font = `bold ${headSize}px Georgia, "Times New Roman", serif`;
-    ctx.shadowColor = "rgba(0,0,0,0.8)"; ctx.shadowBlur = 12; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 4;
+    ctx.shadowColor = "rgba(0,0,0,0.9)"; ctx.shadowBlur = 16; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 4;
     ctx.fillStyle = "#fff";
-    const headLines = wrapText(ctx, headline || "Your Next Adventure", w - mx * 2);
-    const headStartY = h - (isWide ? 200 : 400);
     headLines.forEach((line, i) => {
       ctx.fillText(line, mx, headStartY + i * lineH);
     });
 
-    // Subtitle — lighter weight, more space from headline
+    // Subtitle — italic, clearly below headline
     if (subline) {
       ctx.font = `italic ${subSize}px Georgia, "Times New Roman", serif`;
-      ctx.fillStyle = "rgba(232,224,208,0.85)";
-      ctx.shadowBlur = 8;
+      ctx.fillStyle = "rgba(232,224,208,0.8)";
+      ctx.shadowBlur = 10;
       const subY = headStartY + headLines.length * lineH + subGap;
       ctx.fillText(subline, mx, subY);
     }
 
-    // Reset shadow for remaining elements
+    // Reset shadow
     ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
 
-    // Bottom bar
-    const barY = h - (isWide ? 55 : 80);
-    ctx.fillStyle = "rgba(0,0,0,0.65)"; ctx.fillRect(0, barY - 12, w, h - barY + 12);
-    ctx.fillStyle = "#c9973a"; ctx.font = `600 ${isWide ? 16 : 22}px -apple-system, "Helvetica Neue", sans-serif`;
-    ctx.fillText(`${guideName || "Guide"}  ·  ${guideLocation || ""}`, mx, barY + (isWide ? 18 : 26));
-    ctx.textAlign = "right"; ctx.font = `500 ${isWide ? 24 : 32}px Georgia, "Times New Roman", serif`;
+    // Bottom bar — guide info + RŌM badge
+    const barY = h - barHeight;
+    ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(0, barY, w, barHeight);
+    // Thin gold line at top of bar
+    ctx.fillStyle = "#c9973a"; ctx.fillRect(0, barY, w, 2);
+
+    // Guide name · location
+    ctx.fillStyle = "rgba(232,224,208,0.9)"; ctx.font = `500 ${isWide ? 16 : 20}px -apple-system, "Helvetica Neue", sans-serif`;
+    ctx.fillText(`${guideName || "Guide"}  ·  ${guideLocation || ""}`, mx, barY + (isWide ? 36 : 52));
+
+    // RŌM badge — larger, right aligned
+    ctx.textAlign = "right";
+    ctx.font = `500 ${isWide ? 30 : 42}px Georgia, "Times New Roman", serif`;
     ctx.fillStyle = "#c9973a";
-    ctx.fillText("RŌM", w - mx, barY + (isWide ? 18 : 26));
+    ctx.fillText("RŌM", w - mx, barY + (isWide ? 40 : 58));
     ctx.textAlign = "left";
 
-    // Activity badge — top left
+    // Activity badge — top left with rounded corners
     ctx.font = `bold ${isWide ? 12 : 15}px -apple-system, "Helvetica Neue", sans-serif`;
     const badgeText = guideActivity || "Adventure";
-    const bw = ctx.measureText(badgeText).width + 24;
-    const bx = mx - 5; const by = isWide ? 28 : 42;
-    ctx.fillStyle = "rgba(0,0,0,0.55)";
-    roundRect(ctx, bx, by, bw, isWide ? 26 : 32, 4);
+    const bw = ctx.measureText(badgeText).width + 28;
+    const bx = mx; const by = isWide ? 28 : 42;
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    roundRect(ctx, bx, by, bw, isWide ? 28 : 34, 6);
     ctx.fill();
     ctx.fillStyle = "#c9973a";
-    ctx.fillText(badgeText, bx + 12, by + (isWide ? 17 : 22));
+    ctx.fillText(badgeText, bx + 14, by + (isWide ? 18 : 23));
 
     canvas.toBlob((blob) => {
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
