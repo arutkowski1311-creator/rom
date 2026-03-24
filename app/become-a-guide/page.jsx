@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { T, FONT_DISPLAY, FONT_BODY } from "@/app/lib/theme";
 import { useIsMobile } from "@/app/components/ui";
 
@@ -49,7 +50,7 @@ export default function BecomeAGuidePage() {
 
       {/* Hero */}
       <div style={{position:"relative",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:`linear-gradient(160deg, #0b1812 0%, #081018 50%, #120e04 100%)`}}>
-        <img src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1600&q=80&fit=crop" alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:0.15}}/>
+        <Image src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1600&q=80&fit=crop" alt="Adventure landscape" fill style={{objectFit:"cover",opacity:0.15}} sizes="100vw" quality={75}/>
         <div style={{position:"absolute",inset:0,background:`linear-gradient(to bottom, transparent 50%, ${T.void} 100%)`}}/>
         <div style={{position:"relative",maxWidth:800,margin:"0 auto",padding:`120px 24px 80px`,textAlign:"center"}}>
           <div style={{display:"inline-flex",alignItems:"center",gap:10,background:"rgba(0,0,0,0.5)",backdropFilter:"blur(12px)",border:`1px solid ${T.wire}`,borderRadius:20,padding:"7px 16px",marginBottom:32}}>

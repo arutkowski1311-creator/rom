@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { T, FONT_DISPLAY, FONT_BODY, getTierConfig } from "@/app/lib/theme";
 import { getSupabase } from "@/app/lib/supabase-browser";
 import { Stars, StatusPill, GoldBtn, TierBadge, FeatureGate } from "@/app/components/ui";
@@ -2308,7 +2309,7 @@ export default function GuideDashboard() {
                     {/* Profile photo */}
                     <div style={{position:"relative",flexShrink:0}}>
                       {photoUrls.profile ? (
-                        <img src={photoUrls.profile} alt="Profile" style={{width:72,height:72,borderRadius:"50%",objectFit:"cover",border:`2px solid ${T.gold}`}}/>
+                        <Image src={photoUrls.profile} alt="Profile" width={72} height={72} style={{borderRadius:"50%",objectFit:"cover",border:`2px solid ${T.gold}`}}/>
                       ) : (
                         <div style={{width:72,height:72,borderRadius:"50%",background:T.lifted,border:`2px solid ${T.gold}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FONT_DISPLAY,fontSize:28,color:T.gold}}>{guide.avatar}</div>
                       )}
@@ -2337,7 +2338,7 @@ export default function GuideDashboard() {
                 <SectionCard title="Cover Photo">
                   <div style={{position:"relative",height:180,borderRadius:8,overflow:"hidden",background:T.lifted,marginBottom:16}}>
                     {photoUrls.cover ? (
-                      <img src={photoUrls.cover} alt="Cover" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                      <Image src={photoUrls.cover} alt="Cover" fill style={{objectFit:"cover"}} sizes="100vw"/>
                     ) : (
                       <div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:8}}>
                         <div style={{fontSize:32,opacity:0.3}}>🏔</div>
@@ -2358,7 +2359,7 @@ export default function GuideDashboard() {
                       <div key={i} onClick={()=>triggerUpload("gallery",i)} style={{aspectRatio:"1",borderRadius:8,overflow:"hidden",background:T.lifted,border:`1px dashed ${T.wire}`,cursor:"pointer",position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}}>
                         {photoUrls.gallery[i] ? (
                           <>
-                            <img src={photoUrls.gallery[i]} alt={`Gallery ${i+1}`} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                            <Image src={photoUrls.gallery[i]} alt={`Gallery ${i+1}`} fill style={{objectFit:"cover"}} sizes="33vw"/>
                             <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0)",display:"flex",alignItems:"center",justifyContent:"center",opacity:0,transition:"all 0.15s"}}
                               onMouseEnter={e=>{e.currentTarget.style.background="rgba(0,0,0,0.5)";e.currentTarget.style.opacity=1;}}
                               onMouseLeave={e=>{e.currentTarget.style.background="rgba(0,0,0,0)";e.currentTarget.style.opacity=0;}}>

@@ -2,6 +2,7 @@
 import { useState, useCallback } from "react";
 import { T, FONT_DISPLAY, FONT_BODY } from "@/app/lib/theme";
 import { GoldBtn, SectionCard, SectionHeader } from "@/app/components/ui";
+import Image from "next/image";
 
 const CONTENT_TYPES = [
   { id: "instagram", label: "Instagram", icon: "IG", desc: "Image card + caption" },
@@ -45,7 +46,7 @@ function PhotoPicker({ guidePhotos, stockPhotos, selected, onSelect, onRefreshSt
                 border: selected === url ? `3px solid ${T.gold}` : `2px solid ${T.wire}`,
                 opacity: selected === url ? 1 : 0.6, transition: "all 0.15s",
               }}>
-                <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <Image src={url} alt="" fill style={{ objectFit: "cover" }} sizes="200px" unoptimized />
               </div>
             ))}
           </div>
@@ -63,7 +64,7 @@ function PhotoPicker({ guidePhotos, stockPhotos, selected, onSelect, onRefreshSt
                 border: selected === url ? `3px solid ${T.gold}` : `2px solid ${T.wire}`,
                 opacity: selected === url ? 1 : 0.6, transition: "all 0.15s",
               }}>
-                <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <Image src={url} alt="" fill style={{ objectFit: "cover" }} sizes="200px" unoptimized />
               </div>
             ))}
           </div>

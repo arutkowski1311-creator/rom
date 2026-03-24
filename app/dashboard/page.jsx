@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { T, FONT_DISPLAY, FONT_BODY } from "@/app/lib/theme";
 import { getSupabase } from "@/app/lib/supabase-browser";
+import { Stars, StatusPill } from "@/app/components/ui";
 
 // ─── MOCK DATA ────────────────────────────────────────────────────────────────
 const GUEST = {
@@ -87,19 +88,6 @@ const TIER_CONFIG = {
 };
 
 // ─── SHARED ───────────────────────────────────────────────────────────────────
-function Stars({ rating, size=12 }) {
-  return <span>{[1,2,3,4,5].map(i=><span key={i} style={{fontSize:size, color:i<=Math.round(rating)?T.gold:T.rim}}>★</span>)}</span>;
-}
-
-function StatusPill({ status }) {
-  const cfg = {
-    upcoming: { bg:T.blueGlow, border:T.blue, color:"#6a9ada", label:"Upcoming" },
-    completed:{ bg:T.greenGlow, border:T.green, color:"#6aaa84", label:"Completed" },
-    cancelled:{ bg:T.redGlow, border:T.red, color:"#aa7a7a", label:"Cancelled" },
-  }[status];
-  return <span style={{fontFamily:FONT_BODY, fontSize:11, fontWeight:700, color:cfg.color, background:cfg.bg, border:`1px solid ${cfg.border}`, borderRadius:4, padding:"3px 10px", letterSpacing:"0.06em", textTransform:"uppercase"}}>{cfg.label}</span>;
-}
-
 function GoldBtn({ children, onClick, outline, small, disabled }) {
   const [hov, setHov] = useState(false);
   return (

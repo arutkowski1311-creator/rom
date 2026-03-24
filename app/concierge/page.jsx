@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { T, FONT_DISPLAY, FONT_BODY } from "@/app/lib/theme";
 import { getSupabase } from "@/app/lib/supabase-browser";
 import { GoldBtn, Stars, useIsMobile } from "@/app/components/ui";
+import Image from "next/image";
 
 // ─── CONSTANTS ──────────────────────────────────────────────────────────────
 const ACTIVITIES = [
@@ -564,7 +565,7 @@ export default function ConciergePage() {
       {/* Cinematic background — only on mode screen */}
       {s === "mode" && (
         <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
-          <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1920&q=80&fit=crop" alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "blur(1px)", opacity: 0.35 }} />
+          <Image src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1920&q=80&fit=crop" alt="Mountain landscape" fill style={{ objectFit: "cover", filter: "blur(1px)", opacity: 0.35 }} sizes="100vw" quality={60} />
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(8,10,12,0.55) 0%, rgba(8,10,12,0.75) 50%, rgba(8,10,12,0.92) 100%)" }} />
         </div>
       )}
@@ -1008,7 +1009,7 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
                       boxShadow: selectedPhoto?.id === photo.id ? `0 0 0 2px ${T.gold}` : "none",
                       transition: "all 0.15s",
                     }}>
-                    <img src={photo.thumb || photo.url} alt={photo.alt} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <Image src={photo.thumb || photo.url} alt={photo.alt || "Photo option"} fill style={{ objectFit: "cover" }} sizes="200px" unoptimized />
                     {selectedPhoto?.id === photo.id && (
                       <div style={{ position: "absolute", top: 8, right: 8, width: 28, height: 28, borderRadius: "50%", background: T.gold, display: "flex", alignItems: "center", justifyContent: "center" }}>
                         <span style={{ color: T.ink, fontSize: 16, fontWeight: 700 }}>✓</span>

@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { T, FONT_DISPLAY, FONT_BODY } from "@/app/lib/theme";
 import { getSupabase } from "@/app/lib/supabase-browser";
+import { Stars } from "@/app/components/ui";
 
 const CATEGORIES = ["All","Fly Fishing","Hunting","Hiking","Surfing","Rock Climbing","Kayaking","Diving","Wildlife","Photography","Sailing","Camping"];
 
@@ -15,10 +16,6 @@ const GUIDES = [
   { id:7, name:"Anya Petrov", slug:"anya-petrov", location:"Kenai, AK", region:"Alaska", category:"Fly Fishing", tagline:"Alaska salmon runs, remote float trips, and backcountry brook trout.", rating:4.93, reviewCount:72, responseRate:94, price:650, verified:true, yearsExp:12, mapX:14, mapY:9 },
   { id:8, name:"Owen Blackthorn", slug:"owen-blackthorn", location:"Asheville, NC", region:"Southeast", category:"Hiking", tagline:"Blue Ridge wilderness backpacking, waterfall routes, and flora ID.", rating:4.89, reviewCount:98, responseRate:91, price:145, verified:true, yearsExp:8, mapX:66, mapY:46 },
 ];
-
-function Stars({ rating, size=12 }) {
-  return <span>{[1,2,3,4,5].map(i=><span key={i} style={{fontSize:size,color:i<=Math.round(rating)?T.gold:T.rim}}>★</span>)}</span>;
-}
 
 // ─── GUIDE CARD ───────────────────────────────────────────────────────────────
 function GuideCard({ guide, active, onClick }) {
@@ -303,7 +300,7 @@ export default function SearchPage() {
         }
       `}</style>
 
-      <div style={{position:"fixed",top:0,left:0,right:0,zIndex:100,height:64,background:T.void,borderBottom:`1px solid ${T.wire}`,display:"flex",alignItems:"center"}}>
+      <nav role="navigation" aria-label="Search navigation" style={{position:"fixed",top:0,left:0,right:0,zIndex:100,height:64,background:T.void,borderBottom:`1px solid ${T.wire}`,display:"flex",alignItems:"center"}}>
         <div style={{width:"100%",padding:"0 28px",display:"flex",alignItems:"center",gap:20}}>
           <div style={{fontFamily:FONT_DISPLAY,fontSize:24,color:T.gold,letterSpacing:"0.14em",fontWeight:500,flexShrink:0,cursor:"pointer"}} onClick={()=>window.location.href="/"}>RŌM</div>
           <div style={{flex:1,maxWidth:500,position:"relative"}}>
@@ -315,7 +312,7 @@ export default function SearchPage() {
           <span onClick={()=>window.location.href="/login"} style={{fontFamily:FONT_BODY,fontSize:14,color:T.ash,cursor:"pointer",whiteSpace:"nowrap"}}>Sign in</span>
           <button onClick={()=>window.location.href="/signup"} style={{background:T.gold,border:"none",borderRadius:6,padding:"9px 20px",fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:T.ink,cursor:"pointer",whiteSpace:"nowrap"}}>Become a Guide</button>
         </div>
-      </div>
+      </nav>
 
       {/* Mobile map/list toggle */}
       <div className="mobile-toggle" style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:200,background:T.steel,border:`1px solid ${T.wire}`,borderRadius:24,padding:4,display:"flex",gap:4,boxShadow:"0 4px 20px rgba(0,0,0,0.5)"}}>

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import React from "react";
+import Image from "next/image";
 
 const GOLD = "#c9973a";
 const GOLD_LIGHT = "#c9973a18";
@@ -182,7 +183,7 @@ export default function ItineraryPage({ params }) {
           {guideName && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginTop: 28, padding: "16px 24px", background: WARM, borderRadius: 50, maxWidth: 340, margin: "28px auto 0" }}>
               {guidePhoto ? (
-                <img src={guidePhoto} alt={guideName} style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", border: `2px solid ${GOLD}` }} />
+                <Image src={guidePhoto} alt={guideName} width={40} height={40} style={{ borderRadius: "50%", objectFit: "cover", border: `2px solid ${GOLD}` }} unoptimized />
               ) : (
                 <div style={{ width: 40, height: 40, borderRadius: "50%", background: `linear-gradient(135deg, ${GOLD}40, ${GOLD}20)`, border: `2px solid ${GOLD}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT_D, fontSize: 18, color: GOLD, fontWeight: 500 }}>
                   {guideName.charAt(0)}
@@ -431,7 +432,7 @@ export default function ItineraryPage({ params }) {
           {guideName && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 16 }}>
               {guidePhoto ? (
-                <img src={guidePhoto} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", border: `1.5px solid ${GOLD}40` }} />
+                <Image src={guidePhoto} alt="" width={28} height={28} style={{ borderRadius: "50%", objectFit: "cover", border: `1.5px solid ${GOLD}40` }} unoptimized />
               ) : (
                 <div style={{ width: 28, height: 28, borderRadius: "50%", background: `${GOLD}20`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT_D, fontSize: 14, color: GOLD }}>{guideName.charAt(0)}</div>
               )}

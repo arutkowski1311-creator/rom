@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import React from "react";
+import Image from "next/image";
 import { T, FONT_DISPLAY, FONT_BODY, GUEST_SERVICE_FEE_RATE } from "@/app/lib/theme";
 import { getSupabase } from "@/app/lib/supabase-browser";
 import { Stars, GoldBtn } from "@/app/components/ui";
@@ -693,7 +694,7 @@ function GuideProfile({ guide=GUIDE }) {
       {/* ── HERO — carbon (one step up from void) ── */}
       <div className="guide-hero" style={{position:"relative",height:540,overflow:"hidden"}}>
         <div style={{position:"absolute",inset:0,background:`linear-gradient(160deg, #152018 0%, #0b1a24 50%, #1a1205 100%)`}}>
-          {guide.coverPhotoUrl && <img src={guide.coverPhotoUrl} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:0.45,mixBlendMode:"luminosity"}}/>}
+          {guide.coverPhotoUrl && <Image src={guide.coverPhotoUrl} alt={`${guide.name} cover`} fill style={{objectFit:"cover",opacity:0.45,mixBlendMode:"luminosity"}} sizes="100vw"/>}
           <div style={{position:"absolute",inset:0,backgroundImage:`radial-gradient(ellipse at 15% 90%, ${T.gold}38 0%, transparent 40%), radial-gradient(ellipse at 80% 10%, #1a3a5040 0%, transparent 38%)`}}/>
           <div style={{position:"absolute",bottom:0,left:0,right:0,height:360,background:`linear-gradient(to top, ${T.void} 0%, ${T.void}cc 30%, ${T.void}44 65%, transparent 100%)`}}/>
         </div>
@@ -704,7 +705,7 @@ function GuideProfile({ guide=GUIDE }) {
             {guide.licensed&&<span style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.ash,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.22)",borderRadius:4,padding:"4px 12px",letterSpacing:"0.1em"}}>LICENSED</span>}
           </div>
           <div style={{display:"flex",alignItems:"center",gap:20,marginBottom:12}}>
-            {guide.profilePhotoUrl && <img src={guide.profilePhotoUrl} alt={guide.name} style={{width:80,height:80,borderRadius:"50%",objectFit:"cover",border:`3px solid ${T.gold}`,flexShrink:0}}/>}
+            {guide.profilePhotoUrl && <Image src={guide.profilePhotoUrl} alt={guide.name} width={80} height={80} style={{borderRadius:"50%",objectFit:"cover",border:`3px solid ${T.gold}`,flexShrink:0}}/>}
             <h1 style={{fontFamily:FONT_DISPLAY,fontSize:64,fontWeight:400,color:T.white,lineHeight:1.0,textShadow:"0 2px 32px rgba(0,0,0,0.9)"}}>{guide.name}</h1>
           </div>
           <div style={{fontFamily:FONT_BODY,fontSize:17,color:T.parchment,marginBottom:28,textShadow:"0 1px 12px rgba(0,0,0,0.9)"}}>{guide.tagline}</div>
@@ -767,8 +768,8 @@ function GuideProfile({ guide=GUIDE }) {
                         <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:16}}>Trip Photos</div>
                         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
                           {guide.galleryPhotos.filter(Boolean).map((url,i)=>(
-                            <div key={i} style={{aspectRatio:"1",borderRadius:8,overflow:"hidden"}}>
-                              <img src={url} alt={`Trip photo ${i+1}`} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                            <div key={i} style={{position:"relative",aspectRatio:"1",borderRadius:8,overflow:"hidden"}}>
+                              <Image src={url} alt={`Trip photo ${i+1}`} fill style={{objectFit:"cover"}} sizes="(max-width: 768px) 50vw, 33vw"/>
                             </div>
                           ))}
                         </div>

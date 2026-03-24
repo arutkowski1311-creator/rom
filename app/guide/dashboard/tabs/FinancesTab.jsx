@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { T, FONT_DISPLAY, FONT_BODY } from "@/app/lib/theme";
 import { getSupabase } from "@/app/lib/supabase-browser";
 import { GoldBtn, SectionCard, SectionHeader } from "@/app/components/ui";
+import Image from "next/image";
 import MileageTracker from "./MileageTracker";
 
 const IRS_MILEAGE_RATE = 0.70; // 2025 IRS standard mileage rate
@@ -601,7 +602,7 @@ export default function FinancesTab({ guide }) {
         {/* Scan result preview */}
         {scanResult && !showAddExpense && (
           <div style={{ background: T.goldGlow, border: `1px solid ${T.gold}`, borderRadius: 10, padding: 16, marginBottom: 16, display: "flex", gap: 16, alignItems: "center" }}>
-            {receiptPreview && <img src={receiptPreview} alt="Receipt" style={{ width: 48, height: 48, borderRadius: 6, objectFit: "cover" }} />}
+            {receiptPreview && <Image src={receiptPreview} alt="Receipt" width={48} height={48} style={{ borderRadius: 6, objectFit: "cover" }} unoptimized />}
             <div style={{ flex: 1 }}>
               <div style={{ fontFamily: FONT_BODY, fontSize: 14, fontWeight: 700, color: T.gold }}>
                 {scanResult.vendor || "Receipt scanned"} — ${scanResult.amount || "?"}
@@ -628,7 +629,7 @@ export default function FinancesTab({ guide }) {
             {/* Scanned receipt preview */}
             {scanResult && receiptPreview && (
               <div style={{ display: "flex", gap: 12, alignItems: "center", padding: 12, background: T.goldGlow, borderRadius: 8, border: `1px solid ${T.gold}` }}>
-                <img src={receiptPreview} alt="Receipt" style={{ width: 56, height: 56, borderRadius: 6, objectFit: "cover" }} />
+                <Image src={receiptPreview} alt="Receipt" width={56} height={56} style={{ borderRadius: 6, objectFit: "cover" }} unoptimized />
                 <div>
                   <div style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, color: T.gold }}>
                     {scanResult.vendor || "Receipt scanned"} {scanResult.confidence === "high" ? "✓" : scanResult.confidence === "medium" ? "◐" : "⚠"}
@@ -700,7 +701,7 @@ export default function FinancesTab({ guide }) {
             </div>
             {receiptPreview && (
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <img src={receiptPreview} alt="Receipt preview" style={{ width: 40, height: 40, borderRadius: 6, objectFit: "cover" }} />
+                <Image src={receiptPreview} alt="Receipt preview" width={40} height={40} style={{ borderRadius: 6, objectFit: "cover" }} unoptimized />
                 <button
                   onClick={() => { setReceiptPreview(null); setNewExpense(prev => ({ ...prev, receiptUrl: "" })); }}
                   style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12 }}
