@@ -673,9 +673,28 @@ function GuideProfile({ guide=GUIDE }) {
         ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:${T.carbon};}::-webkit-scrollbar-thumb{background:${T.wire};border-radius:3px;}
         @media(max-width:768px){
           .guide-nav-links{display:none!important;}
-          .guide-hero{height:380px!important;}
-          .guide-hero-inner{padding:0 20px!important;}
-          .guide-body{padding:0 16px!important;}
+          .guide-hero{height:340px!important;}
+          .guide-hero-inner{padding:0 16px!important;padding-bottom:28px!important;}
+          .guide-hero-name{font-size:36px!important;}
+          .guide-hero-tagline{font-size:14px!important;}
+          .guide-hero-avatar{width:56px!important;height:56px!important;}
+          .guide-stats-bar{flex-direction:column!important;gap:8px!important;padding:12px 16px!important;}
+          .guide-stats-divider{display:none!important;}
+          .guide-body{padding:0 12px 120px!important;}
+          .guide-grid{grid-template-columns:1fr!important;gap:0!important;}
+          .guide-sidebar{display:none!important;}
+          .guide-tab-bar{overflow-x:auto!important;-webkit-overflow-scrolling:touch!important;scrollbar-width:none!important;}
+          .guide-tab-bar::-webkit-scrollbar{display:none!important;}
+          .guide-tab-btn{white-space:nowrap!important;padding:16px 16px!important;font-size:13px!important;}
+          .guide-stat-grid{grid-template-columns:1fr!important;}
+          .guide-pkg-header{flex-direction:column!important;gap:4px!important;}
+          .guide-pkg-price{text-align:left!important;margin-left:0!important;}
+          .guide-review-summary{flex-direction:column!important;gap:16px!important;}
+          .guide-review-left{border-right:none!important;padding-right:0!important;border-bottom:1px solid #1a1a1a!important;padding-bottom:16px!important;}
+          .guide-mobile-cta{display:flex!important;}
+        }
+        @media(min-width:769px){
+          .guide-mobile-cta{display:none!important;}
         }
       `}</style>
 
@@ -705,19 +724,19 @@ function GuideProfile({ guide=GUIDE }) {
             {guide.licensed&&<span style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.ash,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.22)",borderRadius:4,padding:"4px 12px",letterSpacing:"0.1em"}}>LICENSED</span>}
           </div>
           <div style={{display:"flex",alignItems:"center",gap:20,marginBottom:12}}>
-            {guide.profilePhotoUrl && <Image src={guide.profilePhotoUrl} alt={guide.name} width={80} height={80} style={{borderRadius:"50%",objectFit:"cover",border:`3px solid ${T.gold}`,flexShrink:0}}/>}
-            <h1 style={{fontFamily:FONT_DISPLAY,fontSize:64,fontWeight:400,color:T.white,lineHeight:1.0,textShadow:"0 2px 32px rgba(0,0,0,0.9)"}}>{guide.name}</h1>
+            {guide.profilePhotoUrl && <Image className="guide-hero-avatar" src={guide.profilePhotoUrl} alt={guide.name} width={80} height={80} style={{borderRadius:"50%",objectFit:"cover",border:`3px solid ${T.gold}`,flexShrink:0}}/>}
+            <h1 className="guide-hero-name" style={{fontFamily:FONT_DISPLAY,fontSize:64,fontWeight:400,color:T.white,lineHeight:1.0,textShadow:"0 2px 32px rgba(0,0,0,0.9)"}}>{guide.name}</h1>
           </div>
-          <div style={{fontFamily:FONT_BODY,fontSize:17,color:T.parchment,marginBottom:28,textShadow:"0 1px 12px rgba(0,0,0,0.9)"}}>{guide.tagline}</div>
-          <div style={{display:"inline-flex",alignItems:"center",background:"rgba(0,0,0,0.6)",backdropFilter:"blur(16px)",border:`1px solid ${T.wire}`,borderRadius:8,padding:"11px 20px",alignSelf:"flex-start"}}>
-            <div style={{display:"flex",alignItems:"center",gap:7,paddingRight:20}}>
+          <div className="guide-hero-tagline" style={{fontFamily:FONT_BODY,fontSize:17,color:T.parchment,marginBottom:28,textShadow:"0 1px 12px rgba(0,0,0,0.9)"}}>{guide.tagline}</div>
+          <div className="guide-stats-bar" style={{display:"inline-flex",alignItems:"center",background:"rgba(0,0,0,0.6)",backdropFilter:"blur(16px)",border:`1px solid ${T.wire}`,borderRadius:8,padding:"11px 20px",alignSelf:"flex-start",flexWrap:"wrap",gap:4}}>
+            <div style={{display:"flex",alignItems:"center",gap:7}}>
               <Stars rating={guide.rating} size={14}/>
               <span style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:T.white}}>{guide.rating}</span>
-              <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash}}>({guide.reviewCount} reviews)</span>
+              <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash}}>({guide.reviewCount})</span>
             </div>
-            {[`📍 ${guide.location}`,`${guide.yearsExperience} yrs experience`,`${guide.responseRate}% response`].map(txt=>(
+            {[`📍 ${guide.location}`,`${guide.yearsExperience} yrs`,`${guide.responseRate}% response`].map(txt=>(
               <span key={txt} style={{display:"flex",alignItems:"center"}}>
-                <span style={{width:1,height:16,background:T.wire,display:"inline-block",margin:"0 20px"}}/>
+                <span className="guide-stats-divider" style={{width:1,height:16,background:T.wire,display:"inline-block",margin:"0 12px"}}/>
                 <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash}}>{txt}</span>
               </span>
             ))}
@@ -728,14 +747,14 @@ function GuideProfile({ guide=GUIDE }) {
       {/* ── BODY — gunmetal (two steps up from void) ── */}
       <div style={{background:T.gunmetal,borderTop:`1px solid ${T.wire}`}}>
         <div className="guide-body" style={{maxWidth:1160,margin:"0 auto",padding:"0 36px 96px"}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:52,alignItems:"start"}}>
+          <div className="guide-grid" style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:52,alignItems:"start"}}>
 
             {/* LEFT */}
             <div>
               {/* Tab bar — sits on gunmetal, clearly separated from content below */}
-              <div style={{display:"flex",borderBottom:`1px solid ${T.wire}`,marginBottom:0,position:"sticky",top:64,background:T.gunmetal,zIndex:10}}>
+              <div className="guide-tab-bar" style={{display:"flex",borderBottom:`1px solid ${T.wire}`,marginBottom:0,position:"sticky",top:64,background:T.gunmetal,zIndex:10}}>
                 {["about","packages","reviews","field notes"].map(tab=>(
-                  <button key={tab} onClick={()=>setActiveTab(tab)} style={{padding:"20px 22px",background:"none",border:"none",borderBottom:`2px solid ${activeTab===tab?T.gold:"transparent"}`,fontFamily:FONT_BODY,fontSize:14,fontWeight:activeTab===tab?700:400,color:activeTab===tab?T.gold:T.silver,cursor:"pointer",textTransform:"capitalize",letterSpacing:"0.04em",transition:"color 0.15s"}}>{tab}</button>
+                  <button key={tab} className="guide-tab-btn" onClick={()=>setActiveTab(tab)} style={{padding:"20px 22px",background:"none",border:"none",borderBottom:`2px solid ${activeTab===tab?T.gold:"transparent"}`,fontFamily:FONT_BODY,fontSize:14,fontWeight:activeTab===tab?700:400,color:activeTab===tab?T.gold:T.silver,cursor:"pointer",textTransform:"capitalize",letterSpacing:"0.04em",transition:"color 0.15s",flexShrink:0}}>{tab}</button>
                 ))}
               </div>
 
@@ -750,7 +769,7 @@ function GuideProfile({ guide=GUIDE }) {
                       <p key={i} style={{fontFamily:FONT_BODY,fontSize:16,color:T.ash,lineHeight:1.85,marginBottom:20}}>{p}</p>
                     ))}
                     {/* Stat cards */}
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginTop:36}}>
+                    <div className="guide-stat-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginTop:36}}>
                       {[["◷","Response time",`Usually ${guide.responseTime}`],["◉","Location",guide.location],["✦","Experience",`${guide.yearsExperience} years guiding`],["◈","Specialty",guide.categories.join(", ")]].map(([icon,label,val])=>(
                         <div key={label} style={{display:"flex",gap:14,padding:20,background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8}}>
                           <span style={{fontSize:18,color:T.gold,marginTop:1}}>{icon}</span>
@@ -792,6 +811,72 @@ function GuideProfile({ guide=GUIDE }) {
                         </div>
                       </div>
                     )}
+
+                    {/* ── FAQ Section ── */}
+                    <div style={{marginTop:48}}>
+                      <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:16}}>Common Questions</div>
+                      <div style={{display:"flex",flexDirection:"column",gap:2}}>
+                        {[
+                          ["What should I bring?",`Your guide provides all specialty equipment. Bring weather-appropriate layers, water, snacks, sunscreen, and a camera. A detailed gear list is sent with your booking confirmation.`],
+                          ["What skill level do I need?",`All experience levels are welcome. Your guide tailors every trip to your ability — from complete beginners to advanced. Just be honest about your experience when you book.`],
+                          ["What's your cancellation policy?","Free cancellation 30+ days before your trip. 50% refund 14–29 days before. Under 14 days, no refund unless you purchased RŌM Trip Protection (covers cancellation for any reason up to 48 hours before)."],
+                          ["What about weather?","Your guide monitors conditions daily. If weather makes the trip unsafe or unproductive, you'll be offered a reschedule or full refund. Guides know when to call it — trust their judgment."],
+                          ["How does payment work?","A 25% deposit holds your date. The remaining balance is charged 14 days before your trip. All payments are processed securely through Stripe."],
+                          ["Can I bring friends or family?","Absolutely. Check each package for group size limits. Many guides offer group rates — message them to ask."],
+                        ].map(([q,a],i)=>(
+                          <details key={i} style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,overflow:"hidden",marginBottom:6}}>
+                            <summary style={{padding:"16px 20px",fontFamily:FONT_BODY,fontSize:14,fontWeight:600,color:T.parchment,cursor:"pointer",listStyle:"none",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                              {q}
+                              <span style={{color:T.gold,fontSize:18,flexShrink:0,marginLeft:12}}>+</span>
+                            </summary>
+                            <div style={{padding:"0 20px 16px",fontFamily:FONT_BODY,fontSize:14,color:T.ash,lineHeight:1.7}}>
+                              {a}
+                            </div>
+                          </details>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* ── About the Area ── */}
+                    {guide.location && (
+                      <div style={{marginTop:48}}>
+                        <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:16}}>About {guide.location}</div>
+                        <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:24}}>
+                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+                            {[
+                              ["📍","Location",guide.location],
+                              ["🏔️","Region",guide.categories?.[0] ? `Premier ${guide.categories[0].toLowerCase()} destination` : "Adventure destination"],
+                              ["🌤️","Best Season","Contact guide for current conditions"],
+                              ["✈️","Nearest Airport","See booking confirmation for travel details"],
+                            ].map(([icon,label,val])=>(
+                              <div key={label} style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+                                <span style={{fontSize:20,flexShrink:0}}>{icon}</span>
+                                <div>
+                                  <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:3}}>{label}</div>
+                                  <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment}}>{val}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── Contact & Social ── */}
+                    <div style={{marginTop:48,marginBottom:20}}>
+                      <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:16}}>Get in Touch</div>
+                      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                        <button onClick={()=>setMessageOpen(true)} style={{display:"flex",alignItems:"center",gap:8,background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:"12px 20px",fontFamily:FONT_BODY,fontSize:13,fontWeight:600,color:T.parchment,cursor:"pointer"}}>
+                          💬 Message {guide.name.split(" ")[0]}
+                        </button>
+                        <button onClick={()=>setBookingOpen(true)} style={{display:"flex",alignItems:"center",gap:8,background:T.gold,border:"none",borderRadius:8,padding:"12px 20px",fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:T.ink,cursor:"pointer"}}>
+                          📅 Check Availability
+                        </button>
+                      </div>
+                      <div style={{marginTop:16,fontFamily:FONT_BODY,fontSize:12,color:T.muted,lineHeight:1.6}}>
+                        Response time: usually {guide.responseTime} · {guide.responseRate}% response rate
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -812,9 +897,9 @@ function GuideProfile({ guide=GUIDE }) {
                           </div>
                           {/* Package content */}
                           <div style={{padding:26}}>
-                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                            <div className="guide-pkg-header" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
                               <h3 style={{fontFamily:FONT_DISPLAY,fontSize:26,color:T.white,fontWeight:400,lineHeight:1.15}}>{pkg.title}</h3>
-                              <div style={{textAlign:"right",flexShrink:0,marginLeft:20}}>
+                              <div className="guide-pkg-price" style={{textAlign:"right",flexShrink:0,marginLeft:20}}>
                                 <div style={{fontFamily:FONT_DISPLAY,fontSize:30,color:T.gold,fontWeight:500}}>${pkg.price}</div>
                                 <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,fontWeight:600}}>{pkg.priceType==="person"?"per person":"flat rate"}</div>
                               </div>
@@ -837,8 +922,8 @@ function GuideProfile({ guide=GUIDE }) {
                 {activeTab==="reviews"&&(
                   <div style={{paddingTop:36}}>
                     {/* Rating summary bar */}
-                    <div style={{display:"flex",alignItems:"center",gap:24,marginBottom:32,padding:24,background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10}}>
-                      <div style={{textAlign:"center",paddingRight:24,borderRight:`1px solid ${T.wire}`}}>
+                    <div className="guide-review-summary" style={{display:"flex",alignItems:"center",gap:24,marginBottom:32,padding:24,background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10}}>
+                      <div className="guide-review-left" style={{textAlign:"center",paddingRight:24,borderRight:`1px solid ${T.wire}`}}>
                         <div style={{fontFamily:FONT_DISPLAY,fontSize:60,color:T.white,fontWeight:300,lineHeight:1}}>{guide.rating}</div>
                         <Stars rating={guide.rating} size={18}/>
                         <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,marginTop:4}}>{guide.reviewCount} reviews</div>
@@ -917,8 +1002,8 @@ function GuideProfile({ guide=GUIDE }) {
               </div>
             </div>
 
-            {/* RIGHT — booking card */}
-            <div style={{position:"sticky",top:80,paddingTop:36}}>
+            {/* RIGHT — booking card (hidden on mobile, replaced by sticky CTA) */}
+            <div className="guide-sidebar" style={{position:"sticky",top:80,paddingTop:36}}>
               <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:12,overflow:"hidden",boxShadow:`0 8px 40px rgba(0,0,0,0.4)`}}>
                 {/* Price header — void background = maximum contrast */}
                 <div style={{background:T.void,padding:"22px 24px",borderBottom:`1px solid ${T.wire}`}}>
@@ -962,6 +1047,29 @@ function GuideProfile({ guide=GUIDE }) {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* ── MOBILE STICKY BOOKING BAR ── */}
+      <div className="guide-mobile-cta" style={{
+        display:"none", position:"fixed", bottom:0, left:0, right:0, zIndex:90,
+        background:T.void, borderTop:`1px solid ${T.wire}`,
+        padding:"12px 16px", gap:10, alignItems:"center",
+        boxShadow:"0 -4px 24px rgba(0,0,0,0.6)"
+      }}>
+        <div style={{flex:1}}>
+          <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.silver,textTransform:"uppercase",letterSpacing:"0.06em"}}>From</div>
+          <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+            <span style={{fontFamily:FONT_DISPLAY,fontSize:28,color:T.white,fontWeight:300}}>${Math.min(...guide.packages.map(p=>p.price))}</span>
+            <span style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver}}>/person</span>
+          </div>
+        </div>
+        <button onClick={()=>setBookingOpen(true)} style={{
+          background:T.gold, border:"none", borderRadius:8,
+          padding:"14px 28px", fontFamily:FONT_BODY, fontSize:15,
+          fontWeight:700, color:T.ink, cursor:"pointer", flexShrink:0
+        }}>
+          Book Now
+        </button>
       </div>
 
       {bookingOpen&&<BookingPanel guide={guide} onClose={()=>setBookingOpen(false)}/>}
