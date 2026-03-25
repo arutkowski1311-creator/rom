@@ -854,155 +854,136 @@ function GuideProfile({ guide=GUIDE }) {
                 {/* ABOUT */}
                 {activeTab==="about"&&(
                   <div style={{paddingTop:36}}>
+                    {/* 1. Bio */}
                     <h2 style={{fontFamily:FONT_DISPLAY,fontSize:38,color:T.white,fontWeight:400,marginBottom:22}}>About {guide.name.split(" ")[0]}</h2>
                     {(guide.bio || "").split(/\n\n|\r\n\r\n/).map((p,i)=>(
                       <p key={i} style={{fontFamily:FONT_BODY,fontSize:16,color:T.ash,lineHeight:1.85,marginBottom:20}}>{p}</p>
                     ))}
-                    {/* Stat cards */}
-                    <div className="guide-stat-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginTop:36}}>
-                      {[["◷","Response time",`Usually ${guide.responseTime}`],["◉","Location",guide.location],["✦","Experience",`${guide.yearsExperience} years guiding`],["◈","Specialty",guide.categories.join(", ")]].map(([icon,label,val])=>(
-                        <div key={label} style={{display:"flex",gap:14,padding:20,background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8}}>
+
+                    {/* 2. Featured Review Spotlight */}
+                    {guide.reviews?.length > 0 && (() => {
+                      const best = [...guide.reviews].sort((a,b) => b.rating - a.rating || b.text.length - a.text.length)[0];
+                      return (
+                        <div style={{margin:"36px 0",background:`linear-gradient(135deg, ${T.steel} 0%, ${T.carbon} 100%)`,border:`1px solid ${T.gold}40`,borderLeft:`3px solid ${T.gold}`,borderRadius:10,padding:28}}>
+                          <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:14}}>What guests say</div>
+                          <p style={{fontFamily:FONT_DISPLAY,fontSize:22,color:T.parchment,lineHeight:1.55,fontStyle:"italic",margin:"0 0 16px"}}>"{best.text}"</p>
+                          <div style={{display:"flex",alignItems:"center",gap:12}}>
+                            <Stars rating={best.rating} size={13}/>
+                            <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash}}>— {best.guest}</span>
+                            {best.trip && <span style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver}}>· {best.trip}</span>}
+                          </div>
+                          <button onClick={()=>setActiveTab("reviews")} style={{marginTop:14,background:"none",border:"none",fontFamily:FONT_BODY,fontSize:13,color:T.gold,cursor:"pointer",padding:0}}>Read all {guide.reviewCount} reviews →</button>
+                        </div>
+                      );
+                    })()}
+
+                    {/* 3. Live Conditions Widget */}
+                    {conditions && (
+                      <div style={{marginBottom:36}}>
+                        <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:14}}>Right Now in {guide.location}</div>
+                        <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:24}}>
+                          <div style={{display:"flex",alignItems:"center",gap:20,flexWrap:"wrap"}}>
+                            <div>
+                              <div style={{fontFamily:FONT_DISPLAY,fontSize:48,color:T.white,fontWeight:300,lineHeight:1}}>{conditions.temp}°</div>
+                              <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.ash,marginTop:4}}>{conditions.condition}</div>
+                            </div>
+                            <div style={{flex:1,minWidth:200,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                              {[
+                                ["High / Low",`${conditions.high}° / ${conditions.low}°`],
+                                ["Wind",`${conditions.wind} mph`],
+                                ["Humidity",`${conditions.humidity}%`],
+                                conditions.sunrise ? ["Sunrise",new Date(conditions.sunrise).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})] : null,
+                              ].filter(Boolean).map(([label,val])=>(
+                                <div key={label} style={{background:T.lifted,borderRadius:6,padding:"10px 14px"}}>
+                                  <div style={{fontFamily:FONT_BODY,fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.06em"}}>{label}</div>
+                                  <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.parchment,fontWeight:600,marginTop:2}}>{val}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 4. Quick Stats */}
+                    <div className="guide-stat-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:36}}>
+                      {[
+                        ["◷","Response",`Usually ${guide.responseTime}`],
+                        ["◉","Location",guide.location],
+                        ["✦","Experience",`${guide.yearsExperience} years`],
+                        ["◈","Specialty",guide.categories.join(", ")],
+                      ].map(([icon,label,val])=>(
+                        <div key={label} style={{display:"flex",gap:14,padding:18,background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8}}>
                           <span style={{fontSize:18,color:T.gold,marginTop:1}}>{icon}</span>
                           <div>
-                            <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:5}}>{label}</div>
+                            <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:4}}>{label}</div>
                             <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.parchment,fontWeight:500}}>{val}</div>
                           </div>
                         </div>
                       ))}
                     </div>
 
-                    {/* Photo Gallery */}
-                    {guide.galleryPhotos && guide.galleryPhotos.length > 0 && (
-                      <div style={{marginTop:40}}>
-                        <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:16}}>Trip Photos</div>
+                    {/* 5. Photo Gallery */}
+                    {guide.galleryPhotos && guide.galleryPhotos.filter(Boolean).length > 0 && (
+                      <div style={{marginBottom:36}}>
+                        <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:14}}>Trip Photos</div>
                         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
                           {guide.galleryPhotos.filter(Boolean).map((url,i)=>(
                             <div key={i} onClick={()=>{setLightboxIndex(i);setLightboxOpen(true);}} style={{position:"relative",aspectRatio:"1",borderRadius:8,overflow:"hidden",cursor:"pointer",transition:"transform 0.15s"}} onMouseEnter={e=>e.currentTarget.style.transform="scale(1.03)"} onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"}>
                               <Image src={url} alt={`Trip photo ${i+1}`} fill style={{objectFit:"cover"}} sizes="(max-width: 768px) 50vw, 33vw"/>
-                              <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0)",transition:"background 0.15s"}} onMouseEnter={e=>e.currentTarget.style.background="rgba(0,0,0,0.15)"} onMouseLeave={e=>e.currentTarget.style.background="rgba(0,0,0,0)"}/>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
 
-                    {/* Credentials — from licenses table + verified/insured flags */}
-                    {((guide.licenses && guide.licenses.length > 0) || guide.verified || guide.insured || guide.licensed) && (
-                      <div style={{marginTop:48,marginBottom:20}}>
-                        <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:16}}>Credentials & Certifications</div>
-                        <div style={{display:"flex",flexWrap:"wrap",gap:10}}>
+                    {/* 6. Credentials */}
+                    {((guide.licenses && guide.licenses.length > 0) || guide.verified || guide.insured) && (
+                      <div style={{marginBottom:36}}>
+                        <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:14}}>Credentials</div>
+                        <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
                           {guide.licenses.map(lic=>(
-                            <span key={lic.id} style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment,background:T.steel,border:`1px solid ${T.gold}`,borderRadius:20,padding:"6px 14px",display:"flex",alignItems:"center",gap:6}}>
-                              <span style={{color:T.gold,fontSize:11}}>✓</span> {lic.name}
+                            <span key={lic.id} style={{fontFamily:FONT_BODY,fontSize:12,color:T.parchment,background:T.steel,border:`1px solid ${T.gold}`,borderRadius:20,padding:"5px 12px",display:"flex",alignItems:"center",gap:5}}>
+                              <span style={{color:T.gold,fontSize:10}}>✓</span> {lic.name}
                             </span>
                           ))}
-                          {guide.verified && <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment,background:T.steel,border:`1px solid ${T.gold}`,borderRadius:20,padding:"6px 14px",display:"flex",alignItems:"center",gap:6}}><span style={{color:T.gold,fontSize:11}}>✓</span> Verified</span>}
-                          {guide.insured && <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment,background:T.steel,border:`1px solid ${T.gold}`,borderRadius:20,padding:"6px 14px",display:"flex",alignItems:"center",gap:6}}><span style={{color:T.gold,fontSize:11}}>✓</span> Insured</span>}
-                          {guide.yearsExperience && <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment,background:T.steel,border:`1px solid ${T.gold}`,borderRadius:20,padding:"6px 14px",display:"flex",alignItems:"center",gap:6}}><span style={{color:T.gold,fontSize:11}}>✓</span> {guide.yearsExperience} Years Experience</span>}
+                          {guide.verified && <span style={{fontFamily:FONT_BODY,fontSize:12,color:T.parchment,background:T.steel,border:`1px solid ${T.gold}`,borderRadius:20,padding:"5px 12px"}}>✓ Verified</span>}
+                          {guide.insured && <span style={{fontFamily:FONT_BODY,fontSize:12,color:T.parchment,background:T.steel,border:`1px solid ${T.gold}`,borderRadius:20,padding:"5px 12px"}}>✓ Insured</span>}
                         </div>
                       </div>
                     )}
 
-                    {/* ── Live Conditions Widget ── */}
-                    {conditions && (
-                      <div style={{marginTop:48}}>
-                        <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:16}}>Current Conditions — {guide.location}</div>
-                        <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:24}}>
-                          <div style={{display:"flex",alignItems:"center",gap:20,marginBottom:16}}>
-                            <div>
-                              <div style={{fontFamily:FONT_DISPLAY,fontSize:48,color:T.white,fontWeight:300,lineHeight:1}}>{conditions.temp}°</div>
-                              <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.ash,marginTop:4}}>{conditions.condition}</div>
+                    {/* 7. FAQ — collapsed single section */}
+                    <div style={{marginBottom:36}}>
+                      <details style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,overflow:"hidden"}}>
+                        <summary style={{padding:"18px 20px",fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:T.parchment,cursor:"pointer",listStyle:"none",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                          Common Questions
+                          <span style={{color:T.gold,fontSize:14}}>▼</span>
+                        </summary>
+                        <div style={{padding:"0 20px 20px",display:"flex",flexDirection:"column",gap:12}}>
+                          {[
+                            ["What should I bring?","Your guide provides all specialty equipment. Bring weather-appropriate layers, water, sunscreen, and a camera."],
+                            ["What skill level do I need?","All levels welcome. Your guide tailors every trip to your ability."],
+                            ["Cancellation policy?","Free cancellation 30+ days out. 50% refund 14-29 days. Under 14 days, RŌM Trip Protection covers you."],
+                            ["How does payment work?","25% deposit holds your date. Balance charged 14 days before. Secured by Stripe."],
+                          ].map(([q,a],i)=>(
+                            <div key={i} style={{paddingBottom:12,borderBottom:i<3?`1px solid ${T.rim}`:"none"}}>
+                              <div style={{fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:T.parchment,marginBottom:4}}>{q}</div>
+                              <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash,lineHeight:1.6}}>{a}</div>
                             </div>
-                            <div style={{flex:1,display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                              <div style={{background:T.lifted,borderRadius:6,padding:"10px 14px"}}>
-                                <div style={{fontFamily:FONT_BODY,fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.06em"}}>High / Low</div>
-                                <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.parchment,fontWeight:600,marginTop:2}}>{conditions.high}° / {conditions.low}°</div>
-                              </div>
-                              <div style={{background:T.lifted,borderRadius:6,padding:"10px 14px"}}>
-                                <div style={{fontFamily:FONT_BODY,fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.06em"}}>Wind</div>
-                                <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.parchment,fontWeight:600,marginTop:2}}>{conditions.wind} mph</div>
-                              </div>
-                              <div style={{background:T.lifted,borderRadius:6,padding:"10px 14px"}}>
-                                <div style={{fontFamily:FONT_BODY,fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.06em"}}>Humidity</div>
-                                <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.parchment,fontWeight:600,marginTop:2}}>{conditions.humidity}%</div>
-                              </div>
-                              {conditions.sunrise && (
-                                <div style={{background:T.lifted,borderRadius:6,padding:"10px 14px"}}>
-                                  <div style={{fontFamily:FONT_BODY,fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.06em"}}>Sunrise</div>
-                                  <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.parchment,fontWeight:600,marginTop:2}}>{new Date(conditions.sunrise).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})}</div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.muted,fontStyle:"italic"}}>Live conditions updated automatically · Powered by Open-Meteo</div>
+                          ))}
                         </div>
-                      </div>
-                    )}
-
-                    {/* ── FAQ Section ── */}
-                    <div style={{marginTop:48}}>
-                      <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:16}}>Common Questions</div>
-                      <div style={{display:"flex",flexDirection:"column",gap:2}}>
-                        {[
-                          ["What should I bring?",`Your guide provides all specialty equipment. Bring weather-appropriate layers, water, snacks, sunscreen, and a camera. A detailed gear list is sent with your booking confirmation.`],
-                          ["What skill level do I need?",`All experience levels are welcome. Your guide tailors every trip to your ability — from complete beginners to advanced. Just be honest about your experience when you book.`],
-                          ["What's your cancellation policy?","Free cancellation 30+ days before your trip. 50% refund 14–29 days before. Under 14 days, no refund unless you purchased RŌM Trip Protection (covers cancellation for any reason up to 48 hours before)."],
-                          ["What about weather?","Your guide monitors conditions daily. If weather makes the trip unsafe or unproductive, you'll be offered a reschedule or full refund. Guides know when to call it — trust their judgment."],
-                          ["How does payment work?","A 25% deposit holds your date. The remaining balance is charged 14 days before your trip. All payments are processed securely through Stripe."],
-                          ["Can I bring friends or family?","Absolutely. Check each package for group size limits. Many guides offer group rates — message them to ask."],
-                        ].map(([q,a],i)=>(
-                          <details key={i} style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,overflow:"hidden",marginBottom:6}}>
-                            <summary style={{padding:"16px 20px",fontFamily:FONT_BODY,fontSize:14,fontWeight:600,color:T.parchment,cursor:"pointer",listStyle:"none",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                              {q}
-                              <span style={{color:T.gold,fontSize:18,flexShrink:0,marginLeft:12}}>+</span>
-                            </summary>
-                            <div style={{padding:"0 20px 16px",fontFamily:FONT_BODY,fontSize:14,color:T.ash,lineHeight:1.7}}>
-                              {a}
-                            </div>
-                          </details>
-                        ))}
-                      </div>
+                      </details>
                     </div>
 
-                    {/* ── About the Area ── */}
-                    {guide.location && (
-                      <div style={{marginTop:48}}>
-                        <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:16}}>About {guide.location}</div>
-                        <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:24}}>
-                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
-                            {[
-                              ["📍","Location",guide.location],
-                              ["🏔️","Region",guide.categories?.[0] ? `Premier ${guide.categories[0].toLowerCase()} destination` : "Adventure destination"],
-                              ["🌤️","Best Season","Contact guide for current conditions"],
-                              ["✈️","Nearest Airport","See booking confirmation for travel details"],
-                            ].map(([icon,label,val])=>(
-                              <div key={label} style={{display:"flex",gap:12,alignItems:"flex-start"}}>
-                                <span style={{fontSize:20,flexShrink:0}}>{icon}</span>
-                                <div>
-                                  <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:3}}>{label}</div>
-                                  <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment}}>{val}</div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* ── Contact & Social ── */}
-                    <div style={{marginTop:48,marginBottom:20}}>
-                      <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:16}}>Get in Touch</div>
-                      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-                        <button onClick={()=>setMessageOpen(true)} style={{display:"flex",alignItems:"center",gap:8,background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:"12px 20px",fontFamily:FONT_BODY,fontSize:13,fontWeight:600,color:T.parchment,cursor:"pointer"}}>
-                          💬 Message {guide.name.split(" ")[0]}
-                        </button>
-                        <button onClick={()=>setBookingOpen(true)} style={{display:"flex",alignItems:"center",gap:8,background:T.gold,border:"none",borderRadius:8,padding:"12px 20px",fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:T.ink,cursor:"pointer"}}>
-                          📅 Check Availability
-                        </button>
-                      </div>
-                      <div style={{marginTop:16,fontFamily:FONT_BODY,fontSize:12,color:T.muted,lineHeight:1.6}}>
-                        Response time: usually {guide.responseTime} · {guide.responseRate}% response rate
-                      </div>
+                    {/* 8. Contact */}
+                    <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                      <button onClick={()=>setMessageOpen(true)} style={{display:"flex",alignItems:"center",gap:8,background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:"12px 20px",fontFamily:FONT_BODY,fontSize:13,fontWeight:600,color:T.parchment,cursor:"pointer"}}>
+                        💬 Message {guide.name.split(" ")[0]}
+                      </button>
+                      <button onClick={()=>setBookingOpen(true)} style={{display:"flex",alignItems:"center",gap:8,background:T.gold,border:"none",borderRadius:8,padding:"12px 20px",fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:T.ink,cursor:"pointer"}}>
+                        📅 Check Availability
+                      </button>
                     </div>
                   </div>
                 )}
