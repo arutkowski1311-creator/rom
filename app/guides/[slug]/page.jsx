@@ -735,7 +735,7 @@ function GuideProfile({ guide=GUIDE }) {
         const geoData = await geoRes.json();
         if (!geoData.results?.[0]) return;
         const { latitude, longitude } = geoData.results[0];
-        const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto&forecast_days=1&temperature_unit=fahrenheit&wind_speed_unit=mph`);
+        const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max&timezone=auto&forecast_days=1&temperature_unit=fahrenheit&wind_speed_unit=mph`);
         const w = await weatherRes.json();
         if (!w.current) return;
         const codes = {0:"Clear sky",1:"Mainly clear",2:"Partly cloudy",3:"Overcast",45:"Foggy",48:"Fog",51:"Light drizzle",53:"Drizzle",55:"Heavy drizzle",61:"Light rain",63:"Rain",65:"Heavy rain",71:"Light snow",73:"Snow",75:"Heavy snow",80:"Light showers",81:"Showers",82:"Heavy showers",95:"Thunderstorm"};
@@ -748,6 +748,7 @@ function GuideProfile({ guide=GUIDE }) {
           low: w.daily ? Math.round(w.daily.temperature_2m_min[0]) : null,
           sunrise: w.daily?.sunrise?.[0],
           sunset: w.daily?.sunset?.[0],
+          precipChance: w.daily?.precipitation_probability_max?.[0] ?? null,
         });
       } catch(e) { /* conditions widget is non-critical */ }
     };
@@ -883,25 +884,31 @@ function GuideProfile({ guide=GUIDE }) {
                     {conditions && (
                       <div style={{marginBottom:36}}>
                         <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:14}}>Right Now in {guide.location}</div>
-                        <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:24}}>
-                          <div style={{display:"flex",alignItems:"center",gap:20,flexWrap:"wrap"}}>
+                        <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:20}}>
+                          {/* Current temp + condition header */}
+                          <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:16,paddingBottom:16,borderBottom:`1px solid ${T.rim}`}}>
+                            <div style={{fontFamily:FONT_DISPLAY,fontSize:44,color:T.white,fontWeight:300,lineHeight:1}}>{conditions.temp}°</div>
                             <div>
-                              <div style={{fontFamily:FONT_DISPLAY,fontSize:48,color:T.white,fontWeight:300,lineHeight:1}}>{conditions.temp}°</div>
-                              <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.ash,marginTop:4}}>{conditions.condition}</div>
+                              <div style={{fontFamily:FONT_BODY,fontSize:15,color:T.parchment,fontWeight:600}}>{conditions.condition}</div>
+                              <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver}}>High {conditions.high}° · Low {conditions.low}°</div>
                             </div>
-                            <div style={{flex:1,minWidth:200,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                              {[
-                                ["High / Low",`${conditions.high}° / ${conditions.low}°`],
-                                ["Wind",`${conditions.wind} mph`],
-                                ["Humidity",`${conditions.humidity}%`],
-                                conditions.sunrise ? ["Sunrise",new Date(conditions.sunrise).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})] : null,
-                              ].filter(Boolean).map(([label,val])=>(
-                                <div key={label} style={{background:T.lifted,borderRadius:6,padding:"10px 14px"}}>
-                                  <div style={{fontFamily:FONT_BODY,fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.06em"}}>{label}</div>
-                                  <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.parchment,fontWeight:600,marginTop:2}}>{val}</div>
-                                </div>
-                              ))}
-                            </div>
+                          </div>
+                          {/* 3x2 grid of details */}
+                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                            {[
+                              ["🌅","Sunrise",conditions.sunrise ? new Date(conditions.sunrise).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "—"],
+                              ["🌇","Sunset",conditions.sunset ? new Date(conditions.sunset).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "—"],
+                              ["💨","Wind",`${conditions.wind} mph`],
+                              ["💧","Humidity",`${conditions.humidity}%`],
+                              ["🌧️","Rain Chance",conditions.precipChance != null ? `${conditions.precipChance}%` : "—"],
+                              ["🌡️","Feels Like",`${conditions.temp}°F`],
+                            ].map(([icon,label,val])=>(
+                              <div key={label} style={{background:T.lifted,borderRadius:8,padding:"10px 12px",textAlign:"center"}}>
+                                <div style={{fontSize:16,marginBottom:4}}>{icon}</div>
+                                <div style={{fontFamily:FONT_BODY,fontSize:9,color:T.muted,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:2}}>{label}</div>
+                                <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment,fontWeight:600}}>{val}</div>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       </div>
