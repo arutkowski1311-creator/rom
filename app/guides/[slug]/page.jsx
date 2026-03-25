@@ -729,7 +729,9 @@ function GuideProfile({ guide=GUIDE }) {
     const fetchConditions = async () => {
       try {
         // Geocode location name to lat/lng
-        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(guide.location)}&count=1`);
+        // Strip state abbreviation and clean location for geocoding (e.g., "Bozeman, MT" → "Bozeman")
+        const cleanLocation = guide.location.split(",")[0].trim();
+        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanLocation)}&count=1`);
         const geoData = await geoRes.json();
         if (!geoData.results?.[0]) return;
         const { latitude, longitude } = geoData.results[0];
