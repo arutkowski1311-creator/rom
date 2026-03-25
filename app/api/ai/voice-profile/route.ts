@@ -65,7 +65,7 @@ Return ONLY valid JSON with these exact keys:
 }`,
       messages: [{
         role: "user",
-        content: `Here is the interview transcript for ${guideName}, who is based in ${guide.location || "their area"} and specializes in ${(guide.categories || []).join(", ") || "outdoor adventures"}:
+        content: `Here is the interview transcript for ${guideName}, who is based in ${guide?.location || "their area"} and specializes in ${(guide?.categories || []).join(", ") || "outdoor adventures"}:
 
 ${interviewText}
 
