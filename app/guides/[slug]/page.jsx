@@ -832,7 +832,7 @@ function GuideProfile({ guide=GUIDE }) {
               <span style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:T.white}}>{guide.rating}</span>
               <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash,textDecoration:"underline",textUnderlineOffset:2}}>({guide.reviewCount} reviews)</span>
             </div>
-            {[`📍 ${guide.location}`,`${guide.yearsExperience} yrs`,`${guide.responseRate}% response`].map(txt=>(
+            {[`📍 ${guide.location}`,guide.yearsExperience?`${guide.yearsExperience} yrs`:null,`${guide.responseRate}% response`].filter(Boolean).map(txt=>(
               <span key={txt} style={{display:"flex",alignItems:"center"}}>
                 <span className="guide-stats-divider" style={{width:1,height:16,background:T.wire,display:"inline-block",margin:"0 12px"}}/>
                 <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash}}>{txt}</span>
@@ -1310,8 +1310,8 @@ export default function GuideProfilePage({ params }) {
 
       const shaped = {
         id: g.id,
-        name: g.business_name || g.profiles?.full_name || "Guide",
-        personName: g.profiles?.full_name || null,
+        name: g.business_name || g.display_name || g.profiles?.full_name || "Guide",
+        personName: g.display_name || g.profiles?.full_name || null,
         businessName: g.business_name || null,
         email: g.profiles?.email || null,
         slug: g.slug,
