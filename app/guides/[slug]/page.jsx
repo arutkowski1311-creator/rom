@@ -968,6 +968,7 @@ function GuideProfile({ guide=GUIDE }) {
                     )}
 
                     {/* 7. FAQ — collapsed single section */}
+                    {(guide.faq?.length > 0 || true) && (
                     <div style={{marginBottom:36}}>
                       <details style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,overflow:"hidden"}}>
                         <summary style={{padding:"18px 20px",fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:T.parchment,cursor:"pointer",listStyle:"none",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -975,20 +976,21 @@ function GuideProfile({ guide=GUIDE }) {
                           <span style={{color:T.gold,fontSize:14}}>▼</span>
                         </summary>
                         <div style={{padding:"0 20px 20px",display:"flex",flexDirection:"column",gap:12}}>
-                          {[
-                            ["What should I bring?","Your guide provides all specialty equipment. Bring weather-appropriate layers, water, sunscreen, and a camera."],
-                            ["What skill level do I need?","All levels welcome. Your guide tailors every trip to your ability."],
-                            ["Cancellation policy?","Free cancellation 30+ days out. 50% refund 14-29 days. Under 14 days, RŌM Trip Protection covers you."],
-                            ["How does payment work?","25% deposit holds your date. Balance charged 14 days before. Secured by Stripe."],
-                          ].map(([q,a],i)=>(
-                            <div key={i} style={{paddingBottom:12,borderBottom:i<3?`1px solid ${T.rim}`:"none"}}>
-                              <div style={{fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:T.parchment,marginBottom:4}}>{q}</div>
-                              <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash,lineHeight:1.6}}>{a}</div>
+                          {(guide.faq?.length > 0 ? guide.faq : [
+                            {q:"What should I bring?",a:"Your guide provides all specialty equipment. Bring weather-appropriate layers, water, sunscreen, and a camera."},
+                            {q:"What skill level do I need?",a:"All levels welcome. Your guide tailors every trip to your ability."},
+                            {q:"Cancellation policy?",a:"Free cancellation 30+ days out. 50% refund 14-29 days. Under 14 days, RŌM Trip Protection covers you."},
+                            {q:"How does payment work?",a:"25% deposit holds your date. Balance charged 14 days before. Secured by Stripe."},
+                          ]).map((item,i,arr)=>(
+                            <div key={i} style={{paddingBottom:12,borderBottom:i<arr.length-1?`1px solid ${T.rim}`:"none"}}>
+                              <div style={{fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:T.parchment,marginBottom:4}}>{item.q}</div>
+                              <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash,lineHeight:1.6}}>{item.a}</div>
                             </div>
                           ))}
                         </div>
                       </details>
                     </div>
+                    )}
 
                     {/* 8. Contact */}
                     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
@@ -1329,6 +1331,7 @@ export default function GuideProfilePage({ params }) {
         hasLiabilityInsurance: g.has_own_liability_insurance || g.insured || false,
         insuranceProvider: g.insurance_provider || null,
         categories: g.categories || [],
+        faq: g.faq || [],
         profilePhotoUrl: g.profile_photo_url || null,
         coverPhotoUrl: g.cover_photo_url || null,
         galleryPhotos: g.gallery_photos || [],

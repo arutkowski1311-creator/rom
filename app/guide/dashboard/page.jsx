@@ -845,6 +845,10 @@ export default function GuideDashboard() {
   const [guide, setGuide] = useState({...GUIDE_DEFAULT});
   const [stats, setStats] = useState(STATS_DEFAULT);
   const [guideId, setGuideId] = useState(null);
+  const [faq, setFaq] = useState([]);
+  const [faqEditing, setFaqEditing] = useState(null);
+  const [faqSaving, setFaqSaving] = useState(false);
+  const [faqGenerating, setFaqGenerating] = useState(false);
   const [blockedDatesDB, setBlockedDatesDB] = useState([]);
   const [threads, setThreads] = useState([]);
   const [activeThread, setActiveThread] = useState(null);
@@ -892,6 +896,16 @@ export default function GuideDashboard() {
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
+
+  const saveFaq = async (faqData) => {
+    if (!guideId) return;
+    setFaqSaving(true);
+    try {
+      const supabase = getSupabase();
+      await supabase.from("guides").update({ faq: faqData }).eq("id", guideId);
+    } catch(e) { console.error("FAQ save error:", e); }
+    setFaqSaving(false);
+  };
 
   const handleStripeConnect = async () => {
     if (!guideId) return;
@@ -1000,6 +1014,7 @@ export default function GuideDashboard() {
       const now2 = new Date();
 
       setGuideId(g.id);
+      setFaq(g.faq || []);
       setPhotoUrls({ profile: g.profile_photo_url||null, cover: g.cover_photo_url||null, gallery: g.gallery_photos||[] });
       setCurrentUserId(user.id);
       setGuide({
@@ -1018,6 +1033,7 @@ export default function GuideDashboard() {
         galleryPhotos: g.gallery_photos || [],
         subscription_tier: g.subscription_tier || "spark",
         categories: g.categories || [],
+        faq: g.faq || [],
         hasOwnInsurance: g.has_own_liability_insurance || false,
         insuranceProvider: g.insurance_provider || null,
         insuranceExpiry: g.insurance_expiry_date || null,
@@ -2381,6 +2397,87 @@ export default function GuideDashboard() {
                   <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.muted}}>Add up to 6 photos from your trips. Click any slot to upload or replace.</div>
                   {uploadError && <div style={{fontFamily:FONT_BODY,fontSize:13,color:"#f08080",marginTop:8}}>{uploadError}</div>}
                 </SectionCard>
+                {/* FAQ Editor */}
+                <SectionCard title="FAQ — Frequently Asked Questions">
+                  <p style={{fontFamily:FONT_BODY,fontSize:13,color:T.silver,marginBottom:16,lineHeight:1.6}}>
+                    These appear on your public profile. Guests see them before booking. Keep answers short and helpful.
+                  </p>
+
+                  {faq.length === 0 && !faqGenerating && (
+                    <div style={{textAlign:"center",padding:"24px 0"}}>
+                      <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.muted,marginBottom:16}}>No FAQ yet. Generate them automatically or add manually.</div>
+                      <div style={{display:"flex",gap:12,justifyContent:"center"}}>
+                        <GoldBtn small onClick={async()=>{
+                          setFaqGenerating(true);
+                          try {
+                            const res = await fetch("/api/ai/faq", {
+                              method:"POST",
+                              headers:{"Content-Type":"application/json"},
+                              body:JSON.stringify({guideId,location:guide.location,categories:guide.categories,bio:guide.bio||guide.tagline,businessName:guide.name})
+                            });
+                            const data = await res.json();
+                            if(data.faq) { setFaq(data.faq); await saveFaq(data.faq); }
+                          } catch(e) { console.error("FAQ gen error",e); }
+                          setFaqGenerating(false);
+                        }}>✨ Auto-Generate</GoldBtn>
+                        <GoldBtn small outline onClick={()=>{
+                          const updated = [...faq, {q:"",a:""}];
+                          setFaq(updated);
+                          setFaqEditing(updated.length-1);
+                        }}>+ Add Manually</GoldBtn>
+                      </div>
+                    </div>
+                  )}
+
+                  {faqGenerating && (
+                    <div style={{textAlign:"center",padding:"24px 0"}}>
+                      <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.gold}}>Generating FAQ based on your profile...</div>
+                    </div>
+                  )}
+
+                  {faq.length > 0 && (
+                    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                      {faq.map((item,i) => (
+                        <div key={i} style={{background:T.lifted,border:`1px solid ${T.rim}`,borderRadius:8,padding:"14px 16px"}}>
+                          {faqEditing === i ? (
+                            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                              <input value={item.q} onChange={e=>{const u=[...faq];u[i]={...u[i],q:e.target.value};setFaq(u);}}
+                                placeholder="Question" style={{width:"100%",boxSizing:"border-box",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:6,padding:"10px 12px",fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:T.parchment,outline:"none"}}/>
+                              <textarea value={item.a} onChange={e=>{const u=[...faq];u[i]={...u[i],a:e.target.value};setFaq(u);}} rows={3}
+                                placeholder="Answer" style={{width:"100%",boxSizing:"border-box",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:6,padding:"10px 12px",fontFamily:FONT_BODY,fontSize:14,color:T.ash,outline:"none",resize:"vertical",lineHeight:1.6}}/>
+                              <div style={{display:"flex",gap:8}}>
+                                <GoldBtn small onClick={async()=>{setFaqEditing(null);await saveFaq(faq);}}>Save</GoldBtn>
+                                <button onClick={()=>{const u=faq.filter((_,j)=>j!==i);setFaq(u);setFaqEditing(null);saveFaq(u);}}
+                                  style={{background:"none",border:`1px solid rgba(231,76,60,0.3)`,borderRadius:5,padding:"6px 14px",fontFamily:FONT_BODY,fontSize:12,color:"#e08080",cursor:"pointer"}}>Delete</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div onClick={()=>setFaqEditing(i)} style={{cursor:"pointer"}}>
+                              <div style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:T.parchment,marginBottom:6}}>{item.q || "Click to edit question"}</div>
+                              <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash,lineHeight:1.6}}>{item.a || "Click to edit answer"}</div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      <div style={{display:"flex",gap:12,marginTop:8}}>
+                        <button onClick={()=>{const u=[...faq,{q:"",a:""}];setFaq(u);setFaqEditing(u.length-1);}}
+                          style={{background:"none",border:`1px solid ${T.wire}`,borderRadius:6,padding:"8px 16px",fontFamily:FONT_BODY,fontSize:12,color:T.ash,cursor:"pointer"}}>+ Add Question</button>
+                        <button onClick={async()=>{
+                          if(!confirm("Regenerate will replace all current FAQ. Continue?")) return;
+                          setFaqGenerating(true);
+                          try {
+                            const res = await fetch("/api/ai/faq", {method:"POST",headers:{"Content-Type":"application/json"},
+                              body:JSON.stringify({guideId,location:guide.location,categories:guide.categories,bio:guide.bio||guide.tagline,businessName:guide.name})});
+                            const data = await res.json();
+                            if(data.faq) { setFaq(data.faq); await saveFaq(data.faq); }
+                          } catch(e) { console.error(e); }
+                          setFaqGenerating(false);
+                        }} style={{background:"none",border:`1px solid ${T.wire}`,borderRadius:6,padding:"8px 16px",fontFamily:FONT_BODY,fontSize:12,color:T.silver,cursor:"pointer"}}>✨ Regenerate All</button>
+                      </div>
+                    </div>
+                  )}
+                </SectionCard>
+
                 <SectionCard title="Stripe Payout Account">
                   {(guide.stripeConnected || stripeStatus === "complete") ? (
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
