@@ -819,10 +819,10 @@ function GuideProfile({ guide=GUIDE }) {
           </div>
           <div className="guide-hero-tagline" style={{fontFamily:FONT_BODY,fontSize:17,color:T.parchment,marginBottom:28,textShadow:"0 1px 12px rgba(0,0,0,0.9)"}}>{guide.tagline}</div>
           <div className="guide-stats-bar" style={{display:"inline-flex",alignItems:"center",background:"rgba(0,0,0,0.6)",backdropFilter:"blur(16px)",border:`1px solid ${T.wire}`,borderRadius:8,padding:"11px 20px",alignSelf:"flex-start",flexWrap:"wrap",gap:4}}>
-            <div style={{display:"flex",alignItems:"center",gap:7}}>
+            <div onClick={()=>setActiveTab("reviews")} style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer"}}>
               <Stars rating={guide.rating} size={14}/>
               <span style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:T.white}}>{guide.rating}</span>
-              <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash}}>({guide.reviewCount})</span>
+              <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash,textDecoration:"underline",textUnderlineOffset:2}}>({guide.reviewCount} reviews)</span>
             </div>
             {[`📍 ${guide.location}`,`${guide.yearsExperience} yrs`,`${guide.responseRate}% response`].map(txt=>(
               <span key={txt} style={{display:"flex",alignItems:"center"}}>
