@@ -210,12 +210,16 @@ export default function GuideOnboarding() {
     setError(""); setLoading(true);
     try {
       const supabase = getSupabase();
-      const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
-      if (signUpError) { setError(signUpError.message); setLoading(false); return; }
-      const { error: profError } = await supabase.from("profiles").insert({
-        id: data.user.id, full_name: fullName, role: "guide", email
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email, password,
+        options: { data: { full_name: fullName } }
       });
-      if (profError) { setError(profError.message); setLoading(false); return; }
+      if (signUpError) { setError(signUpError.message); setLoading(false); return; }
+      // Trigger auto-creates profile, but update it with full_name and role
+      const { error: profError } = await supabase.from("profiles").upsert({
+        id: data.user.id, full_name: fullName, role: "guide", email
+      }, { onConflict: "id" });
+      if (profError) { console.warn("Profile upsert warning:", profError.message); }
       setStep(1); // → Interview
     } catch(e) { setError("Something went wrong. Please try again."); }
     setLoading(false);

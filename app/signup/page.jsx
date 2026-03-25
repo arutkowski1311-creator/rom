@@ -114,7 +114,7 @@ function SignupForm({ role, onSwitch }) {
       });
       if (err) { setError(err.message); setLoading(false); return; }
       if (data.user) {
-        await supabase.from("profiles").update({ role, full_name: name }).eq("id", data.user.id);
+        await supabase.from("profiles").upsert({ id: data.user.id, role, full_name: name, email }, { onConflict: "id" });
       }
       setSuccess(true);
     } catch(e) {
