@@ -92,6 +92,7 @@ export default function GuideOnboarding() {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [checkingSession, setCheckingSession] = useState(true);
 
   // Step 0 — Account
   const [email, setEmail] = useState("");
@@ -187,24 +188,100 @@ export default function GuideOnboarding() {
     (insuranceChoice === "own" && insuranceProvider && insurancePolicyNumber)
   );
 
-  // Check for Stripe return redirect
+  // Check for returning user / incomplete onboarding
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+
+    // Stripe return redirect
     if (params.get("stripe") === "success") {
-      // Returned from Stripe Connect — verify and advance
       const gId = params.get("guide_id");
-      if (gId) {
-        setGuideId(gId);
-        verifyStripeConnect(gId);
-      }
+      if (gId) { setGuideId(gId); verifyStripeConnect(gId); }
       window.history.replaceState({}, "", window.location.pathname);
+      return;
     }
     if (params.get("stripe") === "refresh") {
       const gId = params.get("guide_id");
       if (gId) setGuideId(gId);
       setStep(7);
       window.history.replaceState({}, "", window.location.pathname);
+      return;
     }
+
+    // Check if user is already logged in (returning from incomplete onboarding)
+    const checkExistingSession = async () => {
+      try {
+        const supabase = getSupabase();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return; // Not logged in — show step 0 (create account)
+
+        // User is logged in — check if they have a guide record
+        const { data: profile } = await supabase.from("profiles").select("full_name, email, role").eq("id", user.id).single();
+        if (profile) {
+          setFullName(profile.full_name || "");
+          setEmail(profile.email || user.email || "");
+        }
+
+        const { data: guide } = await supabase.from("guides").select("*").eq("profile_id", user.id).single();
+
+        if (!guide) {
+          // Has account but no guide record — resume at interview (step 1)
+          setStep(1);
+          return;
+        }
+
+        // Has a guide record — figure out where they left off
+        setGuideId(guide.id);
+        if (guide.business_name) setBusinessName(guide.business_name);
+        if (guide.categories?.length) setSelectedCats(guide.categories);
+        if (guide.tagline) setTagline(guide.tagline);
+        if (guide.bio) setBio(guide.bio);
+        if (guide.location) setLocation(guide.location);
+        if (guide.subscription_tier) setSelectedTier(guide.subscription_tier);
+        if (guide.stripe_onboarding_complete) setStripeConnected(true);
+        if (guide.insurance_provider) {
+          setInsuranceProvider(guide.insurance_provider);
+          setInsurancePolicyNumber(guide.insurance_policy_number || "");
+          setInsuranceExpiry(guide.insurance_expiry_date || "");
+          setInsuranceChoice("own");
+          setInsuranceSaved(true);
+        } else if (guide.per_booking_insurance) {
+          setInsuranceChoice("per_booking");
+          setInsuranceSaved(true);
+        }
+
+        // Determine which step to resume at
+        const { data: pkgs } = await supabase.from("packages").select("id").eq("guide_id", guide.id).limit(1);
+        const hasPackages = pkgs && pkgs.length > 0;
+
+        if (!guide.bio && !guide.tagline) {
+          // No profile info — resume at interview
+          setStep(1);
+        } else if (!guide.categories?.length) {
+          // No categories — resume at activities
+          setStep(3);
+        } else if (!hasPackages) {
+          // No packages — resume at packages
+          setStep(4);
+        } else if (!guide.has_own_liability_insurance && !guide.per_booking_insurance) {
+          // No insurance decision — resume at insurance
+          setStep(5);
+        } else if (guide.subscription_tier === "spark" && !guide.stripe_onboarding_complete) {
+          // Hasn't chosen plan or connected stripe — skip to done
+          setStep(8);
+        } else if (!guide.stripe_onboarding_complete) {
+          // Hasn't connected Stripe — resume at payments
+          setStep(7);
+        } else {
+          // Everything done — show done page
+          setStep(8);
+        }
+      } catch (e) {
+        console.error("Session check error:", e);
+      }
+      setCheckingSession(false);
+    };
+
+    checkExistingSession();
   }, []);
 
   const verifyStripeConnect = async (gId) => {
@@ -260,7 +337,23 @@ export default function GuideOnboarding() {
         email, password,
         options: { data: { full_name: fullName } }
       });
-      if (signUpError) { setError(signUpError.message); setLoading(false); return; }
+      if (signUpError) {
+        // If user already exists, try logging them in instead
+        if (signUpError.message.includes("already registered") || signUpError.message.includes("already been registered") || signUpError.message.includes("User already registered")) {
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+          if (signInError) {
+            setError("This email is already registered. Please check your password or use a different email.");
+            setLoading(false);
+            return;
+          }
+          // Signed in successfully — the useEffect will detect their state and resume
+          window.location.reload();
+          return;
+        }
+        setError(signUpError.message);
+        setLoading(false);
+        return;
+      }
       // Trigger auto-creates profile, but update it with full_name and role
       const { error: profError } = await supabase.from("profiles").upsert({
         id: data.user.id, full_name: fullName, role: "guide", email
@@ -415,6 +508,17 @@ export default function GuideOnboarding() {
 
   const progressPct = (Math.min(step, 6) / 6) * 100;
   const tier = TIERS[selectedTier];
+
+  if (checkingSession) {
+    return (
+      <div style={{minHeight:"100vh",background:T.void,display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <div style={{textAlign:"center"}}>
+          <div style={{fontFamily:"'Cormorant Garamond', serif",fontSize:28,color:"#C9A55C",letterSpacing:"0.16em",marginBottom:16}}>RŌM</div>
+          <div style={{fontFamily:"'Barlow', sans-serif",fontSize:14,color:"#999"}}>Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
