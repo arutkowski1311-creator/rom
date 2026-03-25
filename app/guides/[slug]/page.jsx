@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import React from "react";
 import Image from "next/image";
 import { T, FONT_DISPLAY, FONT_BODY, GUEST_SERVICE_FEE_RATE } from "@/app/lib/theme";
@@ -657,10 +657,100 @@ function MessagePanel({ guide, onClose }) {
   );
 }
 
+// ─── LIGHTBOX ────────────────────────────────────────────────────────────────
+function Lightbox({ photos, startIndex, onClose }) {
+  const [idx, setIdx] = useState(startIndex || 0);
+  const photo = photos[idx];
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowRight") setIdx(i => Math.min(i + 1, photos.length - 1));
+      if (e.key === "ArrowLeft") setIdx(i => Math.max(i - 1, 0));
+    };
+    window.addEventListener("keydown", handleKey);
+    document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", handleKey); document.body.style.overflow = ""; };
+  }, [photos.length, onClose]);
+
+  // Touch swipe
+  const touchRef = useRef(null);
+  const handleTouchStart = (e) => { touchRef.current = e.touches[0].clientX; };
+  const handleTouchEnd = (e) => {
+    if (!touchRef.current) return;
+    const diff = touchRef.current - e.changedTouches[0].clientX;
+    if (diff > 60) setIdx(i => Math.min(i + 1, photos.length - 1));
+    if (diff < -60) setIdx(i => Math.max(i - 1, 0));
+    touchRef.current = null;
+  };
+
+  return (
+    <div onClick={onClose} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}
+      style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.95)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+      {/* Close button */}
+      <button onClick={onClose} style={{ position: "absolute", top: 20, right: 20, background: "none", border: "none", color: "#fff", fontSize: 32, cursor: "pointer", zIndex: 301, padding: 8 }}>✕</button>
+      {/* Counter */}
+      <div style={{ position: "absolute", top: 24, left: "50%", transform: "translateX(-50%)", fontFamily: FONT_BODY, fontSize: 14, color: "rgba(255,255,255,0.6)", zIndex: 301 }}>
+        {idx + 1} / {photos.length}
+      </div>
+      {/* Prev */}
+      {idx > 0 && (
+        <button onClick={(e) => { e.stopPropagation(); setIdx(i => i - 1); }}
+          style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%", width: 48, height: 48, color: "#fff", fontSize: 24, cursor: "pointer", zIndex: 301, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          ‹
+        </button>
+      )}
+      {/* Next */}
+      {idx < photos.length - 1 && (
+        <button onClick={(e) => { e.stopPropagation(); setIdx(i => i + 1); }}
+          style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%", width: 48, height: 48, color: "#fff", fontSize: 24, cursor: "pointer", zIndex: 301, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          ›
+        </button>
+      )}
+      {/* Photo */}
+      <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: "90vw", maxHeight: "85vh", position: "relative" }}>
+        <Image src={photo} alt={`Photo ${idx + 1}`} width={1200} height={800} style={{ maxWidth: "90vw", maxHeight: "85vh", objectFit: "contain", borderRadius: 4 }} unoptimized />
+      </div>
+    </div>
+  );
+}
+
 function GuideProfile({ guide=GUIDE }) {
   const [bookingOpen,setBookingOpen]=useState(false);
   const [messageOpen,setMessageOpen]=useState(false);
   const [activeTab,setActiveTab]=useState("about");
+  const [lightboxOpen,setLightboxOpen]=useState(false);
+  const [lightboxIndex,setLightboxIndex]=useState(0);
+  const [conditions,setConditions]=useState(null);
+  const touchRef = useRef(null);
+
+  // Fetch live conditions
+  useEffect(() => {
+    if (!guide?.location) return;
+    const fetchConditions = async () => {
+      try {
+        // Geocode location name to lat/lng
+        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(guide.location)}&count=1`);
+        const geoData = await geoRes.json();
+        if (!geoData.results?.[0]) return;
+        const { latitude, longitude } = geoData.results[0];
+        const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto&forecast_days=1&temperature_unit=fahrenheit&wind_speed_unit=mph`);
+        const w = await weatherRes.json();
+        if (!w.current) return;
+        const codes = {0:"Clear sky",1:"Mainly clear",2:"Partly cloudy",3:"Overcast",45:"Foggy",48:"Fog",51:"Light drizzle",53:"Drizzle",55:"Heavy drizzle",61:"Light rain",63:"Rain",65:"Heavy rain",71:"Light snow",73:"Snow",75:"Heavy snow",80:"Light showers",81:"Showers",82:"Heavy showers",95:"Thunderstorm"};
+        setConditions({
+          temp: Math.round(w.current.temperature_2m),
+          humidity: w.current.relative_humidity_2m,
+          wind: Math.round(w.current.wind_speed_10m),
+          condition: codes[w.current.weather_code] || "Variable",
+          high: w.daily ? Math.round(w.daily.temperature_2m_max[0]) : null,
+          low: w.daily ? Math.round(w.daily.temperature_2m_min[0]) : null,
+          sunrise: w.daily?.sunrise?.[0],
+          sunset: w.daily?.sunset?.[0],
+        });
+      } catch(e) { /* conditions widget is non-critical */ }
+    };
+    fetchConditions();
+  }, [guide?.location]);
 
   return (
     <>
@@ -787,8 +877,9 @@ function GuideProfile({ guide=GUIDE }) {
                         <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:16}}>Trip Photos</div>
                         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
                           {guide.galleryPhotos.filter(Boolean).map((url,i)=>(
-                            <div key={i} style={{position:"relative",aspectRatio:"1",borderRadius:8,overflow:"hidden"}}>
+                            <div key={i} onClick={()=>{setLightboxIndex(i);setLightboxOpen(true);}} style={{position:"relative",aspectRatio:"1",borderRadius:8,overflow:"hidden",cursor:"pointer",transition:"transform 0.15s"}} onMouseEnter={e=>e.currentTarget.style.transform="scale(1.03)"} onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"}>
                               <Image src={url} alt={`Trip photo ${i+1}`} fill style={{objectFit:"cover"}} sizes="(max-width: 768px) 50vw, 33vw"/>
+                              <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0)",transition:"background 0.15s"}} onMouseEnter={e=>e.currentTarget.style.background="rgba(0,0,0,0.15)"} onMouseLeave={e=>e.currentTarget.style.background="rgba(0,0,0,0)"}/>
                             </div>
                           ))}
                         </div>
@@ -808,6 +899,42 @@ function GuideProfile({ guide=GUIDE }) {
                           {guide.verified && <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment,background:T.steel,border:`1px solid ${T.gold}`,borderRadius:20,padding:"6px 14px",display:"flex",alignItems:"center",gap:6}}><span style={{color:T.gold,fontSize:11}}>✓</span> Verified</span>}
                           {guide.insured && <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment,background:T.steel,border:`1px solid ${T.gold}`,borderRadius:20,padding:"6px 14px",display:"flex",alignItems:"center",gap:6}}><span style={{color:T.gold,fontSize:11}}>✓</span> Insured</span>}
                           {guide.yearsExperience && <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment,background:T.steel,border:`1px solid ${T.gold}`,borderRadius:20,padding:"6px 14px",display:"flex",alignItems:"center",gap:6}}><span style={{color:T.gold,fontSize:11}}>✓</span> {guide.yearsExperience} Years Experience</span>}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── Live Conditions Widget ── */}
+                    {conditions && (
+                      <div style={{marginTop:48}}>
+                        <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:16}}>Current Conditions — {guide.location}</div>
+                        <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:24}}>
+                          <div style={{display:"flex",alignItems:"center",gap:20,marginBottom:16}}>
+                            <div>
+                              <div style={{fontFamily:FONT_DISPLAY,fontSize:48,color:T.white,fontWeight:300,lineHeight:1}}>{conditions.temp}°</div>
+                              <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.ash,marginTop:4}}>{conditions.condition}</div>
+                            </div>
+                            <div style={{flex:1,display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                              <div style={{background:T.lifted,borderRadius:6,padding:"10px 14px"}}>
+                                <div style={{fontFamily:FONT_BODY,fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.06em"}}>High / Low</div>
+                                <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.parchment,fontWeight:600,marginTop:2}}>{conditions.high}° / {conditions.low}°</div>
+                              </div>
+                              <div style={{background:T.lifted,borderRadius:6,padding:"10px 14px"}}>
+                                <div style={{fontFamily:FONT_BODY,fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.06em"}}>Wind</div>
+                                <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.parchment,fontWeight:600,marginTop:2}}>{conditions.wind} mph</div>
+                              </div>
+                              <div style={{background:T.lifted,borderRadius:6,padding:"10px 14px"}}>
+                                <div style={{fontFamily:FONT_BODY,fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.06em"}}>Humidity</div>
+                                <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.parchment,fontWeight:600,marginTop:2}}>{conditions.humidity}%</div>
+                              </div>
+                              {conditions.sunrise && (
+                                <div style={{background:T.lifted,borderRadius:6,padding:"10px 14px"}}>
+                                  <div style={{fontFamily:FONT_BODY,fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.06em"}}>Sunrise</div>
+                                  <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.parchment,fontWeight:600,marginTop:2}}>{new Date(conditions.sunrise).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})}</div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.muted,fontStyle:"italic"}}>Live conditions updated automatically · Powered by Open-Meteo</div>
                         </div>
                       </div>
                     )}
@@ -1036,6 +1163,58 @@ function GuideProfile({ guide=GUIDE }) {
 
                   <div style={{height:1,background:T.wire,margin:"20px 0"}}/>
 
+                  {/* Mini availability calendar */}
+                  <div style={{marginBottom:20}}>
+                    <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:10}}>Availability</div>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3,textAlign:"center"}}>
+                      {["S","M","T","W","T","F","S"].map((d,i)=>(
+                        <div key={i} style={{fontFamily:FONT_BODY,fontSize:10,color:T.muted,padding:"4px 0"}}>{d}</div>
+                      ))}
+                      {(() => {
+                        const today = new Date();
+                        const startDay = today.getDay();
+                        const cells = [];
+                        // Empty cells for days before today's weekday
+                        for (let i = 0; i < startDay; i++) cells.push(<div key={`e${i}`}/>);
+                        // Next 28 days
+                        for (let i = 0; i < 28; i++) {
+                          const d = new Date(today);
+                          d.setDate(d.getDate() + i);
+                          const day = d.getDate();
+                          const isBooked = guide.bookedDates?.includes(d.toISOString().split("T")[0]);
+                          cells.push(
+                            <div key={i} style={{
+                              fontFamily:FONT_BODY, fontSize:11, padding:"6px 0",
+                              borderRadius:4, cursor: isBooked ? "default" : "pointer",
+                              background: isBooked ? "rgba(231,76,60,0.15)" : i === 0 ? T.goldGlow : "transparent",
+                              color: isBooked ? "#aa6a6a" : i === 0 ? T.gold : T.ash,
+                              border: i === 0 ? `1px solid ${T.gold}` : "1px solid transparent",
+                            }}>
+                              {day}
+                            </div>
+                          );
+                        }
+                        return cells;
+                      })()}
+                    </div>
+                    <div style={{display:"flex",gap:12,marginTop:8,justifyContent:"center"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:4}}>
+                        <div style={{width:8,height:8,borderRadius:2,background:T.goldGlow,border:`1px solid ${T.gold}`}}/>
+                        <span style={{fontFamily:FONT_BODY,fontSize:10,color:T.muted}}>Today</span>
+                      </div>
+                      <div style={{display:"flex",alignItems:"center",gap:4}}>
+                        <div style={{width:8,height:8,borderRadius:2,background:"rgba(231,76,60,0.15)"}}/>
+                        <span style={{fontFamily:FONT_BODY,fontSize:10,color:T.muted}}>Booked</span>
+                      </div>
+                      <div style={{display:"flex",alignItems:"center",gap:4}}>
+                        <div style={{width:8,height:8,borderRadius:2,background:"transparent",border:`1px solid ${T.wire}`}}/>
+                        <span style={{fontFamily:FONT_BODY,fontSize:10,color:T.muted}}>Open</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{height:1,background:T.wire,margin:"20px 0"}}/>
+
                   {/* Cancellation policy — lifted = distinct inner block */}
                   <div style={{background:T.lifted,border:`1px solid ${T.rim}`,borderRadius:6,padding:14}}>
                     <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,lineHeight:1.65,textAlign:"center"}}>
@@ -1072,6 +1251,9 @@ function GuideProfile({ guide=GUIDE }) {
         </button>
       </div>
 
+      {lightboxOpen && guide.galleryPhotos?.filter(Boolean).length > 0 && (
+        <Lightbox photos={guide.galleryPhotos.filter(Boolean)} startIndex={lightboxIndex} onClose={()=>setLightboxOpen(false)}/>
+      )}
       {bookingOpen&&<BookingPanel guide={guide} onClose={()=>setBookingOpen(false)}/>}
       {messageOpen&&<MessagePanel guide={guide} onClose={()=>setMessageOpen(false)}/>}
     </>
@@ -1175,7 +1357,19 @@ export default function GuideProfilePage({ params }) {
         })),
         fieldNotes: [],
         licenses: licenses || [],
+        bookedDates: [],
       };
+
+      // Fetch booked dates for calendar
+      try {
+        const { data: booked } = await supabase
+          .from("bookings")
+          .select("trip_date")
+          .eq("guide_id", g.id)
+          .in("status", ["confirmed", "pending"])
+          .gte("trip_date", new Date().toISOString().split("T")[0]);
+        if (booked) shaped.bookedDates = booked.map(b => b.trip_date);
+      } catch(e) { /* calendar is non-critical */ }
 
       setGuide(shaped);
     } catch(e) {
