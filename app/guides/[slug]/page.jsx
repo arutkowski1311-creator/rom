@@ -820,6 +820,11 @@ function GuideProfile({ guide=GUIDE }) {
             {guide.profilePhotoUrl && <Image className="guide-hero-avatar" src={guide.profilePhotoUrl} alt={guide.name} width={80} height={80} style={{borderRadius:"50%",objectFit:"cover",border:`3px solid ${T.gold}`,flexShrink:0}}/>}
             <h1 className="guide-hero-name" style={{fontFamily:FONT_DISPLAY,fontSize:64,fontWeight:400,color:T.white,lineHeight:1.0,textShadow:"0 2px 32px rgba(0,0,0,0.9)"}}>{guide.name}</h1>
           </div>
+          {guide.businessName && guide.personName && guide.businessName !== guide.personName && (
+            <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.gold,letterSpacing:"0.06em",marginBottom:6,textShadow:"0 1px 12px rgba(0,0,0,0.9)"}}>
+              with {guide.personName}
+            </div>
+          )}
           <div className="guide-hero-tagline" style={{fontFamily:FONT_BODY,fontSize:17,color:T.parchment,marginBottom:28,textShadow:"0 1px 12px rgba(0,0,0,0.9)"}}>{guide.tagline}</div>
           <div className="guide-stats-bar" style={{display:"inline-flex",alignItems:"center",background:"rgba(0,0,0,0.6)",backdropFilter:"blur(16px)",border:`1px solid ${T.wire}`,borderRadius:8,padding:"11px 20px",alignSelf:"flex-start",flexWrap:"wrap",gap:4}}>
             <div onClick={()=>setActiveTab("reviews")} style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer"}}>
@@ -858,7 +863,7 @@ function GuideProfile({ guide=GUIDE }) {
                 {activeTab==="about"&&(
                   <div style={{paddingTop:36}}>
                     {/* 1. Bio */}
-                    <h2 style={{fontFamily:FONT_DISPLAY,fontSize:38,color:T.white,fontWeight:400,marginBottom:22}}>About {guide.name.split(" ")[0]}</h2>
+                    <h2 style={{fontFamily:FONT_DISPLAY,fontSize:38,color:T.white,fontWeight:400,marginBottom:22}}>About {guide.personName ? guide.personName.split(" ")[0] : guide.name}</h2>
                     {(guide.bio || "").split(/\n\n|\r\n\r\n/).map((p,i)=>(
                       <p key={i} style={{fontFamily:FONT_BODY,fontSize:16,color:T.ash,lineHeight:1.85,marginBottom:20}}>{p}</p>
                     ))}
@@ -1305,7 +1310,9 @@ export default function GuideProfilePage({ params }) {
 
       const shaped = {
         id: g.id,
-        name: g.profiles?.full_name || "Guide",
+        name: g.business_name || g.profiles?.full_name || "Guide",
+        personName: g.profiles?.full_name || null,
+        businessName: g.business_name || null,
         email: g.profiles?.email || null,
         slug: g.slug,
         tagline: g.tagline || "",
