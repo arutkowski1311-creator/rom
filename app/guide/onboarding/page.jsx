@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { T, FONT_DISPLAY, FONT_BODY, TIERS } from "@/app/lib/theme";
 import { getSupabase } from "@/app/lib/supabase-browser";
 
@@ -26,6 +26,51 @@ function Input({ label, value, onChange, placeholder, type="text", multiline=fal
           style={{width:"100%",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:"12px 16px",fontFamily:FONT_BODY,fontSize:15,color:T.parchment,outline:"none"}}/>
       )}
     </div>
+  );
+}
+
+function VoiceButton({ onTranscript, listening, setListening }) {
+  const recognitionRef = useRef(null);
+  const supported = typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window);
+  if (!supported) return null;
+
+  const toggle = () => {
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+    let finalTranscript = "";
+    recognition.onresult = (e) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) { finalTranscript += e.results[i][0].transcript + " "; onTranscript(finalTranscript.trim()); }
+        else { interim += e.results[i][0].transcript; onTranscript((finalTranscript + interim).trim()); }
+      }
+    };
+    recognition.onerror = () => setListening(false);
+    recognition.onend = () => setListening(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+    setListening(true);
+  };
+
+  return (
+    <button type="button" onClick={toggle} style={{
+      width: 44, height: 44, borderRadius: "50%",
+      background: listening ? "#e74c3c" : T.steel,
+      border: `2px solid ${listening ? "#e74c3c" : T.wire}`,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      cursor: "pointer", flexShrink: 0, transition: "all 0.2s",
+      animation: listening ? "pulse-mic 1.5s infinite" : "none",
+    }}>
+      <span style={{ fontSize: 20, filter: listening ? "brightness(2)" : "none" }}>🎤</span>
+    </button>
   );
 }
 
@@ -70,6 +115,7 @@ export default function GuideOnboarding() {
   const [interviewAnswers, setInterviewAnswers] = useState({});
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [interviewDone, setInterviewDone] = useState(false);
+  const [voiceListening, setVoiceListening] = useState(false);
   const [generatedProfile, setGeneratedProfile] = useState(null);
   const [generatingProfile, setGeneratingProfile] = useState(false);
 
@@ -377,6 +423,7 @@ export default function GuideOnboarding() {
         *{box-sizing:border-box;margin:0;padding:0;}
         html,body{width:100%;background:${T.void};}
         input,textarea,select{color:${T.parchment}!important;}
+        @keyframes pulse-mic { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.7;transform:scale(1.1);} }
         input::placeholder,textarea::placeholder{color:${T.muted}!important;}
         select option{background:${T.steel};}
       `}</style>
@@ -459,11 +506,27 @@ export default function GuideOnboarding() {
                     <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:"4px 12px 12px 12px",padding:"10px 14px",fontFamily:FONT_BODY,fontSize:15,color:T.white,lineHeight:1.5,maxWidth:"85%"}}>{INTERVIEW_QUESTIONS[interviewIdx].q}</div>
                   </div>
 
-                  {/* Answer input */}
-                  <textarea value={currentAnswer} onChange={e=>setCurrentAnswer(e.target.value)} rows={3}
-                    placeholder="Your answer…"
-                    onKeyDown={e=>{ if (e.key==="Enter" && !e.shiftKey) { e.preventDefault(); handleInterviewNext(); } }}
-                    style={{width:"100%",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:"14px 16px",fontFamily:FONT_BODY,fontSize:15,color:T.parchment,outline:"none",resize:"none",lineHeight:1.6,marginBottom:12}}/>
+                  {/* Answer input with voice */}
+                  <div style={{display:"flex",gap:10,alignItems:"flex-end",marginBottom:12}}>
+                    <textarea value={currentAnswer} onChange={e=>setCurrentAnswer(e.target.value)} rows={3}
+                      placeholder={voiceListening ? "Listening… speak now" : "Type or tap the mic to speak…"}
+                      onKeyDown={e=>{ if (e.key==="Enter" && !e.shiftKey) { e.preventDefault(); handleInterviewNext(); } }}
+                      style={{flex:1,background:T.steel,border:`1px solid ${voiceListening ? "#e74c3c" : T.wire}`,borderRadius:8,padding:"14px 16px",fontFamily:FONT_BODY,fontSize:15,color:T.parchment,outline:"none",resize:"none",lineHeight:1.6,transition:"border-color 0.2s"}}/>
+                    <VoiceButton
+                      onTranscript={(text) => setCurrentAnswer(prev => {
+                        // If voice just started, replace. If already has typed text, append.
+                        return text;
+                      })}
+                      listening={voiceListening}
+                      setListening={setVoiceListening}
+                    />
+                  </div>
+                  {voiceListening && (
+                    <div style={{fontFamily:FONT_BODY,fontSize:12,color:"#e74c3c",marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
+                      <span style={{width:8,height:8,borderRadius:"50%",background:"#e74c3c",display:"inline-block",animation:"pulse-mic 1s infinite"}}/>
+                      Listening — speak naturally. Tap the mic again to stop.
+                    </div>
+                  )}
 
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <span style={{fontFamily:FONT_BODY,fontSize:12,color:T.muted}}>{interviewIdx + 1} of {INTERVIEW_QUESTIONS.length}</span>
