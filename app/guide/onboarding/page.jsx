@@ -31,20 +31,17 @@ function Input({ label, value, onChange, placeholder, type="text", multiline=fal
 
 function VoiceButton({ onTranscript, listening, setListening }) {
   const recognitionRef = useRef(null);
+  const stoppedManually = useRef(false);
   const supported = typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window);
   if (!supported) return null;
 
-  const toggle = () => {
-    if (listening) {
-      recognitionRef.current?.stop();
-      setListening(false);
-      return;
-    }
+  const startRecognition = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = "en-US";
+    recognition.maxAlternatives = 1;
     let finalTranscript = "";
     recognition.onresult = (e) => {
       let interim = "";
@@ -53,11 +50,34 @@ function VoiceButton({ onTranscript, listening, setListening }) {
         else { interim += e.results[i][0].transcript; onTranscript((finalTranscript + interim).trim()); }
       }
     };
-    recognition.onerror = () => setListening(false);
-    recognition.onend = () => setListening(false);
+    recognition.onerror = (e) => {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        setListening(false);
+        stoppedManually.current = true;
+      }
+    };
+    recognition.onend = () => {
+      // Auto-restart if user didn't manually stop — keeps listening through pauses
+      if (!stoppedManually.current) {
+        try { recognition.start(); } catch(e) { setListening(false); }
+      } else {
+        setListening(false);
+      }
+    };
     recognitionRef.current = recognition;
+    stoppedManually.current = false;
     recognition.start();
     setListening(true);
+  };
+
+  const toggle = () => {
+    if (listening) {
+      stoppedManually.current = true;
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+    startRecognition();
   };
 
   return (
