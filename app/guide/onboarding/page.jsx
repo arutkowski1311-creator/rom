@@ -159,6 +159,7 @@ export default function GuideOnboarding() {
   const [location, setLocation] = useState("");
   const [yearsExp, setYearsExp] = useState("");
   const [website, setWebsite] = useState("");
+  const [featuredLocations, setFeaturedLocations] = useState("");
 
   // Step 2 — Categories
   const [selectedCats, setSelectedCats] = useState([]);
@@ -467,6 +468,8 @@ export default function GuideOnboarding() {
         years_experience: yearsExp ? parseInt(yearsExp) : null,
         website: website || null,
         business_name: businessName || fullName,
+        featured_locations: featuredLocations || null,
+        display_name: fullName,
         business_type: "solo",
         verified: false,
         insured: false,
@@ -729,6 +732,17 @@ export default function GuideOnboarding() {
               <Input label="Bio" value={bio} onChange={setBio} placeholder="Tell guests about your experience, the waters/terrain you know, what makes your trips special…" multiline required/>
               <Input label="Location" value={location} onChange={setLocation} placeholder="e.g. Lake Placid, NY" required/>
               <Input label="Years of experience" value={yearsExp} onChange={setYearsExp} placeholder="e.g. 12" type="number"/>
+              <div style={{marginBottom:20}}>
+                <label style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:600,color:T.ash,display:"block",marginBottom:8}}>
+                  Featured locations <span style={{color:T.muted,fontWeight:400}}>(optional)</span>
+                </label>
+                <p style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,marginBottom:8,lineHeight:1.5}}>
+                  Any specific locations you'd like highlighted on your site — trails, peaks, rivers, lakes, venues, restaurants, etc.
+                </p>
+                <textarea value={featuredLocations} onChange={e=>setFeaturedLocations(e.target.value)} rows={3}
+                  placeholder="e.g. West Branch Ausable River, Cascade Mountain, Marcy Dam, Mirror Lake..."
+                  style={{width:"100%",boxSizing:"border-box",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:"12px 16px",fontFamily:FONT_BODY,fontSize:15,color:T.parchment,outline:"none",resize:"vertical",lineHeight:1.6}}/>
+              </div>
               <Input label="Website (optional)" value={website} onChange={setWebsite} placeholder="https://yoursite.com"/>
               <div style={{marginTop:32,display:"flex",gap:16}}>
                 <GoldBtn outline small onClick={()=>setStep(1)}>← Back</GoldBtn>
