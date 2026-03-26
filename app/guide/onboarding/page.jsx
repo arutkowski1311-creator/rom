@@ -232,7 +232,7 @@ export default function GuideOnboarding() {
       try {
         const supabase = getSupabase();
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return; // Not logged in — show step 0 (create account)
+        if (!user) { setCheckingSession(false); return; } // Not logged in — show step 0
 
         // User is logged in — check if they have a guide record
         const { data: profile } = await supabase.from("profiles").select("full_name, email, role").eq("id", user.id).single();
@@ -246,6 +246,7 @@ export default function GuideOnboarding() {
         if (!guide) {
           // Has account but no guide record — resume at interview (step 1)
           setStep(1);
+          setCheckingSession(false);
           return;
         }
 
