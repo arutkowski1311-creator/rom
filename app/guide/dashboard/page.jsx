@@ -838,6 +838,7 @@ const TABS = ["Overview","Bookings","Calendar","Packages","Messages","Earnings",
 
 export default function GuideDashboard() {
   const [tab, setTab] = useState("Overview");
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [bookings, setBookings] = useState([]);
   const [activeBooking, setActiveBooking] = useState(null);
   const [bookingFilter, setBookingFilter] = useState("all");
@@ -1437,7 +1438,37 @@ export default function GuideDashboard() {
                 <span style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold}}>{pendingCount}</span>
               </div>
             )}
-            <div style={{width:32,height:32,borderRadius:"50%",background:T.steel,border:`2px solid ${T.gold}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FONT_DISPLAY,fontSize:14,color:T.gold,flexShrink:0}}>{guide.avatar}</div>
+            <div style={{position:"relative"}}>
+              <div onClick={()=>setShowUserMenu(!showUserMenu)} style={{width:32,height:32,borderRadius:"50%",background:T.steel,border:`2px solid ${T.gold}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FONT_DISPLAY,fontSize:14,color:T.gold,flexShrink:0,cursor:"pointer"}}>{guide.avatar}</div>
+              {showUserMenu && (
+                <>
+                  <div onClick={()=>setShowUserMenu(false)} style={{position:"fixed",inset:0,zIndex:199}}/>
+                  <div style={{position:"absolute",top:40,right:0,background:T.carbon,border:`1px solid ${T.wire}`,borderRadius:10,padding:8,minWidth:200,zIndex:200,boxShadow:"0 8px 32px rgba(0,0,0,0.5)"}}>
+                    <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.rim}`}}>
+                      <div style={{fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:T.parchment}}>{guide.name}</div>
+                      <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.muted}}>{guide.email || ""}</div>
+                    </div>
+                    {[
+                      {label:"View Public Profile",action:()=>window.open(`/guides/${guide.slug}`,"_blank")},
+                      {label:"Dashboard",action:()=>{setTab("Overview");setShowUserMenu(false);}},
+                      {label:"Profile Settings",action:()=>{setTab("Profile");setShowUserMenu(false);}},
+                      {label:"Home",action:()=>window.location.href="/"},
+                    ].map(item=>(
+                      <div key={item.label} onClick={item.action} style={{padding:"9px 14px",fontFamily:FONT_BODY,fontSize:13,color:T.ash,cursor:"pointer",borderRadius:6,transition:"background 0.1s"}}
+                        onMouseEnter={e=>e.target.style.background=T.steel} onMouseLeave={e=>e.target.style.background="transparent"}>
+                        {item.label}
+                      </div>
+                    ))}
+                    <div style={{borderTop:`1px solid ${T.rim}`,marginTop:4,paddingTop:4}}>
+                      <div onClick={async()=>{const s=getSupabase();await s.auth.signOut();window.location.href="/";}} style={{padding:"9px 14px",fontFamily:FONT_BODY,fontSize:13,color:"#aa7a7a",cursor:"pointer",borderRadius:6}}
+                        onMouseEnter={e=>e.target.style.background=T.steel} onMouseLeave={e=>e.target.style.background="transparent"}>
+                        Sign Out
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
