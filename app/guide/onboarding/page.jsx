@@ -38,36 +38,50 @@ function VoiceButton({ onTranscript, listening, setListening }) {
   const startRecognition = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
-    recognition.continuous = true;
+    // Edge works better with continuous=false + auto-restart
+    const isEdge = navigator.userAgent.includes("Edg/");
+    recognition.continuous = !isEdge;
     recognition.interimResults = true;
     recognition.lang = "en-US";
     recognition.maxAlternatives = 1;
-    let finalTranscript = "";
+
     recognition.onresult = (e) => {
-      let interim = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) { finalTranscript += e.results[i][0].transcript + " "; onTranscript(finalTranscript.trim()); }
-        else { interim += e.results[i][0].transcript; onTranscript((finalTranscript + interim).trim()); }
+      let transcript = "";
+      for (let i = 0; i < e.results.length; i++) {
+        transcript += e.results[i][0].transcript;
       }
+      if (transcript) onTranscript(transcript.trim());
     };
     recognition.onerror = (e) => {
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+      console.log("Speech error:", e.error);
+      if (e.error === "not-allowed" || e.error === "service-not-allowed" || e.error === "audio-capture") {
         setListening(false);
         stoppedManually.current = true;
+        alert("Microphone access denied. Please allow microphone permission in your browser settings and try again.");
       }
+      // "no-speech" error = silence detected, just restart
     };
     recognition.onend = () => {
-      // Auto-restart if user didn't manually stop — keeps listening through pauses
       if (!stoppedManually.current) {
-        try { recognition.start(); } catch(e) { setListening(false); }
+        // Auto-restart to keep listening through pauses
+        try {
+          setTimeout(() => {
+            if (!stoppedManually.current) recognition.start();
+          }, 100);
+        } catch(e) { setListening(false); }
       } else {
         setListening(false);
       }
     };
     recognitionRef.current = recognition;
     stoppedManually.current = false;
-    recognition.start();
-    setListening(true);
+    try {
+      recognition.start();
+      setListening(true);
+    } catch(e) {
+      console.error("Failed to start speech recognition:", e);
+      alert("Speech recognition failed to start. Try using Chrome for the best experience.");
+    }
   };
 
   const toggle = () => {
