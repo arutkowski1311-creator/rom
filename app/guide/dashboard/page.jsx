@@ -2348,7 +2348,7 @@ export default function GuideDashboard() {
             <div style={{maxWidth:700}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:28}}>
                 <div style={{fontFamily:FONT_DISPLAY,fontSize:32,color:T.white,fontWeight:400}}>Your Profile</div>
-                <GoldBtn onClick={()=>alert("Opening profile editor…")}>Edit Profile</GoldBtn>
+                <GoldBtn onClick={()=>setTab("Profile")}>Edit Profile</GoldBtn>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:14}}>
                 <SectionCard title="Public Profile">
