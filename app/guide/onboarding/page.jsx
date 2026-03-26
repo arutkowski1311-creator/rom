@@ -136,15 +136,14 @@ export default function GuideOnboarding() {
 
   // Step 1 — Interview
   const INTERVIEW_QUESTIONS = [
-    { id: "origin", q: "How did you become a guide? Was there a moment you knew this was it?" },
-    { id: "knowledge", q: "What do you know about your craft that most people don't?" },
-    { id: "favorite_spot", q: "Describe your favorite spot — you don't have to give away coordinates." },
-    { id: "perfect_day", q: "What does a perfect day with a client look like?" },
-    { id: "surprise_guest", q: "Tell me about a guest who surprised you." },
-    { id: "ideal_client", q: "What kind of clients do you do your best work with?" },
-    { id: "busiest_month", q: "What's your busiest month and why do you think that is?" },
-    { id: "keeps_up_at_night", q: "What keeps you up at night about your business?" },
-    { id: "running_perfectly", q: "If your business was running perfectly, what would be different from today?" },
+    { id: "what_you_do", q: "What do you do, and who do you typically help?" },
+    { id: "where_you_work", q: "Where do you usually work or guide? Be as specific as you can." },
+    { id: "the_experience", q: "Walk me through what someone experiences when they work with you." },
+    { id: "best_work", q: "What kinds of situations, environments, or people do you do your best work with?" },
+    { id: "misunderstood", q: "What do most people misunderstand or underestimate about what you do? What do they only realize after working with you?" },
+    { id: "differentiator", q: "What do you do differently than most others who do something similar?" },
+    { id: "origin", q: "How did you get into this in the first place?" },
+    { id: "the_click", q: "When did it click that you were really good at this?" },
   ];
   const [interviewIdx, setInterviewIdx] = useState(0);
   const [interviewAnswers, setInterviewAnswers] = useState({});
@@ -620,9 +619,12 @@ export default function GuideOnboarding() {
               {!interviewDone ? (
                 <>
                   <div style={{fontFamily:FONT_DISPLAY,fontSize:42,color:T.white,fontWeight:400,marginBottom:8}}>Tell us about yourself</div>
-                  <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver,marginBottom:28,lineHeight:1.6}}>
-                    {interviewIdx < 5 ? "A few questions so we can write your profile." : "Last few questions about the business side — this helps us work for you."}
+                  <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver,marginBottom:16,lineHeight:1.6}}>
+                    Answer like you're talking to someone in real life — not writing a formal bio. A few sentences is perfect. Speak naturally and use the mic if you prefer!
                   </p>
+                  <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.muted,marginBottom:28}}>
+                    {interviewIdx + 1} of {INTERVIEW_QUESTIONS.length} questions
+                  </div>
 
                   {/* Chat history */}
                   <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:24,maxHeight:320,overflowY:"auto"}}>
