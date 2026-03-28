@@ -324,16 +324,16 @@ export default function ConciergePage() {
         }
       }
     } catch (e) { console.error("Unsplash fetch error:", e); }
-    // Fallback — generate 6 variations from Unsplash source
-    const keywords = ["landscape", "mountains", "nature", "scenic", "travel", "adventure"];
-    setPhotoOptions(keywords.map((kw, i) => ({
-      id: `fallback-${i}`,
-      url: `https://source.unsplash.com/600x900/?${encodeURIComponent(destination + " " + kw)}`,
-      fullUrl: `https://source.unsplash.com/1080x1920/?${encodeURIComponent(destination + " " + kw)}`,
-      thumb: `https://source.unsplash.com/300x450/?${encodeURIComponent(destination + " " + kw)}`,
-      alt: `${destination} ${kw}`,
-      credit: "Unsplash",
-    })));
+    // Fallback — curated adventure photos (known working Unsplash IDs)
+    const fallbackPhotos = [
+      { id: "fb-1", url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=900&fit=crop", fullUrl: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1080&h=1920&fit=crop&q=85", thumb: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=450&fit=crop", alt: "Mountain landscape", credit: "Unsplash" },
+      { id: "fb-2", url: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&h=900&fit=crop", fullUrl: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1080&h=1920&fit=crop&q=85", thumb: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=300&h=450&fit=crop", alt: "Mountain peak", credit: "Unsplash" },
+      { id: "fb-3", url: "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=600&h=900&fit=crop", fullUrl: "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=1080&h=1920&fit=crop&q=85", thumb: "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=300&h=450&fit=crop", alt: "Camping adventure", credit: "Unsplash" },
+      { id: "fb-4", url: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&h=900&fit=crop", fullUrl: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=1080&h=1920&fit=crop&q=85", thumb: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=300&h=450&fit=crop", alt: "Hiking trail", credit: "Unsplash" },
+      { id: "fb-5", url: "https://images.unsplash.com/photo-1527004013197-933c4bb611b3?w=600&h=900&fit=crop", fullUrl: "https://images.unsplash.com/photo-1527004013197-933c4bb611b3?w=1080&h=1920&fit=crop&q=85", thumb: "https://images.unsplash.com/photo-1527004013197-933c4bb611b3?w=300&h=450&fit=crop", alt: "Lake and mountains", credit: "Unsplash" },
+      { id: "fb-6", url: "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=600&h=900&fit=crop", fullUrl: "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=1080&h=1920&fit=crop&q=85", thumb: "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=300&h=450&fit=crop", alt: "Mountain vista", credit: "Unsplash" },
+    ];
+    setPhotoOptions(fallbackPhotos);
     setLoadingPhotos(false);
   };
 
@@ -811,9 +811,9 @@ export default function ConciergePage() {
           {/* Step: Flights */}
           {s === "flights" && (
             <div>
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 42, color: T.white, marginBottom: 8 }}>Flying in?</div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.silver, marginBottom: 28 }}>Leave blank if you are driving or already local.</div>
-              <input autoFocus type="text" placeholder="e.g., Chicago, IL" value={flightOrigin} onChange={e => setFlightOrigin(e.target.value)} onKeyDown={e => e.key === "Enter" && advance()}
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: isMobile ? 32 : 42, color: T.white, marginBottom: 8 }}>Where are you coming from?</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.silver, marginBottom: 28 }}>We'll find the best flight options. Leave blank if you're driving or already local.</div>
+              <input autoFocus type="text" placeholder="Enter your city — e.g., Chicago, IL" value={flightOrigin} onChange={e => setFlightOrigin(e.target.value)} onKeyDown={e => e.key === "Enter" && advance()}
                 style={{ width: "100%", background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 10, padding: "16px 20px", fontFamily: FONT_BODY, fontSize: 18, color: T.parchment, outline: "none", boxSizing: "border-box" }} />
             </div>
           )}
