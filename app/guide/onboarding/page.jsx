@@ -31,79 +31,113 @@ function Input({ label, value, onChange, placeholder, type="text", multiline=fal
 
 function VoiceButton({ onTranscript, listening, setListening }) {
   const recognitionRef = useRef(null);
-  const stoppedManually = useRef(false);
-  const supported = typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window);
-  if (!supported) return null;
+  const shouldRestart = useRef(false);
+  const fullTranscript = useRef("");
+  const [supported, setSupported] = useState(false);
 
-  const startRecognition = () => {
+  useEffect(() => {
+    setSupported(typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window));
+  }, []);
+
+  useEffect(() => {
+    // Cleanup on unmount
+    return () => {
+      shouldRestart.current = false;
+      try { recognitionRef.current?.abort(); } catch(e) {}
+    };
+  }, []);
+
+  const startFresh = () => {
+    // Kill any existing instance completely
+    try { recognitionRef.current?.abort(); } catch(e) {}
+    recognitionRef.current = null;
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    // Edge works better with continuous=false + auto-restart
-    const isEdge = navigator.userAgent.includes("Edg/");
-    recognition.continuous = !isEdge;
-    recognition.interimResults = true;
-    recognition.lang = "en-US";
-    recognition.maxAlternatives = 1;
+    const rec = new SpeechRecognition();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = "en-US";
 
-    recognition.onresult = (e) => {
-      let transcript = "";
+    rec.onresult = (e) => {
+      let final = "";
+      let interim = "";
       for (let i = 0; i < e.results.length; i++) {
-        transcript += e.results[i][0].transcript;
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) final += t + " ";
+        else interim += t;
       }
-      if (transcript) onTranscript(transcript.trim());
+      fullTranscript.current = (final + interim).trim();
+      onTranscript(fullTranscript.current);
     };
-    recognition.onerror = (e) => {
+
+    rec.onerror = (e) => {
       console.log("Speech error:", e.error);
-      if (e.error === "not-allowed" || e.error === "service-not-allowed" || e.error === "audio-capture") {
+      if (e.error === "not-allowed" || e.error === "audio-capture") {
+        shouldRestart.current = false;
         setListening(false);
-        stoppedManually.current = true;
-        alert("Microphone access denied. Please allow microphone permission in your browser settings and try again.");
+        return;
       }
-      // "no-speech" error = silence detected, just restart
+      // For "no-speech", "network", "aborted" — try to restart
     };
-    recognition.onend = () => {
-      if (!stoppedManually.current) {
-        // Auto-restart to keep listening through pauses
-        try {
-          setTimeout(() => {
-            if (!stoppedManually.current) recognition.start();
-          }, 100);
-        } catch(e) { setListening(false); }
+
+    rec.onend = () => {
+      if (shouldRestart.current) {
+        // Auto-restart after brief pause
+        setTimeout(() => {
+          if (shouldRestart.current) {
+            try { rec.start(); } catch(e) {
+              // If restart fails, create a completely new instance
+              shouldRestart.current = false;
+              setListening(false);
+            }
+          }
+        }, 200);
       } else {
         setListening(false);
       }
     };
-    recognitionRef.current = recognition;
-    stoppedManually.current = false;
-    try {
-      recognition.start();
-      setListening(true);
-    } catch(e) {
-      console.error("Failed to start speech recognition:", e);
-      alert("Speech recognition failed to start. Try using Chrome for the best experience.");
-    }
+
+    recognitionRef.current = rec;
+    fullTranscript.current = "";
+    shouldRestart.current = true;
+
+    // Small delay helps Edge/Chrome initialize properly
+    setTimeout(() => {
+      try {
+        rec.start();
+        setListening(true);
+      } catch(e) {
+        console.error("Speech start failed:", e);
+        shouldRestart.current = false;
+        setListening(false);
+      }
+    }, 50);
+  };
+
+  const stop = () => {
+    shouldRestart.current = false;
+    try { recognitionRef.current?.stop(); } catch(e) {}
+    setListening(false);
   };
 
   const toggle = () => {
-    if (listening) {
-      stoppedManually.current = true;
-      recognitionRef.current?.stop();
-      setListening(false);
-      return;
-    }
-    startRecognition();
+    if (listening) { stop(); return; }
+    startFresh();
   };
 
+  if (!supported) return null;
+
   return (
-    <button type="button" onClick={toggle} style={{
-      width: 44, height: 44, borderRadius: "50%",
+    <button type="button" onClick={toggle} title={listening ? "Stop recording" : "Start voice input"} style={{
+      width: 48, height: 48, borderRadius: "50%",
       background: listening ? "#e74c3c" : T.steel,
       border: `2px solid ${listening ? "#e74c3c" : T.wire}`,
       display: "flex", alignItems: "center", justifyContent: "center",
       cursor: "pointer", flexShrink: 0, transition: "all 0.2s",
       animation: listening ? "pulse-mic 1.5s infinite" : "none",
+      boxShadow: listening ? "0 0 20px rgba(231,76,60,0.4)" : "none",
     }}>
-      <span style={{ fontSize: 20, filter: listening ? "brightness(2)" : "none" }}>🎤</span>
+      <span style={{ fontSize: 22 }}>{listening ? "⏹" : "🎤"}</span>
     </button>
   );
 }
