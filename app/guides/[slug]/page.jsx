@@ -723,23 +723,25 @@ function GuideProfile({ guide=GUIDE }) {
   const [conditions,setConditions]=useState(null);
   const touchRef = useRef(null);
 
-  // Fetch live conditions
+  // Fetch live conditions — vertical-aware
   useEffect(() => {
     if (!guide?.location) return;
     const fetchConditions = async () => {
       try {
-        // Geocode location name to lat/lng
-        // Strip state abbreviation and clean location for geocoding (e.g., "Bozeman, MT" → "Bozeman")
         const cleanLocation = guide.location.split(",")[0].trim();
         const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanLocation)}&count=1`);
         const geoData = await geoRes.json();
         if (!geoData.results?.[0]) return;
         const { latitude, longitude } = geoData.results[0];
-        const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max&timezone=auto&forecast_days=1&temperature_unit=fahrenheit&wind_speed_unit=mph`);
+
+        // Base weather — always fetch
+        const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,uv_index&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max,uv_index_max&timezone=auto&forecast_days=1&temperature_unit=fahrenheit&wind_speed_unit=mph`);
         const w = await weatherRes.json();
         if (!w.current) return;
+
         const codes = {0:"Clear sky",1:"Mainly clear",2:"Partly cloudy",3:"Overcast",45:"Foggy",48:"Fog",51:"Light drizzle",53:"Drizzle",55:"Heavy drizzle",61:"Light rain",63:"Rain",65:"Heavy rain",71:"Light snow",73:"Snow",75:"Heavy snow",80:"Light showers",81:"Showers",82:"Heavy showers",95:"Thunderstorm"};
-        setConditions({
+
+        const base = {
           temp: Math.round(w.current.temperature_2m),
           humidity: w.current.relative_humidity_2m,
           wind: Math.round(w.current.wind_speed_10m),
@@ -749,11 +751,113 @@ function GuideProfile({ guide=GUIDE }) {
           sunrise: w.daily?.sunrise?.[0],
           sunset: w.daily?.sunset?.[0],
           precipChance: w.daily?.precipitation_probability_max?.[0] ?? null,
-        });
+          uvIndex: w.current?.uv_index ?? w.daily?.uv_index_max?.[0] ?? null,
+        };
+
+        // Determine guide vertical for conditions display
+        const cat = (guide.categories || [])[0] || "";
+        const catLower = cat.toLowerCase();
+        const isWater = ["fly fishing","kayaking","surfing","diving","sailing","whitewater rafting","ice fishing"].some(w => catLower.includes(w));
+        const isAlpine = ["hiking","rock climbing","backpacking","backcountry skiing","ice climbing","via ferrata","mountain biking","snowshoeing"].some(w => catLower.includes(w));
+        const isStar = catLower.includes("stargazing");
+        const isWildlife = ["wildlife","photography","birdwatching","foraging"].some(w => catLower.includes(w));
+        const isUrban = ["food tour","wine","brewery","walking tour","historical","cultural","art","museum"].some(w => catLower.includes(w));
+        const isMotor = ["4wd","atv","snowmobil","scenic flight"].some(w => catLower.includes(w));
+
+        // Build vertical-specific data grid
+        let conditionCards = [];
+        if (isWater) {
+          conditionCards = [
+            ["🌡️","Temp",`${base.high}°F / ${base.low}°F`],
+            ["💨","Wind",`${base.wind} mph`],
+            ["🌅","Sunrise",base.sunrise ? new Date(base.sunrise).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "—"],
+            ["🌇","Sunset",base.sunset ? new Date(base.sunset).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "—"],
+            ["🌧️","Rain",base.precipChance != null ? `${base.precipChance}%` : "—"],
+            ["💧","Humidity",`${base.humidity}%`],
+          ];
+          base.widgetTitle = "Water & Weather Conditions";
+        } else if (isAlpine) {
+          conditionCards = [
+            ["🌡️","Temp",`${base.high}°F / ${base.low}°F`],
+            ["☀️","UV Index",base.uvIndex != null ? `${Math.round(base.uvIndex)} of 11` : "—"],
+            ["💨","Wind",`${base.wind} mph`],
+            ["🌅","Sunrise",base.sunrise ? new Date(base.sunrise).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "—"],
+            ["🌇","Sunset",base.sunset ? new Date(base.sunset).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "—"],
+            ["🌧️","Precip",base.precipChance != null ? `${base.precipChance}%` : "—"],
+          ];
+          base.widgetTitle = "Trail & Summit Conditions";
+        } else if (isStar) {
+          // Calculate moon phase approximation
+          const d = new Date();
+          const lunarCycle = 29.53;
+          const knownNew = new Date("2024-01-11");
+          const daysSince = (d - knownNew) / (1000*60*60*24);
+          const moonAge = daysSince % lunarCycle;
+          const moonPhase = moonAge < 1.8 ? "New Moon" : moonAge < 5.5 ? "Waxing Crescent" : moonAge < 9.2 ? "First Quarter" : moonAge < 12.9 ? "Waxing Gibbous" : moonAge < 16.6 ? "Full Moon" : moonAge < 20.3 ? "Waning Gibbous" : moonAge < 24 ? "Last Quarter" : moonAge < 27.7 ? "Waning Crescent" : "New Moon";
+          const moonIllum = moonAge <= 14.76 ? Math.round((moonAge / 14.76) * 100) : Math.round(((lunarCycle - moonAge) / 14.76) * 100);
+          const darkRating = moonIllum < 15 ? "Excellent" : moonIllum < 40 ? "Good" : moonIllum < 70 ? "Fair" : "Poor";
+          conditionCards = [
+            ["🌙","Moon",`${moonPhase}`],
+            ["🔭","Darkness",darkRating],
+            ["☁️","Clouds",base.condition],
+            ["🌡️","Temp",`${base.low}°F overnight`],
+            ["💨","Wind",`${base.wind} mph`],
+            ["🌅","Sunset",base.sunset ? new Date(base.sunset).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "—"],
+          ];
+          base.widgetTitle = "Tonight's Sky Conditions";
+        } else if (isWildlife) {
+          const d = new Date();
+          const lunarCycle = 29.53;
+          const knownNew = new Date("2024-01-11");
+          const daysSince = (d - knownNew) / (1000*60*60*24);
+          const moonAge = daysSince % lunarCycle;
+          const moonPhase = moonAge < 7.4 ? "New/Crescent" : moonAge < 14.76 ? "First/Gibbous" : moonAge < 22.1 ? "Full/Gibbous" : "Last/Crescent";
+          conditionCards = [
+            ["🌅","Sunrise",base.sunrise ? new Date(base.sunrise).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "—"],
+            ["🌇","Sunset",base.sunset ? new Date(base.sunset).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "—"],
+            ["🌙","Moon",moonPhase],
+            ["🌡️","Temp",`${base.high}°F / ${base.low}°F`],
+            ["💨","Wind",`${base.wind} mph`],
+            ["👁️","Visibility",base.humidity < 60 ? "Clear" : base.humidity < 80 ? "Good" : "Hazy"],
+          ];
+          base.widgetTitle = "Wildlife Activity Conditions";
+        } else if (isUrban) {
+          conditionCards = [
+            ["🌡️","Temp",`${base.high}°F / ${base.low}°F`],
+            ["☀️","UV",base.uvIndex != null ? `${Math.round(base.uvIndex)}` : "—"],
+            ["🌧️","Rain",base.precipChance != null ? `${base.precipChance}%` : "—"],
+            ["👟","Walking","Perfect" ],
+          ];
+          base.widgetTitle = "Today's Conditions";
+        } else if (isMotor) {
+          conditionCards = [
+            ["🌡️","Temp",`${base.high}°F / ${base.low}°F`],
+            ["🌧️","Precip",base.precipChance != null ? `${base.precipChance}%` : "—"],
+            ["💨","Wind",`${base.wind} mph`],
+            ["👁️","Visibility",base.humidity < 60 ? "Clear" : base.humidity < 80 ? "Good" : "Limited"],
+            ["🌅","Sunrise",base.sunrise ? new Date(base.sunrise).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "—"],
+            ["🌇","Sunset",base.sunset ? new Date(base.sunset).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "—"],
+          ];
+          base.widgetTitle = "Road & Weather Conditions";
+        } else {
+          // Default
+          conditionCards = [
+            ["🌡️","Temp",`${base.high}°F / ${base.low}°F`],
+            ["💨","Wind",`${base.wind} mph`],
+            ["🌅","Sunrise",base.sunrise ? new Date(base.sunrise).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "—"],
+            ["🌇","Sunset",base.sunset ? new Date(base.sunset).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "—"],
+            ["🌧️","Rain",base.precipChance != null ? `${base.precipChance}%` : "—"],
+            ["💧","Humidity",`${base.humidity}%`],
+          ];
+          base.widgetTitle = "Current Conditions";
+        }
+
+        base.cards = conditionCards;
+        setConditions(base);
       } catch(e) { /* conditions widget is non-critical */ }
     };
     fetchConditions();
-  }, [guide?.location]);
+  }, [guide?.location, guide?.categories]);
 
   return (
     <>
@@ -885,12 +989,11 @@ function GuideProfile({ guide=GUIDE }) {
                       );
                     })()}
 
-                    {/* 3. Live Conditions Widget */}
+                    {/* 3. Live Conditions Widget — vertical-aware */}
                     {conditions && (
                       <div style={{marginBottom:36}}>
-                        <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:14}}>Right Now in {guide.location}</div>
+                        <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:14}}>{conditions.widgetTitle || "Current Conditions"} — {guide.location}</div>
                         <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:20}}>
-                          {/* Current temp + condition header */}
                           <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:16,paddingBottom:16,borderBottom:`1px solid ${T.rim}`}}>
                             <div style={{fontFamily:FONT_DISPLAY,fontSize:44,color:T.white,fontWeight:300,lineHeight:1}}>{conditions.temp}°</div>
                             <div>
@@ -898,16 +1001,8 @@ function GuideProfile({ guide=GUIDE }) {
                               <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver}}>High {conditions.high}° · Low {conditions.low}°</div>
                             </div>
                           </div>
-                          {/* 3x2 grid of details */}
-                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-                            {[
-                              ["🌅","Sunrise",conditions.sunrise ? new Date(conditions.sunrise).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "—"],
-                              ["🌇","Sunset",conditions.sunset ? new Date(conditions.sunset).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "—"],
-                              ["💨","Wind",`${conditions.wind} mph`],
-                              ["💧","Humidity",`${conditions.humidity}%`],
-                              ["🌧️","Rain Chance",conditions.precipChance != null ? `${conditions.precipChance}%` : "—"],
-                              ["🌡️","Feels Like",`${conditions.temp}°F`],
-                            ].map(([icon,label,val])=>(
+                          <div style={{display:"grid",gridTemplateColumns:conditions.cards?.length <= 4 ? "1fr 1fr" : "1fr 1fr 1fr",gap:8}}>
+                            {(conditions.cards || []).map(([icon,label,val])=>(
                               <div key={label} style={{background:T.lifted,borderRadius:8,padding:"10px 12px",textAlign:"center"}}>
                                 <div style={{fontSize:16,marginBottom:4}}>{icon}</div>
                                 <div style={{fontFamily:FONT_BODY,fontSize:9,color:T.muted,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:2}}>{label}</div>
