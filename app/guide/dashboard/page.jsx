@@ -857,6 +857,9 @@ export default function GuideDashboard() {
   const [replyBody, setReplyBody] = useState("");
   const [sendingMsg, setSendingMsg] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
+  const [actionItems, setActionItems] = useState([]);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [editingDraft, setEditingDraft] = useState({});
   const [stripeLoading, setStripeLoading] = useState(false);
   const [stripeStatus, setStripeStatus] = useState(null); // null | 'complete' | 'incomplete'
   const [uploadingPhoto, setUploadingPhoto] = useState(null); // 'profile' | 'cover' | 'gallery' | null
@@ -1162,6 +1165,14 @@ export default function GuideDashboard() {
         .eq("guide_id", g.id)
         .order("last_message_at", { ascending: false });
       if (threadData) setThreads(threadData);
+
+      // Fetch action items
+      const { data: actions } = await supabase
+        .from("action_items").select("*")
+        .eq("guide_id", g.id).eq("status", "open")
+        .order("created_at", { ascending: false }).limit(20);
+      if (actions) setActionItems(actions);
+
       const { data: avail } = await supabase
         .from("availability")
         .select("date")
@@ -2035,7 +2046,7 @@ export default function GuideDashboard() {
             </div>
           )}
 
-          {/* ── MESSAGES ── */}
+          {/* ── MESSAGES + ACTION CENTER ── */}
           {tab==="Messages" && (
             <div style={{maxWidth:800}}>
               {activeThread ? (
@@ -2052,6 +2063,7 @@ export default function GuideDashboard() {
                         <div key={msg.id} style={{display:"flex",flexDirection:"column",alignItems:isMe?"flex-end":"flex-start"}}>
                           <div style={{maxWidth:"72%",background:isMe?T.goldGlow:T.lifted,border:`1px solid ${isMe?T.gold:T.wire}`,borderRadius:isMe?"12px 12px 2px 12px":"12px 12px 12px 2px",padding:"10px 14px"}}>
                             <div style={{fontFamily:FONT_BODY,fontSize:14,color:isMe?T.gold:T.parchment,lineHeight:1.6}}>{msg.body}</div>
+                            {msg.auto_generated&&<div style={{fontFamily:FONT_BODY,fontSize:10,color:T.muted,marginTop:4,fontStyle:"italic"}}>🤖 Auto-responded by RŌM AI</div>}
                           </div>
                           <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.muted,marginTop:4}}>{isMe?"You":"Client"} · {new Date(msg.created_at).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})}</div>
                         </div>
@@ -2066,17 +2078,110 @@ export default function GuideDashboard() {
               ):(
                 <div>
                   <div style={{fontFamily:FONT_DISPLAY,fontSize:32,color:T.white,fontWeight:400,marginBottom:24}}>Messages</div>
-                  {threads.length===0?(
+
+                  {/* ── ACTION CENTER ── */}
+                  {actionItems.length > 0 && (
+                    <div style={{marginBottom:28}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+                        <div style={{width:10,height:10,borderRadius:"50%",background:"#e74c3c",animation:"pulse-mic 2s infinite"}}/>
+                        <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:"#e8a0a0",textTransform:"uppercase",letterSpacing:"0.08em"}}>Action Center — {actionItems.length} item{actionItems.length!==1?"s":""} need{actionItems.length===1?"s":""} your attention</div>
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                        {actionItems.map(item=>{
+                          const priorityColors={urgent:"#e74c3c",high:"#e67e22",normal:T.gold,low:T.silver};
+                          const priorityColor=priorityColors[item.priority]||T.gold;
+                          const isEditing=editingDraft[item.id]!==undefined;
+                          return(
+                            <div key={item.id} style={{background:T.steel,border:`1px solid ${item.priority==="urgent"?"rgba(231,76,60,0.4)":T.wire}`,borderLeft:`3px solid ${priorityColor}`,borderRadius:8,padding:"18px 20px"}}>
+                              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                                <div>
+                                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                                    <span style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:priorityColor,textTransform:"uppercase",letterSpacing:"0.06em",background:`${priorityColor}18`,padding:"2px 8px",borderRadius:4}}>{item.priority}</span>
+                                    <span style={{fontFamily:FONT_BODY,fontSize:10,color:T.muted}}>{new Date(item.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}</span>
+                                  </div>
+                                  <div style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:600,color:T.white}}>{item.title}</div>
+                                </div>
+                              </div>
+
+                              {/* Original message */}
+                              {item.body&&(
+                                <div style={{background:T.lifted,borderRadius:6,padding:"10px 14px",marginBottom:12,borderLeft:`2px solid ${T.wire}`}}>
+                                  <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.muted,marginBottom:4}}>Guest's message:</div>
+                                  <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash,lineHeight:1.6}}>{item.body}</div>
+                                </div>
+                              )}
+
+                              {/* AI Draft */}
+                              {item.ai_draft&&(
+                                <div style={{marginBottom:12}}>
+                                  <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.gold,marginBottom:6}}>🤖 AI drafted response:</div>
+                                  {isEditing?(
+                                    <textarea value={editingDraft[item.id]} onChange={e=>setEditingDraft(prev=>({...prev,[item.id]:e.target.value}))}
+                                      rows={4} style={{width:"100%",boxSizing:"border-box",background:T.lifted,border:`1px solid ${T.gold}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:13,color:T.parchment,outline:"none",resize:"vertical",lineHeight:1.6}}/>
+                                  ):(
+                                    <div style={{background:T.goldGlow,border:`1px solid rgba(193,163,98,0.3)`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:13,color:T.parchment,lineHeight:1.6}}>{item.ai_draft}</div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Action buttons */}
+                              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                                {item.ai_draft&&(
+                                  <>
+                                    <button onClick={async()=>{
+                                      const draft=editingDraft[item.id]||item.ai_draft;
+                                      await fetch("/api/action-items",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({itemId:item.id,action:"send_draft",editedDraft:draft})});
+                                      setActionItems(prev=>prev.filter(a=>a.id!==item.id));
+                                      setEditingDraft(prev=>{const n={...prev};delete n[item.id];return n;});
+                                    }} style={{background:T.gold,border:"none",borderRadius:6,padding:"8px 16px",fontFamily:FONT_BODY,fontSize:12,fontWeight:700,color:T.ink,cursor:"pointer"}}>
+                                      {isEditing?"Send Edited Response":"Send AI Response"}
+                                    </button>
+                                    {!isEditing?(
+                                      <button onClick={()=>setEditingDraft(prev=>({...prev,[item.id]:item.ai_draft}))} style={{background:T.lifted,border:`1px solid ${T.wire}`,borderRadius:6,padding:"8px 16px",fontFamily:FONT_BODY,fontSize:12,color:T.ash,cursor:"pointer"}}>Edit Draft</button>
+                                    ):(
+                                      <button onClick={()=>setEditingDraft(prev=>{const n={...prev};delete n[item.id];return n;})} style={{background:"none",border:`1px solid ${T.wire}`,borderRadius:6,padding:"8px 16px",fontFamily:FONT_BODY,fontSize:12,color:T.muted,cursor:"pointer"}}>Cancel Edit</button>
+                                    )}
+                                  </>
+                                )}
+                                {item.thread_id&&(
+                                  <button onClick={()=>{const t=threads.find(th=>th.id===item.thread_id);if(t)openThread(t);}} style={{background:"none",border:`1px solid ${T.wire}`,borderRadius:6,padding:"8px 16px",fontFamily:FONT_BODY,fontSize:12,color:T.ash,cursor:"pointer"}}>View Thread</button>
+                                )}
+                                <button onClick={async()=>{
+                                  await fetch("/api/action-items",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({itemId:item.id,action:"dismiss"})});
+                                  setActionItems(prev=>prev.filter(a=>a.id!==item.id));
+                                }} style={{background:"none",border:"none",fontFamily:FONT_BODY,fontSize:12,color:T.muted,cursor:"pointer",padding:"8px 4px"}}>Dismiss</button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Auto-handled summary */}
+                  {threads.some(t=>(t.messages||[]).some(m=>m.auto_generated))&&(
+                    <div style={{background:T.goldGlow,border:`1px solid rgba(193,163,98,0.2)`,borderRadius:8,padding:"14px 18px",marginBottom:20,display:"flex",alignItems:"center",gap:10}}>
+                      <span style={{fontSize:18}}>🤖</span>
+                      <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment}}>
+                        RŌM AI is handling routine messages in your voice. You'll only see items here that need your personal touch.
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Thread list */}
+                  {threads.length===0&&actionItems.length===0?(
                     <div style={{textAlign:"center",padding:"64px",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8}}>
                       <div style={{fontFamily:FONT_DISPLAY,fontSize:28,color:T.silver,fontWeight:300}}>No messages yet</div>
-                      <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.muted,marginTop:8}}>Messages from clients will appear here</div>
+                      <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.muted,marginTop:8}}>Messages from clients will appear here. RŌM AI handles routine inquiries automatically.</div>
                     </div>
                   ):(
                     <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                      {threads.length>0&&<div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>All Conversations</div>}
                       {threads.map(t=>{
                         const msgs=(t.messages||[]).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
                         const lastMsg=msgs[0];
                         const hasUnread=msgs.some(m=>m.sender_id!==currentUserId&&!m.read_at);
+                        const hasAuto=msgs.some(m=>m.auto_generated);
                         return(
                           <div key={t.id} onClick={()=>openThread(t)} style={{background:hasUnread?T.lifted:T.steel,border:`1px solid ${T.wire}`,borderLeft:`3px solid ${hasUnread?T.gold:"transparent"}`,borderRadius:8,padding:"18px 20px",cursor:"pointer",display:"flex",gap:16,alignItems:"center"}}
                             onMouseEnter={e=>e.currentTarget.style.background=T.lifted}
@@ -2084,7 +2189,10 @@ export default function GuideDashboard() {
                             <div style={{width:44,height:44,borderRadius:"50%",background:T.gunmetal,border:`2px solid ${hasUnread?T.gold:T.wire}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FONT_DISPLAY,fontSize:18,color:hasUnread?T.gold:T.silver,flexShrink:0}}>C</div>
                             <div style={{flex:1,minWidth:0}}>
                               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
-                                <div style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:hasUnread?700:500,color:T.parchment}}>Client</div>
+                                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                  <span style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:hasUnread?700:500,color:T.parchment}}>Client</span>
+                                  {hasAuto&&<span style={{fontFamily:FONT_BODY,fontSize:9,color:T.gold,background:T.goldGlow,padding:"1px 6px",borderRadius:3}}>AI handled</span>}
+                                </div>
                                 <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.muted}}>{lastMsg?new Date(lastMsg.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"}):""}</div>
                               </div>
                               {t.booking_id&&<div style={{fontFamily:FONT_BODY,fontSize:11,color:T.gold,marginBottom:4,fontWeight:600}}>Linked to booking</div>}
