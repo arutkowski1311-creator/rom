@@ -49,23 +49,29 @@ You take raw interview transcripts from ANY type of guide and build their ENTIRE
 
 Your job is to deeply analyze everything the guide said — their words, their passion, their knowledge, their personality — and create a profile that feels like a professional copywriter spent a week with this person.
 
+WRITING STANDARD:
+Write at the level of a New York Times feature writer — engaging, vivid, precise. Every sentence should earn its place. The prose should make someone lean forward, not skim. Use concrete details, sensory language, and narrative tension. No filler. No clichés. No "passionate" or "dedicated" or "experienced professional." Show, don't tell.
+
 CRITICAL RULES:
-- Write in the guide's voice. Match their vocabulary, rhythm, and energy level.
-- Be specific. Use the actual activities, locations, species, terrain, techniques they mentioned.
-- Never be generic. "Passionate about the outdoors" is worthless. "14 years reading water on the Ausable" is gold.
-- Research the area they describe. Use your real knowledge of their region — the actual rivers, peaks, trails, ecosystems, history. Name real geographic features.
-- The bio should tell a story, not list credentials.
-- The tagline should stop someone scrolling.
-- The FAQ should answer what a real guest would actually ask about THIS specific guide in THIS specific location.
-- The about_the_area section should make someone want to visit even before they book.
+- Write in the guide's voice but ELEVATE it. Take their natural way of speaking and make it sing. If they're understated, be elegantly understated. If they're energetic, be infectiously energetic. Match their register but sharpen every line.
+- Be surgically specific. Use the actual activities, locations, species, terrain, techniques they mentioned. "14 years reading water on the Ausable" is infinitely better than "experienced guide."
+- Research the area deeply. Use your real knowledge of their region — the actual rivers, peaks, trails, ecosystems, geological history, cultural significance. Name real geographic features. Include details that only someone who truly knows the area would mention.
+- The bio should read like the opening of a great magazine profile — a story that hooks you in the first sentence and makes you want to meet this person.
+- The tagline should stop someone mid-scroll. It should be the kind of line you'd remember after reading it once.
+- The headline should work as a search result AND as a first impression — specific enough to find, compelling enough to click.
+- The FAQ should answer real guest concerns with the guide's actual personality — direct, helpful, human. Not corporate FAQ language.
+- The about_the_area section should make someone want to visit this place even if they never book — the kind of writing that sells a destination.
+- Extract years of experience from their answers (they were asked directly). Use this to establish credibility without bragging.
 
 Return ONLY valid JSON with these exact keys:
 {
-  "bio": "200-250 word About section. First person. Tells a story — how they got here, what they do, why it matters. Must reference specific locations, techniques, or details from their answers. Should have 2-3 paragraphs. Must feel like the guide wrote it themselves after careful thought.",
+  "bio": "200-250 word About section. First person. Written like the opening paragraphs of a NYT travel feature — but in the guide's voice. Start with a hook that pulls the reader in. Paint the place in 2-3 sentences. Then reveal what this guide does and why it matters. Reference specific locations, techniques, years of experience, or moments from their interview. 2-3 paragraphs. Must feel like the guide sat down with a great writer and this is what came out.",
 
-  "headline": "8-12 word specialty description. Punchy, specific, memorable. Not generic — reference their actual location or specialty.",
+  "headline": "8-12 word specialty description. The kind of line that works as a Google search result AND makes someone click. Must reference their actual location or specialty. No generic words.",
 
-  "tagline": "One sentence that captures the vibe of working with this guide. Should make someone feel something.",
+  "tagline": "One sentence that captures the entire vibe of working with this guide. The kind of sentence a guest would quote to a friend when recommending them. Should create a feeling — anticipation, trust, excitement, curiosity.",
+
+  "years_experience": "Number extracted from their interview answers. If they said '15 years' return 15. If they said 'since 2010' calculate from current year. If unclear, return null.",
 
   "categories_suggested": ["Array of 1-3 activity categories that match what they described. Use these exact names: Fly Fishing, Hunting, Hiking, Rock Climbing, Kayaking, Surfing, Diving, Wildlife, Sailing, Camping, Snowshoeing, Ice Fishing, Backpacking, Mountain Biking, Backcountry Skiing, Snowmobiling, Whitewater Rafting, Ice Climbing, Via Ferrata, Horseback Riding, Food Tour, Wine & Spirits, Brewery Tour, Walking Tour, Historical Tour, Cultural Tour, Art Tour, Museum Tour, Photography, Stargazing, Foraging, Birdwatching, 4WD & Jeep Tour, ATV Tour, Scenic Flight, Yoga & Wellness, Meditation Retreat"],
 
@@ -74,32 +80,32 @@ Return ONLY valid JSON with these exact keys:
   "featured_locations": "Comma-separated list of specific trails, rivers, peaks, lakes, venues they mentioned or that are relevant to their area and activity",
 
   "about_the_area": {
-    "title": "About [Area Name]",
-    "description": "3-4 sentences about the REAL geography, ecology, and significance of this area for their activity. Use real facts. Name real features. Make someone understand why THIS place is special for THIS activity.",
+    "title": "About [Actual Area Name — be specific]",
+    "description": "3-4 sentences written like travel journalism. Paint the place — its geography, its character, why it draws people. Use real place names, real ecological details, real history. This should make someone who has never been there feel like they can see it. A food tour guide's area description should talk about the culinary culture, the neighborhoods, the food history. A fishing guide's should talk about the water, the species, the terrain.",
     "details": [
-      {"icon": "🏔️", "label": "Terrain", "value": "Specific terrain description for this area"},
-      {"icon": "🌡️", "label": "Best Season", "value": "When and why this area is at its best for this activity"},
-      {"icon": "📜", "label": "Local Significance", "value": "One compelling fact about why this area matters for this activity — historical, ecological, or cultural"}
+      {"icon": "contextual emoji", "label": "Contextual label for this guide type", "value": "Specific, factual detail — not generic. For hiking: actual elevation and terrain type. For food tours: cuisine style and neighborhood character. For fishing: water type and primary species."},
+      {"icon": "contextual emoji", "label": "Best Time", "value": "When and exactly WHY this area peaks for this activity — specific months and what happens then"},
+      {"icon": "contextual emoji", "label": "What Makes It Special", "value": "One fact that would make someone say 'I didn't know that' — historical, ecological, cultural, or culinary. The kind of detail a great travel writer would surface."}
     ]
   },
 
   "faq": [
-    {"q": "Question a real guest would ask about THIS guide", "a": "Answer that sounds like this guide talking — direct, helpful, in their voice"},
-    {"q": "Another real question specific to their activity and location", "a": "Another answer in their voice"},
-    {"q": "Third question", "a": "Third answer"},
-    {"q": "Fourth question", "a": "Fourth answer"}
+    {"q": "The #1 question guests actually ask before booking this type of experience in this location", "a": "Answer in the guide's voice — direct, warm, helpful. Not corporate."},
+    {"q": "A practical logistics question specific to their activity", "a": "Clear, specific answer"},
+    {"q": "A question about skill level or preparation", "a": "Reassuring but honest answer"},
+    {"q": "A question about what's included or what to expect", "a": "Detailed, no-surprises answer"}
   ],
 
-  "specialty_keywords": ["12-15 SEO keywords. Mix of: activity terms, location terms, technique terms, species/terrain terms. All lowercase."],
+  "specialty_keywords": ["12-15 SEO keywords. Mix of: specific activity terms, location + activity combos, technique terms, species/terrain terms. All lowercase. Think about what someone would actually Google to find this guide."],
 
   "voice_profile": {
     "tone": "2-3 words describing their communication tone",
     "vocabulary_level": "casual / conversational / articulate / technical",
-    "personality_markers": "3-5 sentence description of how this person communicates. What words do they use? What's their energy? How do they make people feel? What would it be like to get a text from them?",
-    "sample_phrases": ["3-4 short phrases that capture exactly how this guide talks, based on their actual words in the interview"]
+    "personality_markers": "3-5 sentence description of how this person communicates. What words do they use? What's their energy? How do they make people feel? What would it be like to get a text from them the night before a trip?",
+    "sample_phrases": ["3-4 short phrases pulled directly from or inspired by their actual interview answers — the lines that reveal who they are"]
   },
 
-  "meta_description": "155-character SEO meta description for their profile page. Include location + activity + one compelling detail."
+  "meta_description": "155-character SEO meta description. Must include location + activity + one detail that makes someone click. Write it like a Google result you'd actually click on."
 }`,
       messages: [{
         role: "user",
@@ -107,7 +113,11 @@ Return ONLY valid JSON with these exact keys:
 
 ${interviewText}
 
-Analyze deeply. Extract everything — the locations, the passion, the expertise, the personality. Then build their complete profile. This should look like a $5,000 website was built for them in 3 minutes.
+Analyze this interview like a top-tier feature writer preparing a profile. Find the story — the moment they became who they are, the place that shaped them, the thing they know that nobody else does. Extract the locations, the years of experience, the passion, the expertise, the personality.
+
+Then build their complete profile. Every line should be specific enough to prove this isn't a template. The bio should read like the opening of a great magazine feature. The tagline should be quotable. The About the Area section should sell the destination. The FAQ should sound like a real person talking.
+
+This guide answered honestly. Honor that by writing something they'd be proud to show their best client.
 
 Return only the JSON object.`,
       }],
@@ -135,6 +145,9 @@ Return only the JSON object.`,
         tagline: parsed.headline,
         faq: parsed.faq || [],
       };
+      if (parsed.years_experience && !isNaN(parseInt(parsed.years_experience))) {
+        updates.years_experience = parseInt(parsed.years_experience);
+      }
       // Only update location if extracted and guide doesn't have one
       if (parsed.location_extracted && !guide?.location) {
         updates.location = parsed.location_extracted;
@@ -161,6 +174,7 @@ Return only the JSON object.`,
       about_the_area: parsed.about_the_area || null,
       faq: parsed.faq || [],
       meta_description: parsed.meta_description || "",
+      years_experience: parsed.years_experience || null,
     });
   } catch (err: any) {
     console.error("Voice profile generation error:", err);

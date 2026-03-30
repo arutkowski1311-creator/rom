@@ -184,7 +184,8 @@ export default function GuideOnboarding() {
   // Step 1 — Interview
   const INTERVIEW_QUESTIONS = [
     { id: "services", q: "What services do you provide? Be as specific as you can." },
-    { id: "areas", q: "What areas do you work in or serve?" },
+    { id: "areas", q: "What areas do you work in or serve? Do you have a favorite spot?" },
+    { id: "years", q: "How long have you been doing this?" },
     { id: "experience", q: "What does a typical experience look like for someone working with you?" },
     { id: "ideal_clients", q: "What types of clients or situations do you enjoy working with most?" },
     { id: "before_booking", q: "What should someone know before working with you?" },
@@ -481,6 +482,7 @@ export default function GuideOnboarding() {
         if (data.location_extracted && !location) setLocation(data.location_extracted);
         if (data.categories_suggested?.length > 0 && selectedCats.length === 0) setSelectedCats(data.categories_suggested);
         if (data.featured_locations && !featuredLocations) setFeaturedLocations(data.featured_locations);
+        if (data.years_experience && !yearsExp) setYearsExp(String(data.years_experience));
       }
     } catch (e) {
       console.error("Profile generation error:", e);
