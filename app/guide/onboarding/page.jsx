@@ -4,9 +4,21 @@ import { T, FONT_DISPLAY, FONT_BODY, TIERS } from "@/app/lib/theme";
 import { getSupabase } from "@/app/lib/supabase-browser";
 
 const CATEGORIES = [
+  // Outdoor adventure
   "Fly Fishing","Hunting","Hiking","Rock Climbing","Kayaking",
-  "Surfing","Diving","Wildlife","Photography","Sailing","Camping",
+  "Surfing","Diving","Wildlife","Sailing","Camping",
   "Snowshoeing","Ice Fishing","Backpacking","Mountain Biking",
+  "Backcountry Skiing","Snowmobiling","Whitewater Rafting","Ice Climbing",
+  "Via Ferrata","Horseback Riding",
+  // Cultural & urban
+  "Food Tour","Wine & Spirits","Brewery Tour","Walking Tour",
+  "Historical Tour","Cultural Tour","Art Tour","Museum Tour",
+  // Nature & education
+  "Photography","Stargazing","Foraging","Birdwatching",
+  // Motor & specialty
+  "4WD & Jeep Tour","ATV Tour","Scenic Flight",
+  // Wellness
+  "Yoga & Wellness","Meditation Retreat",
 ];
 
 const STEPS = ["Account","Interview","Profile","Activities","Packages","Insurance","Plan","Payments","Done"];

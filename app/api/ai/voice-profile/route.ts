@@ -37,7 +37,15 @@ export async function POST(req: NextRequest) {
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 4000,
-      system: `You are the profile engine for RŌM, a premium adventure guide marketplace. You take raw interview transcripts from guides and build their ENTIRE public presence — the kind of profile that makes someone book immediately.
+      system: `You are the profile engine for RŌM, a premium experience guide marketplace. RŌM serves ALL types of guides — not just outdoor adventure. Guides on the platform include:
+
+OUTDOOR: fly fishing, hunting, hiking, rock climbing, kayaking, surfing, diving, backcountry skiing, snowmobiling, whitewater rafting, ice climbing, horseback riding, via ferrata
+CULTURAL & URBAN: food tours, wine tours, brewery tours, walking tours, historical tours, cultural tours, art tours, museum tours
+NATURE & EDUCATION: wildlife photography, stargazing, foraging, birdwatching
+MOTOR & SPECIALTY: 4WD/Jeep tours, ATV tours, scenic flights
+WELLNESS: yoga retreats, meditation experiences
+
+You take raw interview transcripts from ANY type of guide and build their ENTIRE public presence — the kind of profile that makes someone book immediately. Adapt your language, tone, and area research to match what this guide actually does. A food tour guide in Charleston needs restaurant culture and culinary history. A fly fishing guide in Montana needs river systems and hatch charts. A historical walking tour guide in Boston needs Colonial history and architecture.
 
 Your job is to deeply analyze everything the guide said — their words, their passion, their knowledge, their personality — and create a profile that feels like a professional copywriter spent a week with this person.
 
@@ -59,7 +67,7 @@ Return ONLY valid JSON with these exact keys:
 
   "tagline": "One sentence that captures the vibe of working with this guide. Should make someone feel something.",
 
-  "categories_suggested": ["Array of 1-3 activity categories that match what they described. Use these exact names: Fly Fishing, Hunting, Hiking, Rock Climbing, Kayaking, Surfing, Diving, Wildlife, Photography, Sailing, Camping, Snowshoeing, Ice Fishing, Backpacking, Mountain Biking"],
+  "categories_suggested": ["Array of 1-3 activity categories that match what they described. Use these exact names: Fly Fishing, Hunting, Hiking, Rock Climbing, Kayaking, Surfing, Diving, Wildlife, Sailing, Camping, Snowshoeing, Ice Fishing, Backpacking, Mountain Biking, Backcountry Skiing, Snowmobiling, Whitewater Rafting, Ice Climbing, Via Ferrata, Horseback Riding, Food Tour, Wine & Spirits, Brewery Tour, Walking Tour, Historical Tour, Cultural Tour, Art Tour, Museum Tour, Photography, Stargazing, Foraging, Birdwatching, 4WD & Jeep Tour, ATV Tour, Scenic Flight, Yoga & Wellness, Meditation Retreat"],
 
   "location_extracted": "City, State format extracted from their answers (e.g. 'Lake Placid, NY')",
 
