@@ -170,14 +170,14 @@ export default function GuideOnboarding() {
 
   // Step 1 — Interview
   const INTERVIEW_QUESTIONS = [
-    { id: "what_and_where", q: "What do you do, and where is your business based?" },
-    { id: "areas_covered", q: "What areas do you typically cover or work in?" },
-    { id: "origin", q: "How did you get into this — was there a moment or path that led you here?" },
-    { id: "best_experiences", q: "What types of experiences or clients do you enjoy most?" },
-    { id: "differentiator", q: "What makes you and your business different than the rest?" },
-    { id: "great_experience", q: "What does a great experience look like when you do your job right?" },
-    { id: "before_booking", q: "What should someone know before booking with you?" },
-    { id: "anything_else", q: "Anything else we should know about you or how you like to run things?" },
+    { id: "services", q: "What services do you provide? Be as specific as you can." },
+    { id: "areas", q: "What areas do you work in or serve?" },
+    { id: "experience", q: "What does a typical experience look like for someone working with you?" },
+    { id: "ideal_clients", q: "What types of clients or situations do you enjoy working with most?" },
+    { id: "before_booking", q: "What should someone know before working with you?" },
+    { id: "differentiator", q: "What do you think sets you apart from others who do something similar?" },
+    { id: "origin", q: "What got you into this line of work?" },
+    { id: "rewarding", q: "What do you find most rewarding about what you do?" },
   ];
   const [interviewIdx, setInterviewIdx] = useState(0);
   const [interviewAnswers, setInterviewAnswers] = useState({});
