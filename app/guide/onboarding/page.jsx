@@ -465,6 +465,9 @@ export default function GuideOnboarding() {
         setGeneratedProfile(data);
         setBio(data.bio || "");
         setTagline(data.headline || "");
+        if (data.location_extracted && !location) setLocation(data.location_extracted);
+        if (data.categories_suggested?.length > 0 && selectedCats.length === 0) setSelectedCats(data.categories_suggested);
+        if (data.featured_locations && !featuredLocations) setFeaturedLocations(data.featured_locations);
       }
     } catch (e) {
       console.error("Profile generation error:", e);
@@ -723,28 +726,113 @@ export default function GuideOnboarding() {
               ) : generatedProfile ? (
                 <div>
                   <div style={{fontFamily:FONT_DISPLAY,fontSize:42,color:T.white,fontWeight:400,marginBottom:8}}>Your profile is ready</div>
-                  <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver,marginBottom:28}}>We wrote this from your interview answers. Edit anything you'd like.</p>
+                  <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver,marginBottom:28}}>Built from your interview. Edit anything — this is your site.</p>
 
-                  <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:24,marginBottom:16}}>
-                    <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Headline</div>
+                  {/* Headline */}
+                  <div style={{background:T.steel,border:`1px solid ${T.gold}`,borderRadius:10,padding:24,marginBottom:16}}>
+                    <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Your Headline</div>
                     <input value={tagline} onChange={e=>setTagline(e.target.value)}
-                      style={{width:"100%",background:T.lifted,border:`1px solid ${T.rim}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:15,color:T.white,outline:"none",marginBottom:16}}/>
-
-                    <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Bio</div>
-                    <textarea value={bio} onChange={e=>setBio(e.target.value)} rows={6}
-                      style={{width:"100%",background:T.lifted,border:`1px solid ${T.rim}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none",resize:"vertical",lineHeight:1.6}}/>
+                      style={{width:"100%",boxSizing:"border-box",background:T.lifted,border:`1px solid ${T.rim}`,borderRadius:6,padding:"12px 14px",fontFamily:FONT_DISPLAY,fontSize:20,color:T.white,outline:"none"}}/>
                   </div>
 
-                  {generatedProfile.specialty_keywords?.length > 0 && (
-                    <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:24}}>
-                      {generatedProfile.specialty_keywords.map(kw => (
-                        <span key={kw} style={{fontFamily:FONT_BODY,fontSize:11,color:T.ash,background:T.lifted,border:`1px solid ${T.rim}`,borderRadius:4,padding:"3px 10px"}}>{kw}</span>
+                  {/* Tagline */}
+                  {generatedProfile.tagline && (
+                    <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:24,marginBottom:16}}>
+                      <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Tagline</div>
+                      <div style={{fontFamily:FONT_BODY,fontSize:15,color:T.parchment,fontStyle:"italic",lineHeight:1.6}}>{generatedProfile.tagline}</div>
+                    </div>
+                  )}
+
+                  {/* Bio */}
+                  <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:24,marginBottom:16}}>
+                    <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Your Bio</div>
+                    <textarea value={bio} onChange={e=>setBio(e.target.value)} rows={8}
+                      style={{width:"100%",boxSizing:"border-box",background:T.lifted,border:`1px solid ${T.rim}`,borderRadius:6,padding:"12px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none",resize:"vertical",lineHeight:1.7}}/>
+                  </div>
+
+                  {/* Location + Categories */}
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+                    <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:20}}>
+                      <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Location</div>
+                      <input value={location} onChange={e=>setLocation(e.target.value)}
+                        style={{width:"100%",boxSizing:"border-box",background:T.lifted,border:`1px solid ${T.rim}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none"}}/>
+                    </div>
+                    <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:20}}>
+                      <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Categories</div>
+                      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                        {(generatedProfile.categories_suggested || []).map(cat => (
+                          <span key={cat} onClick={()=>{
+                            setSelectedCats(prev => prev.includes(cat) ? prev.filter(c=>c!==cat) : [...prev, cat]);
+                          }} style={{
+                            fontFamily:FONT_BODY,fontSize:12,
+                            color:selectedCats.includes(cat)?T.ink:T.ash,
+                            background:selectedCats.includes(cat)?T.gold:T.lifted,
+                            border:`1px solid ${selectedCats.includes(cat)?T.gold:T.rim}`,
+                            borderRadius:20,padding:"5px 12px",cursor:"pointer",transition:"all 0.15s"
+                          }}>{cat}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Featured Locations */}
+                  <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:20,marginBottom:16}}>
+                    <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:4}}>Featured Locations</div>
+                    <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.muted,marginBottom:8}}>Specific trails, rivers, peaks, venues highlighted on your profile</div>
+                    <input value={featuredLocations || generatedProfile.featured_locations || ""} onChange={e=>setFeaturedLocations(e.target.value)}
+                      style={{width:"100%",boxSizing:"border-box",background:T.lifted,border:`1px solid ${T.rim}`,borderRadius:6,padding:"10px 14px",fontFamily:FONT_BODY,fontSize:14,color:T.parchment,outline:"none"}}/>
+                  </div>
+
+                  {/* About the Area */}
+                  {generatedProfile.about_the_area && (
+                    <div style={{background:T.goldGlow,border:`1px solid ${T.gold}`,borderRadius:10,padding:24,marginBottom:16}}>
+                      <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:10}}>{generatedProfile.about_the_area.title || "About the Area"}</div>
+                      <p style={{fontFamily:FONT_BODY,fontSize:14,color:T.parchment,lineHeight:1.7,marginBottom:14}}>{generatedProfile.about_the_area.description}</p>
+                      {generatedProfile.about_the_area.details?.map((d,i) => (
+                        <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:8}}>
+                          <span style={{fontSize:18}}>{d.icon}</span>
+                          <div>
+                            <span style={{fontFamily:FONT_BODY,fontSize:12,fontWeight:700,color:T.gold}}>{d.label}: </span>
+                            <span style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash}}>{d.value}</span>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   )}
 
+                  {/* FAQ Preview */}
+                  {generatedProfile.faq?.length > 0 && (
+                    <div style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10,padding:24,marginBottom:16}}>
+                      <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.gold,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:14}}>Auto-Generated FAQ</div>
+                      {generatedProfile.faq.map((f,i) => (
+                        <div key={i} style={{paddingBottom:12,marginBottom:12,borderBottom:i<generatedProfile.faq.length-1?`1px solid ${T.rim}`:"none"}}>
+                          <div style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:700,color:T.white,marginBottom:4}}>{f.q}</div>
+                          <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.ash,lineHeight:1.6}}>{f.a}</div>
+                        </div>
+                      ))}
+                      <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.muted,marginTop:4}}>You can edit these from your dashboard after setup.</div>
+                    </div>
+                  )}
+
+                  {/* Keywords */}
+                  {generatedProfile.specialty_keywords?.length > 0 && (
+                    <div style={{marginBottom:24}}>
+                      <div style={{fontFamily:FONT_BODY,fontSize:11,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:8}}>Search Keywords</div>
+                      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                        {generatedProfile.specialty_keywords.map(kw => (
+                          <span key={kw} style={{fontFamily:FONT_BODY,fontSize:11,color:T.ash,background:T.lifted,border:`1px solid ${T.rim}`,borderRadius:4,padding:"3px 10px"}}>{kw}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div style={{display:"flex",gap:16}}>
-                    <GoldBtn onClick={()=>setStep(2)}>Looks good — continue →</GoldBtn>
+                    <GoldBtn onClick={()=>{
+                      // Auto-fill location and categories from AI if not set
+                      if (!location && generatedProfile.location_extracted) setLocation(generatedProfile.location_extracted);
+                      if (selectedCats.length === 0 && generatedProfile.categories_suggested?.length > 0) setSelectedCats(generatedProfile.categories_suggested);
+                      setStep(2);
+                    }}>Looks good — continue →</GoldBtn>
                     <GoldBtn outline small onClick={()=>{setInterviewDone(false);setInterviewIdx(0);setInterviewAnswers({});setCurrentAnswer("");setGeneratedProfile(null);}}>Start over</GoldBtn>
                   </div>
                 </div>
