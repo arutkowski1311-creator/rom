@@ -288,11 +288,36 @@ export default function ConciergePage() {
     return DESTINATIONS.filter(d => d.toLowerCase().includes(q)).slice(0, 8);
   };
 
+  const destSearchTimeout = useRef(null);
   const handleDestChange = (val) => {
     setDestination(val);
-    const matches = filterDestinations(val);
-    setDestSuggestions(matches);
-    setShowSuggestions(matches.length > 0);
+    // First show static matches instantly
+    const staticMatches = filterDestinations(val);
+    setDestSuggestions(staticMatches);
+    setShowSuggestions(staticMatches.length > 0);
+    // Then search live API after debounce
+    if (destSearchTimeout.current) clearTimeout(destSearchTimeout.current);
+    if (val.length >= 2) {
+      destSearchTimeout.current = setTimeout(async () => {
+        try {
+          const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+          let liveResults = [];
+          if (mapboxToken) {
+            const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(val)}.json?access_token=${mapboxToken}&types=place,locality,region&limit=6&language=en`);
+            const data = await res.json();
+            liveResults = (data.features || []).map(f => f.place_name);
+          } else {
+            const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(val)}&count=6&language=en&format=json`);
+            const data = await res.json();
+            liveResults = (data.results || []).map(r => `${r.name}${r.admin1 ? ", " + r.admin1 : ""}${r.country ? ", " + r.country : ""}`);
+          }
+          // Merge static + live, dedupe
+          const combined = [...new Set([...staticMatches, ...liveResults])].slice(0, 8);
+          setDestSuggestions(combined);
+          setShowSuggestions(combined.length > 0);
+        } catch (e) { /* keep static results */ }
+      }, 300);
+    }
   };
 
   const selectDestination = (dest) => {

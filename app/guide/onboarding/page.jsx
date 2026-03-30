@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { T, FONT_DISPLAY, FONT_BODY, TIERS } from "@/app/lib/theme";
 import { getSupabase } from "@/app/lib/supabase-browser";
+import LocationAutocomplete from "@/app/components/LocationAutocomplete";
 
 const CATEGORIES = [
   // Outdoor adventure
@@ -864,7 +865,10 @@ export default function GuideOnboarding() {
               <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver,marginBottom:36,lineHeight:1.6}}>This is what guests will see when they find you.</p>
               <Input label="Tagline" value={tagline} onChange={setTagline} placeholder="e.g. 30 years on the Ausable. NYS Licensed." required/>
               <Input label="Bio" value={bio} onChange={setBio} placeholder="Tell guests about your experience, the waters/terrain you know, what makes your trips special…" multiline required/>
-              <Input label="Location" value={location} onChange={setLocation} placeholder="e.g. Lake Placid, NY" required/>
+              <div style={{marginBottom:20}}>
+                <label style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:600,color:T.ash,display:"block",marginBottom:8}}>Location <span style={{color:T.gold}}>*</span></label>
+                <LocationAutocomplete value={location} onChange={setLocation} onSelect={(r) => setLocation(r.name)} placeholder="e.g. Lake Placid, NY" dark={true}/>
+              </div>
               <Input label="Years of experience" value={yearsExp} onChange={setYearsExp} placeholder="e.g. 12" type="number"/>
               <div style={{marginBottom:20}}>
                 <label style={{fontFamily:FONT_BODY,fontSize:14,fontWeight:600,color:T.ash,display:"block",marginBottom:8}}>
