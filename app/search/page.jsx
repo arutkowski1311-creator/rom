@@ -6,6 +6,29 @@ import { Stars } from "@/app/components/ui";
 
 const CATEGORIES = ["All","Fly Fishing","Hunting","Hiking","Surfing","Rock Climbing","Kayaking","Diving","Wildlife","Photography","Sailing","Camping"];
 
+const CATEGORY_TO_DB = {
+  "Fly Fishing":"fishing","Hiking":"hiking","Rock Climbing":"climbing",
+  "Kayaking":"kayaking","Wildlife":"wildlife","Photography":"photography",
+  "Hunting":"hunting","Surfing":"surfing","Diving":"diving",
+  "Sailing":"sailing","Camping":"camping","Skiing":"skiing",
+  "Rafting":"rafting","Food Tour":"food","Cultural":"cultural","Offroad":"offroad",
+};
+
+const LOCATION_COORDS = {
+  "Asheville, NC":    { x: 63, y: 47 },
+  "Telluride, CO":    { x: 28, y: 50 },
+  "Whitefish, MT":    { x: 20, y: 22 },
+  "Lake Placid, NY":  { x: 72, y: 28 },
+  "Keene Valley, NY": { x: 73, y: 28 },
+  "Bozeman, MT":      { x: 23, y: 25 },
+  "Jackson, WY":      { x: 27, y: 35 },
+  "Moab, UT":         { x: 25, y: 50 },
+  "Encinitas, CA":    { x: 10, y: 62 },
+  "Bar Harbor, ME":   { x: 76, y: 22 },
+  "Kauai, HI":        { x: 9,  y: 82 },
+  "Kenai, AK":        { x: 14, y: 9  },
+};
+
 const GUIDES = [
   { id:1, name:"James Whitfield", slug:"james-whitfield", location:"Bozeman, MT", region:"Mountain West", category:"Fly Fishing", tagline:"14 years on the Madison, Gallatin, and Yellowstone.", rating:4.97, reviewCount:143, responseRate:98, price:275, verified:true, yearsExp:14, mapX:34, mapY:36 },
   { id:2, name:"Elena Vasquez", slug:"elena-vasquez", location:"Encinitas, CA", region:"Pacific Coast", category:"Surfing", tagline:"Championship surfer turned guide. Point breaks, reef, and open ocean.", rating:4.94, reviewCount:89, responseRate:95, price:195, verified:true, yearsExp:9, mapX:11, mapY:66 },
@@ -32,7 +55,7 @@ function GuideCard({ guide, active, onClick }) {
         boxShadow: active ? `0 0 0 1px ${T.gold}30` : "none",
       }}>
       {/* Card image strip */}
-      <div style={{height:130, background:`linear-gradient(135deg, #152018 0%, #0b1a24 100%)`, position:"relative", borderBottom:`1px solid ${T.wire}`}}>
+      <div style={{height:130, background: guide.photo ? `url(${guide.photo}) center/cover` : `linear-gradient(135deg, #152018 0%, #0b1a24 100%)`, position:"relative", borderBottom:`1px solid ${T.wire}`}}>
         <div style={{position:"absolute", inset:0, backgroundImage:`radial-gradient(ellipse at 30% 70%, ${T.gold}18 0%, transparent 55%)`}}/>
         <div style={{position:"absolute", top:10, left:12, display:"flex", gap:6}}>
           <span style={{fontFamily:FONT_BODY, fontSize:10, fontWeight:700, color:T.gold, background:T.goldGlow, border:`1px solid ${T.gold}`, borderRadius:3, padding:"2px 8px", letterSpacing:"0.06em"}}>{guide.category}</span>
@@ -47,7 +70,7 @@ function GuideCard({ guide, active, onClick }) {
       {/* Card content */}
       <div style={{padding:"14px 16px 16px"}}>
         <div style={{fontFamily:FONT_DISPLAY, fontSize:19, color:T.white, fontWeight:400, lineHeight:1.1, marginBottom:4}}>{guide.name}</div>
-        <div style={{fontFamily:FONT_BODY, fontSize:11, color:T.silver, marginBottom:8}}>📍 {guide.location} · {guide.yearsExp} yrs</div>
+        <div style={{fontFamily:FONT_BODY, fontSize:11, color:T.silver, marginBottom:8}}>📍 {guide.location}{guide.yearsExp ? ` · ${guide.yearsExp} yrs` : ""}</div>
         <div style={{fontFamily:FONT_BODY, fontSize:12, color:T.ash, lineHeight:1.5, marginBottom:12}}>{guide.tagline}</div>
         <div style={{display:"flex", alignItems:"center", gap:6, paddingTop:10, borderTop:`1px solid ${T.rim}`}}>
           <Stars rating={guide.rating} size={11}/>
@@ -229,22 +252,37 @@ export default function SearchPage() {
     try {
       const supabase = getSupabase();
       let q = supabase.from("guides").select("*, packages(price, price_type)").eq("status","active");
-      if (filters.category) q = q.contains("categories",[filters.category]);
+      if (filters.category) {
+        const dbCat = CATEGORY_TO_DB[filters.category] || filters.category.toLowerCase();
+        q = q.contains("categories",[dbCat]);
+      }
       if (query) q = q.or(`tagline.ilike.%${query}%,bio.ilike.%${query}%,location.ilike.%${query}%`);
       if (filters.sort==="Highest rated") q = q.order("rating",{ascending:false});
       else if (filters.sort==="Most reviewed") q = q.order("review_count",{ascending:false});
       else q = q.order("rating",{ascending:false});
       const { data, error } = await q;
       if (error) { console.error("Search error:",error); setLoading(false); return; }
-      let shaped = (data||[]).map(g=>({
-        id:g.id, name:g.profiles?.full_name||"Guide", slug:g.slug,
-        location:g.location||"", category:g.categories?.[0]||"",
-        tagline:g.tagline||"", rating:parseFloat(g.rating)||0,
-        reviewCount:g.review_count||0, responseRate:g.response_rate||0,
-        price:g.packages?.[0]?.price||0, verified:g.verified,
-        yearsExp:g.years_experience?parseInt(g.years_experience):null,
-        mapX:Math.random()*80+10, mapY:Math.random()*70+10,
-      }));
+      let shaped = (data||[]).map(g=>{
+        const coords = LOCATION_COORDS[g.location] || { x:45, y:50 };
+        const rawCat = g.categories?.[0] || "";
+        return {
+          id:g.id,
+          name:g.business_name || g.display_name || "Guide",
+          slug:g.slug,
+          location:g.location||"",
+          category: rawCat.charAt(0).toUpperCase() + rawCat.slice(1),
+          tagline:g.tagline||"",
+          rating:parseFloat(g.rating)||0,
+          reviewCount:g.review_count||0,
+          responseRate:g.response_rate||0,
+          price:g.packages?.[0]?.price||0,
+          verified:g.verified,
+          yearsExp:g.years_experience ? parseInt(g.years_experience) : null,
+          photo:g.profile_photo_url||null,
+          mapX: coords.x + (Math.random()-0.5)*2,
+          mapY: coords.y + (Math.random()-0.5)*2,
+        };
+      });
       if (filters.maxPrice) shaped = shaped.filter(g=>g.price<=filters.maxPrice);
       if (filters.sort==="Lowest price") shaped = shaped.sort((a,b)=>a.price-b.price);
       setGuides(shaped);
@@ -266,7 +304,10 @@ export default function SearchPage() {
   const displayGuides = guides.length>0 ? guides : (loading ? [] : MOCK);
 
   const filtered = displayGuides.filter(g=>{
-    if(filters.category && g.category!==filters.category) return false;
+    if(filters.category) {
+      const dbCat = CATEGORY_TO_DB[filters.category] || filters.category.toLowerCase();
+      if(g.category.toLowerCase() !== dbCat) return false;
+    }
     if(filters.maxPrice && g.price>filters.maxPrice) return false;
     if(query && ![g.name,g.location,g.category,g.tagline].some(s=>s?.toLowerCase().includes(query.toLowerCase()))) return false;
     return true;
@@ -335,7 +376,7 @@ export default function SearchPage() {
             </div>
             {!loading&&filtered.length>0 ? (
               <div className="guides-grid-2">
-                {filtered.map(g=><GuideCard key={g.id} guide={g} active={activeGuide===g.id} onClick={()=>setActiveGuide(activeGuide===g.id?null:g.id)}/>)}
+                {filtered.map(g=><GuideCard key={g.id} guide={g} active={activeGuide===g.id} onClick={()=>window.location.href=`/guides/${g.slug}`}/>)}
               </div>
             ) : !loading ? (
               <div style={{textAlign:"center",padding:"80px 24px"}}>
