@@ -69,7 +69,7 @@ export default function ItineraryPage({ params }) {
 
   if (loading) return (
     <div style={{ minHeight: "100vh", background: CREAM, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
-      <div style={{ fontFamily: FONT_D, fontSize: 36, color: GOLD, letterSpacing: "0.16em" }}>RŌM</div>
+      <div onClick={()=>window.location.href="/"} style={{ fontFamily: FONT_D, fontSize: 36, color: GOLD, letterSpacing: "0.16em", cursor: "pointer" }}>RŌM</div>
       <div style={{ width: 40, height: 2, background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)` }} />
       <div style={{ fontFamily: FONT_B, fontSize: 12, color: MUTED, letterSpacing: "0.08em" }}>Loading your trip plan…</div>
     </div>
@@ -77,7 +77,7 @@ export default function ItineraryPage({ params }) {
 
   if (notFound) return (
     <div style={{ minHeight: "100vh", background: CREAM, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 20, padding: 40 }}>
-      <div style={{ fontFamily: FONT_D, fontSize: 24, color: GOLD, letterSpacing: "0.14em", marginBottom: 8 }}>RŌM</div>
+      <div onClick={()=>window.location.href="/"} style={{ fontFamily: FONT_D, fontSize: 24, color: GOLD, letterSpacing: "0.14em", marginBottom: 8, cursor: "pointer" }}>RŌM</div>
       <div style={{ fontFamily: FONT_D, fontSize: 36, color: INK, fontWeight: 400 }}>Not available yet</div>
       <div style={{ fontFamily: FONT_B, fontSize: 15, color: MUTED, textAlign: "center", maxWidth: 380 }}>Your guide is still putting the finishing touches on your trip plan. Check back soon.</div>
       <button onClick={() => window.location.href = "/dashboard"} style={{ marginTop: 8, background: GOLD, border: "none", borderRadius: 6, padding: "12px 28px", fontFamily: FONT_B, fontSize: 14, fontWeight: 700, color: "#0d1117", cursor: "pointer" }}>Go to Dashboard</button>

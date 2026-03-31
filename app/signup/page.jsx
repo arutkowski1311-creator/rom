@@ -256,7 +256,7 @@ export default function AuthPage({ defaultMode = "signup-traveler" }) {
               <div style={{position:"absolute", inset:0, backgroundImage:`radial-gradient(ellipse at 25% 60%, ${T.gold}28 0%, transparent 50%), radial-gradient(ellipse at 75% 20%, #1a3a5030 0%, transparent 40%)`}}/>
             </div>
             <div style={{position:"relative", padding:"60px 64px", maxWidth:480}}>
-              <div style={{fontFamily:FONT_DISPLAY, fontSize:40, color:T.gold, letterSpacing:"0.16em", fontWeight:500, marginBottom:48}}>RŌM</div>
+              <div onClick={()=>window.location.href="/"} style={{fontFamily:FONT_DISPLAY, fontSize:40, color:T.gold, letterSpacing:"0.16em", fontWeight:500, marginBottom:48, cursor:"pointer"}}>RŌM</div>
               <div style={{fontFamily:FONT_DISPLAY, fontSize:48, color:T.white, fontWeight:400, lineHeight:1.05, marginBottom:20}}>
                 The world's best<br/>
                 <span style={{color:T.gold, fontStyle:"italic"}}>adventure guides,</span><br/>
@@ -280,7 +280,7 @@ export default function AuthPage({ defaultMode = "signup-traveler" }) {
             <div style={{width:"100%", maxWidth:380}}>
               <div className="auth-mobile-logo" style={{textAlign:"center", marginBottom:32}}>
                 <style>{`@media(min-width:768px){.auth-mobile-logo{display:none!important;}}`}</style>
-                <div style={{fontFamily:FONT_DISPLAY, fontSize:32, color:T.gold, letterSpacing:"0.16em", fontWeight:500, marginBottom:8}}>RŌM</div>
+                <div onClick={()=>window.location.href="/"} style={{fontFamily:FONT_DISPLAY, fontSize:32, color:T.gold, letterSpacing:"0.16em", fontWeight:500, marginBottom:8, cursor:"pointer"}}>RŌM</div>
                 <div style={{fontFamily:FONT_BODY, fontSize:13, color:T.silver}}>The world's best adventure guides</div>
               </div>
               {mode==="login" && <LoginForm onSwitch={setMode}/>}

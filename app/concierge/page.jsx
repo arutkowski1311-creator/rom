@@ -568,7 +568,7 @@ export default function ConciergePage() {
   // ─── LOADING STATE ────────────────────────────────────────────────────────
   if (generating) return (
     <div style={{ minHeight: "100vh", background: T.void, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 24 }}>
-      <div style={{ fontFamily: FONT_DISPLAY, fontSize: 32, color: T.gold, letterSpacing: "0.12em" }}>RŌM</div>
+      <div onClick={()=>window.location.href="/"} style={{ fontFamily: FONT_DISPLAY, fontSize: 32, color: T.gold, letterSpacing: "0.12em", cursor: "pointer" }}>RŌM</div>
       <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: T.white }}>Building your trip...</div>
       <div style={{ width: 200, height: 3, background: T.wire, borderRadius: 2, overflow: "hidden" }}>
         <div style={{ width: "40%", height: "100%", background: T.gold, borderRadius: 2, animation: "conciergeLoad 1.5s ease-in-out infinite alternate" }} />
