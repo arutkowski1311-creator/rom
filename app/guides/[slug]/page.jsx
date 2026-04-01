@@ -755,18 +755,45 @@ function GuideProfile({ guide=GUIDE }) {
         };
 
         // Determine guide vertical for conditions display
-        const cat = (guide.categories || [])[0] || "";
-        const catLower = cat.toLowerCase();
-        const isWater = ["fly fishing","kayaking","surfing","diving","sailing","whitewater rafting","ice fishing"].some(w => catLower.includes(w));
-        const isAlpine = ["hiking","rock climbing","backpacking","backcountry skiing","ice climbing","via ferrata","mountain biking","snowshoeing"].some(w => catLower.includes(w));
-        const isStar = catLower.includes("stargazing");
-        const isWildlife = ["wildlife","photography","birdwatching","foraging"].some(w => catLower.includes(w));
-        const isUrban = ["food tour","wine","brewery","walking tour","historical","cultural","art","museum"].some(w => catLower.includes(w));
-        const isMotor = ["4wd","atv","snowmobil","scenic flight"].some(w => catLower.includes(w));
+        // Match against all categories, not just first — DB stores lowercase singles like "fishing","skiing","offroad"
+        const allCats = (guide.categories || []).map(c => c.toLowerCase()).join(" ");
+        const isWater = ["fishing","kayaking","surfing","diving","sailing","rafting","paddling","ice fishing"].some(w => allCats.includes(w));
+        const isAlpine = ["hiking","climbing","mountaineering","backpacking","skiing","snowshoe","mountain biking"].some(w => allCats.includes(w));
+        const isStar = allCats.includes("stargazing");
+        const isWildlife = ["wildlife","photography","birdwatching","foraging"].some(w => allCats.includes(w));
+        const isUrban = ["food","wine","brewery","cultural","art","museum","walking","historical"].some(w => allCats.includes(w));
+        const isMotor = ["offroad","4wd","atv","snowmobil","scenic flight","moto"].some(w => allCats.includes(w));
 
         // Build vertical-specific data grid
         let conditionCards = [];
-        if (isWater) {
+
+        // Further split skiing vs hiking/climbing for alpine
+        const isSkiing = allCats.includes("skiing") || allCats.includes("snowshoe");
+        const isFishing = allCats.includes("fishing");
+        const isRafting = allCats.includes("rafting") || allCats.includes("kayaking") || allCats.includes("paddling");
+
+        if (isFishing) {
+          // Fishing: water clarity proxy (humidity), wind for casting, sunrise/sunset for hatch windows
+          conditionCards = [
+            ["🌡️","Air Temp",`${base.high}°F / ${base.low}°F`],
+            ["💨","Wind",`${base.wind} mph`],
+            ["🌅","Sunrise",base.sunrise ? new Date(base.sunrise).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "—"],
+            ["🌇","Sunset",base.sunset ? new Date(base.sunset).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "—"],
+            ["🌧️","Precip",base.precipChance != null ? `${base.precipChance}%` : "—"],
+            ["🎣","Hatch Window",base.wind < 10 ? "Favorable" : base.wind < 18 ? "Manageable" : "Challenging"],
+          ];
+          base.widgetTitle = "Fishing Conditions";
+        } else if (isRafting) {
+          conditionCards = [
+            ["🌡️","Air Temp",`${base.high}°F / ${base.low}°F`],
+            ["💨","Wind",`${base.wind} mph`],
+            ["🌧️","Rain",base.precipChance != null ? `${base.precipChance}%` : "—"],
+            ["💧","Humidity",`${base.humidity}%`],
+            ["🌅","Sunrise",base.sunrise ? new Date(base.sunrise).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "—"],
+            ["🌊","River",base.precipChance > 60 ? "Elevated Flow" : base.precipChance > 30 ? "Normal Flow" : "Low Flow"],
+          ];
+          base.widgetTitle = "River & Weather Conditions";
+        } else if (isWater) {
           conditionCards = [
             ["🌡️","Temp",`${base.high}°F / ${base.low}°F`],
             ["💨","Wind",`${base.wind} mph`],
@@ -776,6 +803,18 @@ function GuideProfile({ guide=GUIDE }) {
             ["💧","Humidity",`${base.humidity}%`],
           ];
           base.widgetTitle = "Water & Weather Conditions";
+        } else if (isSkiing) {
+          // Skiing: temp matters a lot, wind for visibility/avalanche risk, precip for snow
+          const skiCondition = base.temp <= 28 ? "Powder" : base.temp <= 34 ? "Packed Powder" : base.temp <= 40 ? "Spring Snow" : "Wet/Slushy";
+          conditionCards = [
+            ["🌡️","Summit Temp",`${base.low}°F (low)`],
+            ["❄️","Snow Quality",skiCondition],
+            ["💨","Wind",`${base.wind} mph`],
+            ["🌨️","Precip",base.precipChance != null ? `${base.precipChance}%` : "—"],
+            ["🌅","Sunrise",base.sunrise ? new Date(base.sunrise).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "—"],
+            ["☀️","UV Index",base.uvIndex != null ? `${Math.round(base.uvIndex)} of 11` : "—"],
+          ];
+          base.widgetTitle = "Snow & Mountain Conditions";
         } else if (isAlpine) {
           conditionCards = [
             ["🌡️","Temp",`${base.high}°F / ${base.low}°F`],
