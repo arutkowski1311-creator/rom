@@ -754,6 +754,32 @@ export default function PropertyPage() {
           <AvailabilityCalendar blocks={blocks} checkIn={null} checkOut={null} onSelectDate={() => {}} selecting={false} />
         </div>
 
+        {/* Boat rental add-on — shown for Ausable House */}
+        {property.slug === "ausable-house" && (
+          <div style={{ padding: "40px 0", borderBottom: `1px solid ${T.wire}` }}>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: T.gold, marginBottom: 14 }}>Add to Your Stay</div>
+            <div style={{ background: T.gunmetal, border: `1px solid ${T.wire}`, borderRadius: 12, padding: 24, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 20 }}>
+              <div style={{ display: "flex", gap: 18, alignItems: "flex-start" }}>
+                <div style={{ fontSize: 36 }}>⛵</div>
+                <div>
+                  <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: T.white, marginBottom: 6 }}>20ft Pontoon Boat Rental</div>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.silver, lineHeight: 1.6, maxWidth: 420 }}>
+                    Lake Placid or Saranac Lake. Gas, cooler, life preservers, and trailering to your chosen destination all included. Captain available for $150.
+                  </div>
+                  <div style={{ display: "flex", gap: 16, marginTop: 10 }}>
+                    <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.parchment }}>Half day <strong style={{ color: T.gold }}>$400</strong></span>
+                    <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.parchment }}>Full day <strong style={{ color: T.gold }}>$600</strong></span>
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => window.location.href = "/rentals/ausable-pontoon"}
+                style={{ padding: "12px 24px", background: T.gold, border: "none", borderRadius: 8, fontFamily: FONT_BODY, fontSize: 14, fontWeight: 700, color: T.ink, cursor: "pointer", flexShrink: 0 }}>
+                Book the Boat →
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Concierge CTA */}
         <div style={{ padding: "40px 0", textAlign: "center", borderBottom: `1px solid ${T.wire}` }}>
           <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: 32, color: T.white, margin: "0 0 12px", fontWeight: 400 }}>Make the most of your stay</h2>

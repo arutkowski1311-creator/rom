@@ -57,7 +57,7 @@ function Nav({ scrolled, user, userRole }) {
         <div style={{fontFamily:FONT_DISPLAY,fontSize:28,color:T.gold,letterSpacing:"0.16em",fontWeight:500,cursor:"pointer"}} onClick={()=>window.location.href="/"}>RŌM</div>
         {!isMobile && (
           <div style={{display:"flex",gap:32,alignItems:"center"}}>
-            {[["Explore","/search"],["Properties","/properties"],["RŌM Concierge","/concierge"],["How It Works","#how-it-works"]].map(([item,href])=>(
+            {[["Explore","/search"],["Properties","/properties"],["Rentals","/rentals"],["RŌM Concierge","/concierge"],["How It Works","#how-it-works"]].map(([item,href])=>(
               <span key={item} onClick={()=>window.location.href=href} style={{fontFamily:FONT_BODY,fontSize:16,color:scrolled?T.ash:T.parchment,cursor:"pointer"}}>{item}</span>
             ))}
             <div style={{width:1,height:18,background:T.wire}}/>
@@ -85,7 +85,7 @@ function Nav({ scrolled, user, userRole }) {
     </nav>
     {isMobile && menuOpen && (
       <div style={{position:"fixed",top:64,left:0,right:0,background:T.void,borderBottom:`1px solid ${T.wire}`,padding:20,display:"flex",flexDirection:"column",gap:16,zIndex:99}}>
-        {[["Explore","/search"],["Properties","/properties"],["RŌM Concierge","/concierge"],["How It Works","#how-it-works"]].map(([item,href])=>(
+        {[["Explore","/search"],["Properties","/properties"],["Rentals","/rentals"],["RŌM Concierge","/concierge"],["How It Works","#how-it-works"]].map(([item,href])=>(
           <span key={item} onClick={()=>{window.location.href=href;setMenuOpen(false);}} style={{fontFamily:FONT_BODY,fontSize:16,color:T.ash,cursor:"pointer",padding:"10px 0",borderBottom:`1px solid ${T.rim}`}}>{item}</span>
         ))}
         {user ? (
@@ -651,7 +651,7 @@ export default function HomePage() {
         <div style={{fontFamily:FONT_DISPLAY, fontSize:20, color:T.gold, letterSpacing:"0.14em", marginBottom:6}}>RŌM</div>
         <div style={{fontFamily:FONT_BODY, fontSize:12, color:T.silver, marginBottom:14}}>The world's best adventure guides, in one place.</div>
         <nav aria-label="Footer navigation" style={{display:"flex", justifyContent:"center", gap:20, flexWrap:"wrap", marginBottom:14}}>
-          {[["Explore","/search"],["Properties","/properties"],["RŌM Concierge","/concierge"],["Become a Guide","/become-a-guide"]].map(([label,href])=>(
+          {[["Explore","/search"],["Properties","/properties"],["Rentals","/rentals"],["RŌM Concierge","/concierge"],["Become a Guide","/become-a-guide"]].map(([label,href])=>(
             <a key={label} href={href} style={{fontFamily:FONT_BODY, fontSize:12, color:T.ash, cursor:"pointer", textDecoration:"none"}}>{label}</a>
           ))}
         </nav>
