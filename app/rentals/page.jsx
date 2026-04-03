@@ -32,7 +32,7 @@ function RentalCard({ rental }) {
           {rental.destinations?.map(d => (
             <span key={d} style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.muted, background: T.steel, borderRadius: 4, padding: "3px 8px" }}>🏞️ {d}</span>
           ))}
-          {rental.capacity && <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.muted, background: T.steel, borderRadius: 4, padding: "3px 8px" }}>Up to {rental.capacity} guests</span>}
+          {rental.capacity && <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.muted, background: T.steel, borderRadius: 4, padding: "3px 8px" }}>Up to {rental.capacity} passengers</span>}
         </div>
         <div style={{ display: "flex", gap: 16 }}>
           {rental.half_day_price && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver }}>Half day · <strong style={{ color: T.parchment }}>${rental.half_day_price.toLocaleString()}</strong></span>}
@@ -64,7 +64,7 @@ export default function RentalsPage() {
           Get out on the water.
         </h1>
         <p style={{ fontFamily: FONT_BODY, fontSize: 16, color: T.silver, maxWidth: 520, lineHeight: 1.75, margin: 0 }}>
-          20-foot pontoon, trailered to Lake Placid or Saranac Lake. Gas, cooler, and life preservers included. Captain available on request.
+          20-foot pontoon, trailered to Lake Placid or Saranac Lake. Gas, cooler, and life preservers included. NYS Boating Safety Certificate required to operate.
         </p>
       </div>
 

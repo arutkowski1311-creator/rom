@@ -764,7 +764,7 @@ export default function PropertyPage() {
                 <div>
                   <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: T.white, marginBottom: 6 }}>20ft Pontoon Boat Rental</div>
                   <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.silver, lineHeight: 1.6, maxWidth: 420 }}>
-                    Lake Placid or Saranac Lake. Gas, cooler, life preservers, and trailering to your chosen destination all included. Captain available for $150.
+                    Lake Placid or Saranac Lake. Gas, cooler, life preservers, and trailering to your chosen destination all included. NYS Boating Safety Certificate required to operate.
                   </div>
                   <div style={{ display: "flex", gap: 16, marginTop: 10 }}>
                     <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.parchment }}>Half day <strong style={{ color: T.gold }}>$400</strong></span>

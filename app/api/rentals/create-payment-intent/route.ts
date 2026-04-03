@@ -9,10 +9,8 @@ export async function POST(req: NextRequest) {
       rentalDate,
       duration,       // 'half_day' | 'full_day'
       destination,
-      driverRequested,
       passengers,
       basePrice,      // cents
-      driverFee,      // cents
       platformFee,    // cents
       total,          // cents
       guestEmail,
@@ -54,7 +52,7 @@ export async function POST(req: NextRequest) {
         rental_date: rentalDate,
         duration,
         destination: destination || "",
-        driver_requested: String(driverRequested),
+        driver_requested: "false",
         type: "rental_booking",
       },
     };
@@ -79,10 +77,10 @@ export async function POST(req: NextRequest) {
         rental_date:              rentalDate,
         duration,
         destination:              destination || null,
-        driver_requested:         driverRequested || false,
+        driver_requested:         false,
         passengers:               passengers || 1,
         base_price:               basePrice / 100,
-        driver_fee:               driverFee / 100,
+        driver_fee:               0,
         platform_fee:             platformFee / 100,
         total:                    total / 100,
         stripe_payment_intent_id: paymentIntent.id,
