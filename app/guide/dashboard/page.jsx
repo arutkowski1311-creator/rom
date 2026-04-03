@@ -833,8 +833,199 @@ function ExpenseInterview({ booking, guideId, guideCategories, onDone, onSkip })
   );
 }
 
+// ─── PROPERTIES OWNER TAB ────────────────────────────────────────────────────
+function PropertiesOwnerTab({ guideId }) {
+  const [properties, setProperties] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [bookings, setBookings] = useState([]);
+  const [feeds, setFeeds] = useState([]);
+  const [newFeedUrl, setNewFeedUrl] = useState("");
+  const [newFeedLabel, setNewFeedLabel] = useState("Airbnb");
+  const [syncing, setSyncing] = useState(false);
+  const [releasingDeposit, setReleasingDeposit] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const supabase = getSupabase();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase.from("properties").select("*").eq("owner_id", user.id).then(({ data }) => {
+        setProperties(data || []);
+        if (data?.length) setSelected(data[0].id);
+        setLoading(false);
+      });
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!selected) return;
+    const supabase = getSupabase();
+    supabase.from("property_bookings").select("*").eq("property_id", selected).order("created_at", { ascending: false })
+      .then(({ data }) => setBookings(data || []));
+    supabase.from("property_ical_feeds").select("*").eq("property_id", selected)
+      .then(({ data }) => setFeeds(data || []));
+  }, [selected]);
+
+  const syncFeed = async (feed) => {
+    setSyncing(feed.id);
+    await fetch("/api/properties/ical-sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ property_id: feed.property_id, feed_url: feed.url, label: feed.label }),
+    });
+    setSyncing(null);
+    // Refresh feeds
+    const supabase = getSupabase();
+    supabase.from("property_ical_feeds").select("*").eq("property_id", selected).then(({ data }) => setFeeds(data || []));
+  };
+
+  const addFeed = async () => {
+    if (!newFeedUrl || !selected) return;
+    const supabase = getSupabase();
+    await supabase.from("property_ical_feeds").insert({ property_id: selected, url: newFeedUrl, label: newFeedLabel });
+    const { data } = await supabase.from("property_ical_feeds").select("*").eq("property_id", selected);
+    setFeeds(data || []);
+    setNewFeedUrl("");
+  };
+
+  const releaseDeposit = async (bookingId) => {
+    setReleasingDeposit(bookingId);
+    await fetch("/api/properties/release-deposit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bookingId }),
+    });
+    setReleasingDeposit(null);
+    const supabase = getSupabase();
+    supabase.from("property_bookings").select("*").eq("property_id", selected).order("created_at", { ascending: false })
+      .then(({ data }) => setBookings(data || []));
+  };
+
+  const property = properties.find(p => p.id === selected);
+
+  const fmtDate  = (ds) => ds ? new Date(ds + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
+  const fmtMoney = (n) => n ? `$${Number(n).toLocaleString()}` : "$0";
+
+  // Stats
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+  const revenueThisMonth = bookings.filter(b => b.created_at?.slice(0,7)===thisMonth && b.status!=="cancelled").reduce((s,b) => s + (b.total||0), 0);
+  const upcoming = bookings.filter(b => b.check_in >= now.toISOString().slice(0,10) && b.status!=="cancelled");
+  const nextCheckin = upcoming.sort((a,b) => a.check_in.localeCompare(b.check_in))[0];
+
+  if (loading) return <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.silver,padding:40}}>Loading…</div>;
+
+  if (!properties.length) return (
+    <div style={{textAlign:"center",padding:"60px 20px"}}>
+      <div style={{fontFamily:FONT_DISPLAY,fontSize:28,color:T.white,marginBottom:12}}>No properties yet</div>
+      <p style={{fontFamily:FONT_BODY,fontSize:14,color:T.silver,marginBottom:24}}>Properties are added by the RŌM team. Reach out to add your home to the collection.</p>
+      <GoldBtn onClick={() => window.location.href="/properties"}>Browse Properties →</GoldBtn>
+    </div>
+  );
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:20,maxWidth:900}}>
+
+      {/* Property selector */}
+      {properties.length > 1 && (
+        <div style={{display:"flex",gap:10}}>
+          {properties.map(p => (
+            <button key={p.id} onClick={() => setSelected(p.id)}
+              style={{padding:"8px 16px",background:selected===p.id?T.gold:T.steel,border:`1px solid ${selected===p.id?T.gold:T.wire}`,borderRadius:6,fontFamily:FONT_BODY,fontSize:13,color:selected===p.id?T.ink:T.silver,cursor:"pointer"}}>
+              {p.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Stats */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12}}>
+        {[
+          ["◎","Revenue this month",fmtMoney(revenueThisMonth),"From confirmed bookings"],
+          ["◷","Upcoming bookings",upcoming.length,"Confirmed stays"],
+          ["✦","Next check-in",nextCheckin ? fmtDate(nextCheckin.check_in) : "—", nextCheckin ? `${nextCheckin.guests} guest${nextCheckin.guests!==1?"s":""}` : "None scheduled"],
+        ].map(([icon,label,val,sub]) => (
+          <div key={label} style={{background:T.steel,border:`1px solid ${T.wire}`,borderRadius:8,padding:"16px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+              <div style={{fontFamily:FONT_BODY,fontSize:10,fontWeight:700,color:T.silver,textTransform:"uppercase",letterSpacing:"0.06em"}}>{label}</div>
+              <span style={{color:T.gold,fontSize:14}}>{icon}</span>
+            </div>
+            <div style={{fontFamily:FONT_DISPLAY,fontSize:26,color:T.white,fontWeight:300,lineHeight:1,marginBottom:4}}>{val}</div>
+            <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.silver}}>{sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* iCal sync */}
+      <SectionCard title="Calendar Sync — iCal Feeds">
+        {feeds.map(feed => (
+          <div key={feed.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${T.rim}`}}>
+            <div>
+              <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment}}>{feed.label} — <span style={{color:T.muted,fontSize:12}}>{feed.url.slice(0,50)}…</span></div>
+              <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.muted,marginTop:3}}>Last synced: {feed.last_synced ? new Date(feed.last_synced).toLocaleString() : "Never"}</div>
+            </div>
+            <button onClick={() => syncFeed(feed)} disabled={syncing===feed.id}
+              style={{padding:"7px 14px",background:T.gold,border:"none",borderRadius:6,fontFamily:FONT_BODY,fontSize:12,fontWeight:700,color:T.ink,cursor:"pointer",opacity:syncing===feed.id?0.6:1}}>
+              {syncing===feed.id?"Syncing…":"Sync Now"}
+            </button>
+          </div>
+        ))}
+        <div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}>
+          <select value={newFeedLabel} onChange={e => setNewFeedLabel(e.target.value)}
+            style={{padding:"8px 12px",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:6,fontFamily:FONT_BODY,fontSize:13,color:T.parchment}}>
+            <option>Airbnb</option><option>VRBO</option><option>Other</option>
+          </select>
+          <input value={newFeedUrl} onChange={e => setNewFeedUrl(e.target.value)} placeholder="Paste iCal URL (.ics)"
+            style={{flex:1,minWidth:200,padding:"8px 12px",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:6,fontFamily:FONT_BODY,fontSize:13,color:T.parchment}} />
+          <button onClick={addFeed} disabled={!newFeedUrl}
+            style={{padding:"8px 16px",background:T.gold,border:"none",borderRadius:6,fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:T.ink,cursor:"pointer",opacity:newFeedUrl?1:0.5}}>
+            Add Feed
+          </button>
+        </div>
+      </SectionCard>
+
+      {/* Bookings list */}
+      <SectionCard title="Bookings">
+        {bookings.length === 0 ? (
+          <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.muted,textAlign:"center",padding:"20px 0"}}>No bookings yet</div>
+        ) : bookings.map(b => (
+          <div key={b.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"14px 0",borderBottom:`1px solid ${T.rim}`,flexWrap:"wrap",gap:10}}>
+            <div>
+              <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.parchment,fontWeight:600}}>{b.confirmation_code}</div>
+              <div style={{fontFamily:FONT_BODY,fontSize:12,color:T.silver,marginTop:2}}>{fmtDate(b.check_in)} → {fmtDate(b.check_out)} · {b.guests} guest{b.guests!==1?"s":""} · {b.nights} night{b.nights!==1?"s":""}</div>
+              <div style={{fontFamily:FONT_BODY,fontSize:11,color:T.muted,marginTop:2}}>
+                {b.deposit_released_at ? "🟢 Deposit released" : b.deposit_intent_id ? "🟡 Deposit hold active" : ""}
+              </div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6}}>
+              <div style={{fontFamily:FONT_BODY,fontSize:13,color:T.gold,fontWeight:600}}>{fmtMoney(b.total)}</div>
+              <div style={{fontFamily:FONT_BODY,fontSize:11,color:b.status==="confirmed"?"#3a7a54":b.status==="cancelled"?T.red:T.silver,textTransform:"uppercase",letterSpacing:"0.06em"}}>{b.status}</div>
+              {b.status==="completed" && !b.deposit_released_at && b.deposit_intent_id && (
+                <button onClick={() => releaseDeposit(b.id)} disabled={releasingDeposit===b.id}
+                  style={{padding:"6px 12px",background:"none",border:`1px solid ${T.green}`,borderRadius:6,fontFamily:FONT_BODY,fontSize:11,color:T.green,cursor:"pointer",opacity:releasingDeposit===b.id?0.6:1}}>
+                  {releasingDeposit===b.id?"Releasing…":"Release Deposit"}
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </SectionCard>
+
+      {/* Quick property link */}
+      {property && (
+        <div style={{display:"flex",gap:12}}>
+          <button onClick={() => window.open(`/properties/${property.slug}`, "_blank")}
+            style={{padding:"10px 20px",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:7,fontFamily:FONT_BODY,fontSize:13,color:T.silver,cursor:"pointer"}}>
+            View Public Page →
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── TABS ─────────────────────────────────────────────────────────────────────
-const TABS = ["Overview","Bookings","Calendar","Packages","Messages","Earnings","Finances","Marketing","Analytics","Guests","Licenses","Team","Profile"];
+const TABS = ["Overview","Bookings","Calendar","Packages","Messages","Earnings","Finances","Marketing","Analytics","Guests","Licenses","Team","Properties","Profile"];
 
 export default function GuideDashboard() {
   const [tab, setTab] = useState("Overview");
@@ -2475,6 +2666,11 @@ export default function GuideDashboard() {
                 </>
               )}
             </div>
+          )}
+
+          {/* ── PROPERTIES ── */}
+          {tab==="Properties" && (
+            <PropertiesOwnerTab guideId={guideId} />
           )}
 
           {/* ── PROFILE ── */}

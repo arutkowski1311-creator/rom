@@ -67,6 +67,13 @@ export async function POST(req: NextRequest) {
       .eq("active", true)
       .ilike("location", `%${destination.split(",")[0].trim()}%`);
 
+    // Find curated RŌM properties near the destination
+    const { data: romProperties } = await supabase
+      .from("properties")
+      .select("slug, name, tagline, location, description, price_per_night, max_guests, bedrooms, bathrooms, amenities, positioning_tags, photos")
+      .eq("active", true)
+      .ilike("location", `%${destination.split(",")[0].trim()}%`);
+
     // Get guide names and packages
     const guidesWithDetails = [];
     for (const guide of (matchingGuides || [])) {
@@ -240,6 +247,15 @@ ${guidesWithDetails.length > 0 ? guidesWithDetails.map((g, i) => `${i + 1}. ${g.
 
 ${guidesWithDetails.length > 0 ? "Pick the best-matched guide and build the trip around their packages." : ""}
 
+${(romProperties && romProperties.length > 0) ? `RŌM Curated Properties (TOP PRIORITY — book directly on RŌM, premium vetted homes):
+${romProperties.map((p: any, i: number) => `${i + 1}. ${p.name} (${p.location})${p.tagline ? ` — ${p.tagline}` : ""}
+   ${p.description ? p.description.slice(0, 200) : ""}
+   $${p.price_per_night}/night · ${p.bedrooms || "?"} bed · ${p.bathrooms || "?"} bath · Max ${p.max_guests} guests
+   ${p.positioning_tags?.length ? `Tags: ${p.positioning_tags.join(", ")}` : ""}
+   ${p.amenities?.length ? `Amenities: ${p.amenities.slice(0, 6).join(", ")}` : ""}
+   Book at: romlife.co/properties/${p.slug}
+`).join("\n")}
+Mark RŌM properties with "isPartner": true and "romProperty": true in the lodging array.` : ""}
 ${(partnerLodging && partnerLodging.length > 0) ? `ROM Partner Properties (PRIORITIZE these over generic lodging):
 ${partnerLodging.map((p: any, i: number) => `${i + 1}. ${p.name} (${p.location}) — ${p.type}
    ${p.description || ""}
