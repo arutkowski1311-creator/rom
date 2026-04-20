@@ -159,6 +159,7 @@ function MapPane({ guides, activeGuide, setActiveGuide }) {
 // ─── FILTER BAR ───────────────────────────────────────────────────────────────
 function FilterBar({ filters, setFilters }) {
   const [priceOpen, setPriceOpen] = useState(false);
+  const [dateOpen, setDateOpen] = useState(false);
 
   return (
     <div style={{display:"flex", gap:8, alignItems:"center", flexWrap:"wrap"}}>
@@ -214,8 +215,52 @@ function FilterBar({ filters, setFilters }) {
         )}
       </div>
 
-      {(filters.category || filters.maxPrice) && (
-        <button onClick={()=>setFilters({category:"",sort:"Best match",maxPrice:null})}
+      {/* Date filter */}
+      <div style={{position:"relative"}}>
+        <button onClick={()=>setDateOpen(o=>!o)} style={{
+          background: filters.dateStart ? T.goldGlow : T.steel,
+          border: `1px solid ${filters.dateStart ? T.gold : T.wire}`,
+          borderRadius:6, padding:"7px 14px",
+          fontFamily:FONT_BODY, fontSize:12,
+          color: filters.dateStart ? T.gold : T.silver,
+          cursor:"pointer",
+        }}>
+          {filters.dateStart ? `${filters.dateStart} → ${filters.dateEnd}` : "Dates"} ▾
+        </button>
+        {dateOpen && (
+          <div style={{position:"absolute", top:"calc(100% + 8px)", left:0, background:T.steel, border:`1px solid ${T.wire}`, borderRadius:8, padding:16, zIndex:50, width:260, boxShadow:`0 8px 32px rgba(0,0,0,0.6)`}}>
+            <div style={{fontFamily:FONT_BODY, fontSize:11, fontWeight:700, color:T.silver, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:12}}>Trip Dates</div>
+            <div style={{display:"flex", flexDirection:"column", gap:10}}>
+              <div>
+                <div style={{fontFamily:FONT_BODY, fontSize:11, color:T.muted, marginBottom:4}}>Start</div>
+                <input type="date" value={filters.dateStart} onChange={e=>setFilters(f=>({...f, dateStart:e.target.value}))}
+                  min={new Date().toISOString().split("T")[0]}
+                  style={{width:"100%", boxSizing:"border-box", background:T.lifted, border:`1px solid ${T.wire}`, borderRadius:5, padding:"8px 10px", fontFamily:FONT_BODY, fontSize:13, color:T.parchment, outline:"none", colorScheme:"dark"}} />
+              </div>
+              <div>
+                <div style={{fontFamily:FONT_BODY, fontSize:11, color:T.muted, marginBottom:4}}>End</div>
+                <input type="date" value={filters.dateEnd} onChange={e=>setFilters(f=>({...f, dateEnd:e.target.value}))}
+                  min={filters.dateStart || new Date().toISOString().split("T")[0]}
+                  style={{width:"100%", boxSizing:"border-box", background:T.lifted, border:`1px solid ${T.wire}`, borderRadius:5, padding:"8px 10px", fontFamily:FONT_BODY, fontSize:13, color:T.parchment, outline:"none", colorScheme:"dark"}} />
+              </div>
+              <label style={{display:"flex", alignItems:"center", gap:8, cursor:"pointer"}}>
+                <input type="checkbox" checked={filters.flexDates} onChange={e=>setFilters(f=>({...f, flexDates:e.target.checked}))}
+                  style={{accentColor:T.gold}} />
+                <span style={{fontFamily:FONT_BODY, fontSize:12, color:T.ash}}>Flexible (+/- 3 days)</span>
+              </label>
+              <div style={{display:"flex", gap:8}}>
+                <button onClick={()=>setDateOpen(false)}
+                  style={{flex:1, background:T.gold, border:"none", borderRadius:5, padding:"8px", fontFamily:FONT_BODY, fontSize:12, fontWeight:700, color:T.ink, cursor:"pointer"}}>Apply</button>
+                {filters.dateStart && <button onClick={()=>{setFilters(f=>({...f, dateStart:"", dateEnd:"", flexDates:false}));setDateOpen(false);}}
+                  style={{fontFamily:FONT_BODY, fontSize:11, color:T.muted, background:"none", border:`1px solid ${T.wire}`, borderRadius:5, padding:"8px 12px", cursor:"pointer"}}>Clear</button>}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {(filters.category || filters.maxPrice || filters.dateStart) && (
+        <button onClick={()=>setFilters({category:"",sort:"Best match",maxPrice:null,dateStart:"",dateEnd:"",flexDates:false})}
           style={{fontFamily:FONT_BODY, fontSize:12, color:T.silver, background:"none", border:"none", cursor:"pointer", textDecoration:"underline"}}>
           Clear all
         </button>
@@ -227,7 +272,7 @@ function FilterBar({ filters, setFilters }) {
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 
 export default function SearchPage() {
-  const [filters, setFilters] = useState({category:"",sort:"Best match",maxPrice:null});
+  const [filters, setFilters] = useState({category:"",sort:"Best match",maxPrice:null,dateStart:"",dateEnd:"",flexDates:false});
   const [activeGuide, setActiveGuide] = useState(null);
   const [query, setQuery] = useState("");
   const [guides, setGuides] = useState([]);
@@ -284,6 +329,37 @@ export default function SearchPage() {
         };
       });
       if (filters.maxPrice) shaped = shaped.filter(g=>g.price<=filters.maxPrice);
+
+      // Date availability filtering
+      if (filters.dateStart && filters.dateEnd && shaped.length > 0) {
+        let startDate = filters.dateStart;
+        let endDate = filters.dateEnd;
+
+        // Flexible dates: expand range by 3 days each direction
+        if (filters.flexDates) {
+          const s = new Date(startDate);
+          const e = new Date(endDate);
+          s.setDate(s.getDate() - 3);
+          e.setDate(e.getDate() + 3);
+          startDate = s.toISOString().split("T")[0];
+          endDate = e.toISOString().split("T")[0];
+        }
+
+        const guideIds = shaped.map(g => g.id);
+        const { data: blockedRows } = await supabase
+          .from("availability")
+          .select("guide_id")
+          .in("guide_id", guideIds)
+          .eq("status", "blocked")
+          .gte("date", startDate)
+          .lte("date", endDate);
+
+        if (blockedRows && blockedRows.length > 0) {
+          const blockedIds = new Set(blockedRows.map(r => r.guide_id));
+          shaped = shaped.filter(g => !blockedIds.has(g.id));
+        }
+      }
+
       if (filters.sort==="Lowest price") shaped = shaped.sort((a,b)=>a.price-b.price);
       setGuides(shaped);
     } catch(e) { console.error("Fetch error:",e); }
@@ -370,7 +446,7 @@ export default function SearchPage() {
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:20}}>
               <div style={{fontFamily:FONT_DISPLAY,fontSize:26,color:T.white,fontWeight:400}}>
                 {loading ? <span style={{color:T.silver,fontSize:20}}>Loading guides…</span>
-                  : <>{filtered.length} guide{filtered.length!==1?"s":""}{filters.category?<span style={{color:T.gold}}> in {filters.category}</span>:""}</>}
+                  : <>{filtered.length} guide{filtered.length!==1?"s":""}{filters.category?<span style={{color:T.gold}}> in {filters.category}</span>:""}{filters.dateStart?<span style={{color:T.green}}> available {filters.dateStart} – {filters.dateEnd}{filters.flexDates?" (flex)":""}</span>:""}</>}
               </div>
               {query&&<div style={{fontFamily:FONT_BODY,fontSize:13,color:T.silver}}>Searching "{query}"</div>}
             </div>
@@ -382,7 +458,7 @@ export default function SearchPage() {
               <div style={{textAlign:"center",padding:"80px 24px"}}>
                 <div style={{fontFamily:FONT_DISPLAY,fontSize:36,color:T.silver,marginBottom:12,fontWeight:300}}>No guides found</div>
                 <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.muted,marginBottom:24}}>Try adjusting your filters or search a different destination.</div>
-                <button onClick={()=>{setFilters({category:"",sort:"Best match",maxPrice:null});setQuery("");}}
+                <button onClick={()=>{setFilters({category:"",sort:"Best match",maxPrice:null,dateStart:"",dateEnd:"",flexDates:false});setQuery("");}}
                   style={{background:"none",border:`1px solid ${T.gold}`,borderRadius:6,padding:"10px 20px",fontFamily:FONT_BODY,fontSize:14,color:T.gold,cursor:"pointer"}}>Clear all filters</button>
               </div>
             ) : null}

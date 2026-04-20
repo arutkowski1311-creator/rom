@@ -88,6 +88,7 @@ function SignupForm({ role, onSwitch }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [referralCode, setReferralCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -115,6 +116,22 @@ function SignupForm({ role, onSwitch }) {
       if (err) { setError(err.message); setLoading(false); return; }
       if (data.user) {
         await supabase.from("profiles").upsert({ id: data.user.id, role, full_name: name, email }, { onConflict: "id" });
+        // Apply referral code if provided
+        if (referralCode.trim()) {
+          try {
+            const { data: session } = await supabase.auth.getSession();
+            await fetch("/api/referrals/apply", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(session?.session?.access_token ? { Authorization: `Bearer ${session.session.access_token}` } : {}),
+              },
+              body: JSON.stringify({ referralCode: referralCode.trim() }),
+            });
+          } catch (refErr) {
+            console.error("Referral apply error (non-blocking):", refErr);
+          }
+        }
       }
       setSuccess(true);
     } catch(e) {
@@ -161,6 +178,7 @@ function SignupForm({ role, onSwitch }) {
       <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com" error={errors.email}/>
       <Field label="Password" type="password" value={password} onChange={setPassword} placeholder="At least 8 characters" error={errors.password}/>
       <Field label="Confirm Password" type="password" value={confirm} onChange={setConfirm} placeholder="Same password again" error={errors.confirm}/>
+      <Field label="Referral Code (optional)" value={referralCode} onChange={setReferralCode} placeholder="e.g. ROM-JAMES4821"/>
 
       {role==="guide" && (
         <div style={{background:T.goldGlow, border:`1px solid ${T.gold}`, borderRadius:6, padding:"12px 14px", marginBottom:20}}>

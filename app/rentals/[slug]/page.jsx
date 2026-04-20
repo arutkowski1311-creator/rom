@@ -6,6 +6,7 @@ import { getSupabase } from "@/app/lib/supabase-browser";
 import { GoldBtn } from "@/app/components/ui";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { useCart } from "@/app/lib/cart-context";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 const PLATFORM_FEE_RATE = 0.06;
@@ -132,6 +133,7 @@ function RentalPaymentForm({ total, onSuccess, onError }) {
 
 // ─── Booking panel ────────────────────────────────────────────────────────────
 function BookingPanel({ rental, blockedDates, onClose }) {
+  const { addItem } = useCart();
   const [step, setStep]               = useState(1);
   const [rentalDate, setRentalDate]   = useState("");
   const [duration, setDuration]       = useState("full_day");
@@ -410,6 +412,27 @@ function BookingPanel({ rental, blockedDates, onClose }) {
               </div>
 
               <GoldBtn disabled={!canAdvance1} onClick={() => setStep(2)}>Continue to Waiver →</GoldBtn>
+              <button onClick={() => {
+                addItem({
+                  type: "rental",
+                  rentalId: rental.id,
+                  rentalSlug: rental.slug,
+                  rentalName: rental.name || rental.vessel_name || "Rental",
+                  rentalDate,
+                  duration,
+                  destination,
+                  passengers,
+                  basePrice: basePrice * 100,
+                  platformFee: platformFee * 100,
+                  total: total * 100,
+                  specialRequests: requests,
+                });
+                onClose();
+              }}
+                disabled={!canAdvance1}
+                style={{ width: "100%", marginTop: 8, padding: 12, background: "transparent", border: `1.5px solid ${T.gold}`, borderRadius: 8, fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, color: T.gold, cursor: canAdvance1 ? "pointer" : "not-allowed", opacity: canAdvance1 ? 1 : 0.4 }}>
+                Add to Trip Cart
+              </button>
             </div>
           )}
 

@@ -9,6 +9,7 @@ import MarketingTab from "./tabs/MarketingTab";
 import AnalyticsTab from "./tabs/AnalyticsTab";
 import GuestCRMTab from "./tabs/GuestCRMTab";
 import LicensesTab from "./tabs/LicensesTab";
+import PricingTab from "./tabs/PricingTab";
 
 // ─── DEFAULT STATE (overwritten by fetchData) ────────────────────────────────
 const GUIDE_DEFAULT = {
@@ -1025,7 +1026,7 @@ function PropertiesOwnerTab({ guideId }) {
 }
 
 // ─── TABS ─────────────────────────────────────────────────────────────────────
-const TABS = ["Overview","Bookings","Calendar","Packages","Messages","Earnings","Finances","Marketing","Analytics","Guests","Licenses","Team","Properties","Profile"];
+const TABS = ["Overview","Bookings","Calendar","Packages","Messages","Earnings","Finances","Marketing","Analytics","Pricing","Guests","Licenses","Team","Properties","Profile"];
 
 export default function GuideDashboard() {
   const [tab, setTab] = useState("Overview");
@@ -2520,6 +2521,13 @@ export default function GuideDashboard() {
           {tab==="Analytics" && (
             <FeatureGate tier={guide?.subscription_tier} feature="Analytics">
               <AnalyticsTab guide={{...guide, id: guideId}} />
+            </FeatureGate>
+          )}
+
+          {/* ── PRICING INTELLIGENCE ── */}
+          {tab==="Pricing" && (
+            <FeatureGate tier={guide?.subscription_tier} feature="Pricing">
+              <PricingTab guideId={guideId} />
             </FeatureGate>
           )}
 

@@ -78,7 +78,74 @@ export async function POST(req: NextRequest) {
                       (customer as any).default_source;
 
     if (!defaultPM) {
-      // No saved payment method — notify guide to collect manually
+      // Fallback: try to find any saved payment method on the customer
+      const methods = await stripe.paymentMethods.list({
+        customer: customerId,
+        type: "card",
+        limit: 1,
+      });
+      if (methods.data.length > 0) {
+        const fallbackPM = methods.data[0].id;
+        // Use the fallback PM and set it as default for future charges
+        await stripe.customers.update(customerId, {
+          invoice_settings: { default_payment_method: fallbackPM },
+        });
+        // Continue with this PM (reassign defaultPM via the payment intent below)
+        const SERVICE_FEE_RATE = 0.15;
+        const tripPriceAmountFB = Math.round(balanceCents / (1 + SERVICE_FEE_RATE));
+        const serviceFeeAmountFB = balanceCents - tripPriceAmountFB;
+
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: balanceCents,
+          currency: "usd",
+          customer: customerId,
+          payment_method: fallbackPM,
+          off_session: true,
+          confirm: true,
+          transfer_data: {
+            destination: guide.stripe_account_id,
+            amount: tripPriceAmountFB,
+          },
+          metadata: {
+            booking_id: bookingId,
+            guide_id: booking.guide_id,
+            type: "balance",
+            service_fee_rate: SERVICE_FEE_RATE.toString(),
+            service_fee_amount: serviceFeeAmountFB.toString(),
+          },
+        });
+
+        await supabase.from("payments").insert({
+          booking_id: bookingId,
+          guide_id: booking.guide_id,
+          stripe_payment_intent_id: paymentIntent.id,
+          amount: balanceCents,
+          type: "balance",
+          status: paymentIntent.status === "succeeded" ? "succeeded" : "pending",
+          service_fee_rate: SERVICE_FEE_RATE,
+          service_fee_amount: serviceFeeAmountFB,
+          guide_payout_amount: tripPriceAmountFB,
+        });
+
+        if (paymentIntent.status === "succeeded") {
+          await supabase.from("bookings").update({
+            balance_paid_at: new Date().toISOString(),
+            balance_payment_id: paymentIntent.id,
+          }).eq("id", bookingId);
+
+          await supabase.from("guide_notifications").insert({
+            guide_id: booking.guide_id,
+            type: "balance_charged",
+            title: `Balance collected — ${booking.guest_name || "Guest"}`,
+            body: `$${(balanceCents / 100).toFixed(2)} charged for ${booking.package_title || "trip"} on ${booking.trip_date}.`,
+            metadata: { booking_id: bookingId },
+          });
+        }
+
+        return NextResponse.json({ success: true, paymentIntentId: paymentIntent.id });
+      }
+
+      // No saved payment method at all — notify guide to collect manually
       await supabase.from("guide_notifications").insert({
         guide_id: booking.guide_id,
         type: "balance_charge_failed",

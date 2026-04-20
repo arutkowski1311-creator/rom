@@ -60,6 +60,24 @@ export async function POST(req: NextRequest) {
 
     const { data: matchingGuides } = await guideQuery.order("rating", { ascending: false }).limit(5);
 
+    // Filter out guides unavailable during requested dates
+    let availableGuides = matchingGuides || [];
+    if (dateStart && dateEnd && availableGuides.length > 0) {
+      const guideIds = availableGuides.map((g: any) => g.id);
+      const { data: blockedRows } = await supabase
+        .from("availability")
+        .select("guide_id, date")
+        .in("guide_id", guideIds)
+        .eq("status", "blocked")
+        .gte("date", dateStart)
+        .lte("date", dateEnd);
+
+      if (blockedRows && blockedRows.length > 0) {
+        const blockedGuideIds = new Set(blockedRows.map((r: any) => r.guide_id));
+        availableGuides = availableGuides.filter((g: any) => !blockedGuideIds.has(g.id));
+      }
+    }
+
     // Find partner lodging near the destination
     const { data: partnerLodging } = await supabase
       .from("partner_lodging")
@@ -76,7 +94,7 @@ export async function POST(req: NextRequest) {
 
     // Get guide names and packages
     const guidesWithDetails = [];
-    for (const guide of (matchingGuides || [])) {
+    for (const guide of availableGuides) {
       const { data: profile } = await supabase
         .from("profiles")
         .select("full_name")
@@ -85,7 +103,7 @@ export async function POST(req: NextRequest) {
 
       const { data: packages } = await supabase
         .from("packages")
-        .select("title, duration, price, price_type, description")
+        .select("id, title, duration, price, price_type, description")
         .eq("guide_id", guide.id)
         .eq("active", true)
         .order("price", { ascending: true });
@@ -338,6 +356,14 @@ ${dateStart ? `IMPORTANT: Research and include local events happening between ${
       tripPlanId: tripPlan?.id,
       shareToken: tripPlan?.share_token || null,
       itinerary,
+      matchedGuides: guidesWithDetails.map((g: any) => ({
+        id: g.id,
+        slug: g.slug,
+        name: g.name,
+        location: g.location,
+        rating: g.rating,
+        packages: g.packages,
+      })),
     });
   } catch (err: any) {
     console.error("Concierge error:", err);

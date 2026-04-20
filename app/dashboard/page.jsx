@@ -3,6 +3,9 @@ import { useState, useEffect, useRef } from "react";
 import { T, FONT_DISPLAY, FONT_BODY } from "@/app/lib/theme";
 import { getSupabase } from "@/app/lib/supabase-browser";
 import { Stars, StatusPill } from "@/app/components/ui";
+import SavedCardsPanel from "@/app/components/SavedCardsPanel";
+import ModifyBookingModal from "@/app/components/ModifyBookingModal";
+import TipModal from "@/app/components/TipModal";
 
 // ─── MOCK DATA ────────────────────────────────────────────────────────────────
 const GUEST = {
@@ -149,7 +152,7 @@ function ReviewModal({ booking, onClose, onSubmit }) {
 }
 
 // ─── BOOKING DETAIL ───────────────────────────────────────────────────────────
-function BookingDetail({ booking, onClose, onReview }) {
+function BookingDetail({ booking, onClose, onReview, onModify, onTip }) {
   return (
     <div style={{position:"fixed", inset:0, zIndex:200, display:"flex", justifyContent:"flex-end"}}>
       <div onClick={onClose} style={{flex:1, background:"rgba(0,0,0,0.7)"}}/>
@@ -221,6 +224,18 @@ function BookingDetail({ booking, onClose, onReview }) {
             )}
           </div>
 
+          {/* Modify Booking */}
+          {booking.status==="upcoming" && (
+            <div style={{background:T.blueGlow, border:`1px solid ${T.blue}`, borderRadius:8, padding:18}}>
+              <div style={{fontFamily:FONT_BODY, fontSize:12, fontWeight:700, color:T.ash, marginBottom:4}}>Need to make changes?</div>
+              <div style={{fontFamily:FONT_BODY, fontSize:12, color:T.silver, marginBottom:12}}>You can modify your trip date or guest count before the balance is charged.</div>
+              <button onClick={()=>onModify?.(booking)}
+                style={{background:"transparent", border:`1px solid ${T.blue}`, borderRadius:5, padding:"7px 14px", fontFamily:FONT_BODY, fontSize:12, fontWeight:700, color:"#7a9aba", cursor:"pointer"}}>
+                Modify Booking
+              </button>
+            </div>
+          )}
+
           {/* Cancellation */}
           {booking.status==="upcoming" && booking.cancellationPolicy && (
             <div style={{background:T.redGlow, border:`1px solid ${T.red}`, borderRadius:8, padding:18}}>
@@ -244,6 +259,23 @@ function BookingDetail({ booking, onClose, onReview }) {
           {booking.status==="completed" && booking.reviewed && (
             <div style={{background:T.greenGlow, border:`1px solid ${T.green}`, borderRadius:8, padding:16}}>
               <div style={{fontFamily:FONT_BODY, fontSize:13, color:"#6aaa84", fontWeight:600}}>✓ Review submitted — thanks for helping the community.</div>
+            </div>
+          )}
+
+          {/* Tip CTA for completed bookings */}
+          {booking.status==="completed" && !booking.tipPaid && (
+            <div style={{background:T.goldGlow, border:`1px solid ${T.gold}`, borderRadius:8, padding:18}}>
+              <div style={{fontFamily:FONT_BODY, fontSize:12, fontWeight:700, color:T.gold, marginBottom:4}}>Show your appreciation</div>
+              <div style={{fontFamily:FONT_BODY, fontSize:13, color:T.ash, marginBottom:12}}>Had a great time? Leave a tip — 100% goes directly to {booking.guide}.</div>
+              <button onClick={()=>onTip?.(booking)}
+                style={{background:T.gold, border:"none", borderRadius:6, padding:"9px 18px", fontFamily:FONT_BODY, fontSize:13, fontWeight:700, color:T.ink, cursor:"pointer"}}>
+                Leave a Tip
+              </button>
+            </div>
+          )}
+          {booking.status==="completed" && booking.tipPaid && (
+            <div style={{background:T.greenGlow, border:`1px solid ${T.green}`, borderRadius:8, padding:16}}>
+              <div style={{fontFamily:FONT_BODY, fontSize:13, color:"#6aaa84", fontWeight:600}}>✓ Tip sent — {booking.guide} appreciates it!</div>
             </div>
           )}
         </div>
@@ -437,10 +469,102 @@ function MessagingPanel({ userId, guideId, isGuide }) {
   );
 }
 
+// ─── REFERRAL SECTION ─────────────────────────────────────────────────────────
+function ReferralSection() {
+  const [code, setCode] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => { loadReferral(); }, []);
+
+  const getAuthHeader = async () => {
+    const supabase = getSupabase();
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+  };
+
+  const loadReferral = async () => {
+    try {
+      const headers = await getAuthHeader();
+      const res = await fetch("/api/referrals", { headers });
+      const data = await res.json();
+      setCode(data.referralCode);
+      setStats(data.stats);
+    } catch (e) { console.error("Referral load error:", e); }
+    setLoading(false);
+  };
+
+  const generateCode = async () => {
+    try {
+      const headers = await getAuthHeader();
+      const res = await fetch("/api/referrals", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      setCode(data.referralCode);
+      loadReferral();
+    } catch (e) { console.error("Generate code error:", e); }
+  };
+
+  const copyCode = () => {
+    if (code) {
+      navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  if (loading) return null;
+
+  return (
+    <div style={{background:T.steel, border:`1px solid ${T.wire}`, borderRadius:10, padding:"24px 28px", marginTop:20}}>
+      <div style={{fontFamily:FONT_BODY, fontSize:11, fontWeight:700, color:T.silver, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:16}}>Referral Program</div>
+      <div style={{fontFamily:FONT_BODY, fontSize:13, color:T.ash, marginBottom:16, lineHeight:1.6}}>
+        Share your code with friends. When they complete their first booking, you get <strong style={{color:T.gold}}>$25</strong> and they get <strong style={{color:T.gold}}>$15</strong> in credit.
+      </div>
+
+      {code ? (
+        <>
+          <div style={{display:"flex", alignItems:"center", gap:10, marginBottom:16}}>
+            <div style={{flex:1, background:T.lifted, border:`1px solid ${T.gold}`, borderRadius:6, padding:"12px 16px", fontFamily:FONT_BODY, fontSize:16, fontWeight:700, color:T.gold, letterSpacing:"0.06em"}}>{code}</div>
+            <button onClick={copyCode} style={{background:T.gold, border:"none", borderRadius:6, padding:"12px 18px", fontFamily:FONT_BODY, fontSize:13, fontWeight:700, color:T.ink, cursor:"pointer"}}>
+              {copied ? "Copied!" : "Copy"}
+            </button>
+          </div>
+          {stats && (
+            <div style={{display:"flex", gap:16, flexWrap:"wrap"}}>
+              <div>
+                <div style={{fontFamily:FONT_BODY, fontSize:22, fontWeight:700, color:T.parchment}}>{stats.totalReferred}</div>
+                <div style={{fontFamily:FONT_BODY, fontSize:11, color:T.muted}}>Friends referred</div>
+              </div>
+              <div>
+                <div style={{fontFamily:FONT_BODY, fontSize:22, fontWeight:700, color:T.gold}}>${(stats.availableCredit / 100).toFixed(0)}</div>
+                <div style={{fontFamily:FONT_BODY, fontSize:11, color:T.muted}}>Available credit</div>
+              </div>
+              <div>
+                <div style={{fontFamily:FONT_BODY, fontSize:22, fontWeight:700, color:T.green}}>${(stats.totalEarned / 100).toFixed(0)}</div>
+                <div style={{fontFamily:FONT_BODY, fontSize:11, color:T.muted}}>Total earned</div>
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <button onClick={generateCode} style={{background:T.gold, border:"none", borderRadius:6, padding:"11px 22px", fontFamily:FONT_BODY, fontSize:13, fontWeight:700, color:T.ink, cursor:"pointer"}}>
+          Get My Referral Code
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function GuestDashboard() {
   const [tab, setTab] = useState("Trips");
   const [activeBooking, setActiveBooking] = useState(null);
   const [reviewBooking, setReviewBooking] = useState(null);
+  const [modifyBooking, setModifyBooking] = useState(null);
+  const [tipBooking, setTipBooking] = useState(null);
   const [bookings, setBookings] = useState(BOOKINGS);
   const [tripFilter, setTripFilter] = useState("all");
   const [guest, setGuest] = useState(GUEST);
@@ -508,7 +632,12 @@ export default function GuestDashboard() {
             meetingPoint: b.meeting_point || "",
             reviewed: false,
             guideId: b.guide_id,
+            guide_id: b.guide_id,
+            guide_name: b.guide_name,
+            package_title: b.package_title,
+            trip_date: b.trip_date,
             waiverSigned: b.waiver_signed || false,
+            tipPaid: !!b.tip_paid_at,
           };
         });
 
@@ -926,6 +1055,14 @@ export default function GuestDashboard() {
                   <button style={{background:"none", border:`1px solid ${T.rim}`, borderRadius:5, padding:"7px 14px", fontFamily:FONT_BODY, fontSize:12, color:T.muted, cursor:"pointer"}}>Sign Out</button>
                 </div>
               </div>
+
+              {/* Saved Payment Methods */}
+              <div style={{background:T.steel, border:`1px solid ${T.wire}`, borderRadius:10, padding:"24px 28px", marginTop:20}}>
+                <SavedCardsPanel />
+              </div>
+
+              {/* Referral Program */}
+              <ReferralSection />
             </div>
           )}
 
@@ -938,6 +1075,8 @@ export default function GuestDashboard() {
           booking={activeBooking}
           onClose={()=>setActiveBooking(null)}
           onReview={()=>setReviewBooking(activeBooking)}
+          onModify={(b)=>setModifyBooking(b)}
+          onTip={(b)=>setTipBooking(b)}
         />
       )}
       {reviewBooking && (
@@ -945,6 +1084,20 @@ export default function GuestDashboard() {
           booking={reviewBooking}
           onClose={()=>setReviewBooking(null)}
           onSubmit={(rating,text)=>submitReview(reviewBooking.id, rating, text)}
+        />
+      )}
+      {modifyBooking && (
+        <ModifyBookingModal
+          booking={modifyBooking}
+          onClose={()=>setModifyBooking(null)}
+          onModified={()=>{ setModifyBooking(null); setActiveBooking(null); fetchData(); }}
+        />
+      )}
+      {tipBooking && (
+        <TipModal
+          booking={tipBooking}
+          onClose={()=>setTipBooking(null)}
+          onTipped={()=>{ setTipBooking(null); setActiveBooking(null); fetchData(); }}
         />
       )}
     </>

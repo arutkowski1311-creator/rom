@@ -6,6 +6,7 @@ import { GoldBtn, Stars } from "@/app/components/ui";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useParams } from "next/navigation";
+import { useCart } from "@/app/lib/cart-context";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
@@ -196,6 +197,7 @@ function AvailabilityCalendar({ blocks, checkIn, checkOut, onSelectDate, selecti
 
 // ─── Booking panel ────────────────────────────────────────────────────────────
 function BookingPanel({ property, blocks, onClose }) {
+  const { addItem } = useCart();
   const [step, setStep]               = useState(1);
   const [checkIn, setCheckIn]         = useState(null);
   const [checkOut, setCheckOut]       = useState(null);
@@ -527,6 +529,31 @@ function BookingPanel({ property, blocks, onClose }) {
                   {submitting ? "Preparing…" : "Proceed to Payment →"}
                 </GoldBtn>
               </div>
+              <button onClick={() => {
+                addItem({
+                  type: "property",
+                  propertyId: property.id,
+                  propertySlug: property.slug,
+                  propertyName: property.name,
+                  checkIn, checkOut,
+                  guests: guestCount,
+                  nights,
+                  baseTotal: baseTotal * 100,
+                  cleaningFee: cleaningFee * 100,
+                  platformFee: platformFee * 100,
+                  damageWaiver: waiverFee * 100,
+                  taxAmount: 0,
+                  total: total * 100,
+                  securityDeposit: depositHold * 100,
+                  damageWaiverOpted: damageWaiver,
+                  specialRequests: requests,
+                });
+                onClose();
+              }}
+                disabled={!canAdvance3}
+                style={{ width: "100%", marginTop: 8, padding: 12, background: "transparent", border: `1.5px solid ${T.gold}`, borderRadius: 8, fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, color: T.gold, cursor: canAdvance3 ? "pointer" : "not-allowed", opacity: canAdvance3 ? 1 : 0.4 }}>
+                Add to Trip Cart
+              </button>
             </div>
           )}
 

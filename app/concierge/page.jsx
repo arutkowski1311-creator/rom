@@ -4,6 +4,7 @@ import { T, FONT_DISPLAY, FONT_BODY } from "@/app/lib/theme";
 import { getSupabase } from "@/app/lib/supabase-browser";
 import { GoldBtn, Stars, useIsMobile } from "@/app/components/ui";
 import Image from "next/image";
+import { useCart } from "@/app/lib/cart-context";
 
 // ─── CONSTANTS ──────────────────────────────────────────────────────────────
 const ACTIVITIES = [
@@ -231,8 +232,10 @@ export default function ConciergePage() {
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
   const [itinerary, setItinerary] = useState(null);
+  const [matchedGuides, setMatchedGuides] = useState([]);
   const [tripPlanId, setTripPlanId] = useState(null);
   const [shareToken, setShareToken] = useState(null);
+  const { addItem } = useCart();
   const [refineInput, setRefineInput] = useState("");
   const [refining, setRefining] = useState(false);
   const [user, setUser] = useState(null);
@@ -528,6 +531,7 @@ export default function ConciergePage() {
       const data = await res.json();
       if (data.itinerary) {
         setItinerary(data.itinerary);
+        setMatchedGuides(data.matchedGuides || []);
         setTripPlanId(data.tripPlanId);
         setShareToken(data.shareToken);
       } else {
@@ -1098,9 +1102,45 @@ function ItineraryView({ itinerary, isMobile, refineInput, setRefineInput, handl
             <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.gold, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>Your Guide Match</div>
             <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: T.white, marginBottom: 4 }}>{itinerary.guide.name}</div>
             <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.ash, marginBottom: 12 }}>{itinerary.guide.reason}</div>
-            {itinerary.guide.slug && (
-              <GoldBtn onClick={() => window.location.href = `/guides/${itinerary.guide.slug}`}>View Profile & Book</GoldBtn>
-            )}
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              {itinerary.guide.slug && (
+                <GoldBtn onClick={() => window.location.href = `/guides/${itinerary.guide.slug}`}>View Profile & Book</GoldBtn>
+              )}
+              {(() => {
+                const guideData = matchedGuides.find(g => g.id === itinerary.guide.id || g.slug === itinerary.guide.slug);
+                if (!guideData || !guideData.packages?.length) return null;
+                const pkg = guideData.packages[0];
+                return (
+                  <button onClick={() => {
+                    const price = pkg.price || 0;
+                    const serviceFee = Math.round(price * 0.15);
+                    const totalPrice = (price + serviceFee) * 100;
+                    addItem({
+                      type: "guide",
+                      guideId: guideData.id,
+                      guideSlug: guideData.slug,
+                      guideName: guideData.name,
+                      guideLocation: guideData.location,
+                      packageId: pkg.id,
+                      packageTitle: pkg.title,
+                      packagePrice: pkg.price,
+                      priceType: pkg.price_type,
+                      date: dateStart || "",
+                      guests: adults || 2,
+                      subtotal: price,
+                      serviceFee,
+                      tripProtection: false,
+                      tripProtectionAmount: 0,
+                      totalPrice,
+                      specialRequests: "",
+                    });
+                  }}
+                    style={{ background: "transparent", border: `1.5px solid ${T.gold}`, borderRadius: 6, padding: "11px 22px", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, color: T.gold, cursor: "pointer" }}>
+                    Add to Trip Cart
+                  </button>
+                );
+              })()}
+            </div>
           </div>
         )}
 

@@ -25,11 +25,17 @@ async function fetchStockPhotos(query: string, count = 6): Promise<string[]> {
 
 export async function POST(req: NextRequest) {
   try {
-    const { guideId, contentType, context } = await req.json();
+    const { guideId, contentType, context, goal, topic, intelligenceId } = await req.json();
 
     if (!guideId || !contentType) {
       return NextResponse.json({ error: "guideId and contentType required" }, { status: 400 });
     }
+
+    // Goal context shapes the CTA and tone
+    const goalPrompt = goal === "booking_gen" ? "Goal: DRIVE BOOKINGS. Include strong CTA with urgency (limited spots, seasonal window). Link to booking page."
+      : goal === "lead_gen" ? "Goal: GENERATE LEADS. Encourage follow, DM, or email signup. Create curiosity and value."
+      : goal === "education" ? "Goal: EDUCATE. Teach something valuable. Position the guide as an expert. Build trust through knowledge."
+      : "Goal: BUILD AWARENESS & BRAND. Tell a compelling story. Create emotional connection. Make people remember this guide.";
 
     const supabase = getSupabaseAdmin();
 
@@ -114,7 +120,7 @@ ${voiceProfile ? `Voice/tone: ${typeof voiceProfile === "object" ? JSON.stringif
 Packages: ${packageList || "Not set"}
 Guide's profile URL: https://romlife.co/guides/${guide.slug || ""}
 ${reviewTexts.length > 0 ? `Recent reviews:\n${reviewTexts.slice(0, 3).join("\n---\n")}` : ""}
-${context?.topic ? `Focus topic: ${context.topic}` : ""}
+${topic ? `Focus topic: ${topic}` : (context?.topic ? `Focus topic: ${context.topic}` : "")}
 
 CURRENT MONTH: ${currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1)}
 ${seasonalHint ? `WHAT'S HAPPENING RIGHT NOW (${currentMonth}): ${seasonalHint}` : ""}
@@ -192,11 +198,92 @@ Create 2 email newsletter options. Each MUST have 7-8 sections. One newsletter f
 
       userPrompt = `Create 2 beefy email newsletters for ${guideName} to send to past guests. Current month: ${currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1)}. ${seasonalHint ? `Seasonal context: ${seasonalHint}` : ""} Make these newsletters so good that people forward them to friends. Each must have 7-8 substantial sections with real geographic and seasonal detail about ${location}.`;
 
+    } else if (contentType === "blog") {
+      systemPrompt = `You are a blog content strategist for outdoor adventure guides. Write long-form content that positions the guide as a local authority.
+
+${baseContext}
+${goalPrompt}
+
+Return JSON:
+{
+  "options": [
+    {
+      "title": "Blog post title (SEO-friendly, compelling)",
+      "meta_description": "155-char SEO meta description",
+      "content": "Full blog post (500-800 words). Use markdown formatting. Include H2 headers, paragraphs, and a CTA section at the end.",
+      "hashtags": ["seo", "keywords"],
+      "headline": "Short headline for social sharing (max 8 words)",
+      "subline": "One-sentence preview"
+    }
+  ]
+}
+
+Create 2 blog post options. One educational/how-to piece, one storytelling/narrative piece. Reference real geography, conditions, and local knowledge for ${location}. Include the guide's booking URL as CTA.`;
+
+      userPrompt = `Write 2 blog posts for ${guideName}, a ${activity} guide in ${location}. ${topic ? `Topic focus: ${topic}` : `Use seasonal context for ${currentMonth}.`} ${seasonalHint || ""}`;
+
+    } else if (contentType === "carousel") {
+      systemPrompt = `You are an Instagram carousel content creator for outdoor guides. Carousels get 3x the engagement of single posts when done right.
+
+${baseContext}
+${goalPrompt}
+
+Return JSON:
+{
+  "options": [
+    {
+      "title": "Carousel concept name",
+      "slides": [
+        { "headline": "Slide 1 headline (hook — stops the scroll)", "body": "1-2 sentences", "visual_direction": "What photo to use" },
+        { "headline": "Slide 2 headline", "body": "1-2 sentences", "visual_direction": "..." },
+        { "headline": "Slide 3 headline", "body": "1-2 sentences", "visual_direction": "..." },
+        { "headline": "Slide 4 headline", "body": "1-2 sentences", "visual_direction": "..." },
+        { "headline": "Final slide CTA", "body": "Clear call to action", "visual_direction": "..." }
+      ],
+      "content": "Caption for the post (2-3 sentences + CTA)",
+      "hashtags": ["12 hashtags following the reach strategy"],
+      "headline": "Carousel title for preview",
+      "subline": "One-sentence hook"
+    }
+  ]
+}
+
+Create 2 carousel options with 4-5 slides each. Slide 1 must be a hook that makes people swipe. Last slide must be a CTA. Each slide should be readable in 3 seconds.`;
+
+      userPrompt = `Create 2 Instagram carousel concepts for ${guideName}. ${topic ? `Topic: ${topic}` : `Seasonal focus for ${currentMonth}.`} ${seasonalHint || ""}`;
+
+    } else if (contentType === "story") {
+      systemPrompt = `You are an Instagram Story content creator for outdoor guides. Stories feel raw, immediate, and personal — like the guide is talking directly to you.
+
+${baseContext}
+${goalPrompt}
+
+Return JSON:
+{
+  "options": [
+    {
+      "title": "Story sequence name",
+      "frames": [
+        { "type": "text" | "photo" | "poll" | "question" | "countdown", "content": "What appears on this frame", "visual_direction": "Background photo/video suggestion", "sticker": "Optional interactive sticker description" },
+        ...
+      ],
+      "content": "Brief description of the full sequence",
+      "headline": "Preview title",
+      "subline": "What this story sequence achieves"
+    }
+  ]
+}
+
+Create 2 story sequence options with 3-5 frames each. Mix interactive elements (polls, questions, countdowns) with content. Stories should feel spontaneous, not produced.`;
+
+      userPrompt = `Create 2 Instagram Story sequences for ${guideName}. ${topic ? `Topic: ${topic}` : `What's happening right now in ${location} for ${activity}.`} ${seasonalHint || ""}`;
+
     } else {
       // Instagram, Facebook, Review Spotlight
       systemPrompt = `You are a marketing content creator for outdoor adventure guides. You write in a direct, authentic voice — never generic, never salesy. Every piece of content should feel like it came from the guide themselves.
 
 ${baseContext}
+${goalPrompt}
 
 Return JSON:
 {

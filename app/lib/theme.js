@@ -87,6 +87,8 @@ export const TIER_GATES = {
   CRM:       ["immerse"],
   Guests:    ["immerse"],
   Licenses:  ["discover", "immerse"],
+  Referrals: ["discover", "immerse"],
+  Pricing:   ["immerse"],
 };
 
 export function getTierConfig(tierName) {

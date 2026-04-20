@@ -7,6 +7,7 @@ import { getSupabase } from "@/app/lib/supabase-browser";
 import { Stars, GoldBtn } from "@/app/components/ui";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { useCart } from "@/app/lib/cart-context";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
@@ -90,6 +91,7 @@ function DepositPaymentForm({ onSuccess, onError, deposit }) {
 
 // ─── BOOKING PANEL ────────────────────────────────────────────────────────────
 function BookingPanel({ guide, onClose }) {
+  const { addItem } = useCart();
   const [step, setStep] = useState(1);
   const [selectedPkg, setSelectedPkg] = useState(null);
   const [guests, setGuests] = useState(1);
@@ -515,6 +517,33 @@ function BookingPanel({ guide, onClose }) {
               disabled={(step===1&&!selectedPkg)||(step===2&&(!selectedDate||!timePreference))||submitting}
               style={{width:"100%",padding:"15px",background:T.gold,border:"none",borderRadius:8,fontFamily:FONT_BODY,fontSize:15,fontWeight:700,color:T.ink,cursor:"pointer",opacity:(step===1&&!selectedPkg)||(step===2&&(!selectedDate||!timePreference))||submitting?0.35:1}}>
               {submitting ? "Setting up payment…" : step===3 ? "Review & Pay →" : "Continue →"}
+            </button>
+          )}
+          {step===3&&selectedPkg&&selectedDate&&(
+            <button onClick={()=>{
+              addItem({
+                type:"guide",
+                guideId:guide.id,
+                guideSlug:guide.slug,
+                guideName:guide.name,
+                guideLocation:guide.location,
+                packageId:selectedPkg,
+                packageTitle:pkg.title,
+                packagePrice:pkg.price,
+                priceType:pkg.priceType,
+                date:selectedDate,
+                guests,
+                subtotal:tripPrice,
+                serviceFee,
+                tripProtection,
+                tripProtectionAmount:protectionFee,
+                totalPrice:total*100, // cents
+                specialRequests:requests,
+              });
+              onClose();
+            }}
+              style={{width:"100%",marginTop:8,padding:"12px",background:"transparent",border:`1.5px solid ${T.gold}`,borderRadius:8,fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:T.gold,cursor:"pointer"}}>
+              Add to Trip Cart
             </button>
           )}
           {step>1&&step<4&&(
