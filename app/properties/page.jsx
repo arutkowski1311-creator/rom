@@ -100,8 +100,22 @@ export default function PropertiesPage() {
   return (
     <div style={{ minHeight: "100vh", background: T.void, color: T.parchment }}>
 
+      {/* Nav */}
+      <nav style={{ position: "sticky", top: 0, zIndex: 100, height: 64, background: T.void, borderBottom: `1px solid ${T.wire}`, display: "flex", alignItems: "center" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px", width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: T.gold, letterSpacing: "0.14em", fontWeight: 500, cursor: "pointer" }} onClick={() => window.location.href = "/"}>ROM</div>
+          <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
+            <span onClick={() => window.location.href = "/search"} style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.ash, cursor: "pointer" }}>Guides</span>
+            <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.gold, fontWeight: 600 }}>Properties</span>
+            <span onClick={() => window.location.href = "/rentals"} style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.ash, cursor: "pointer" }}>Rentals</span>
+            <span onClick={() => window.location.href = "/concierge"} style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.ash, cursor: "pointer" }}>Concierge</span>
+            <span onClick={() => window.location.href = "/login"} style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.ash, cursor: "pointer" }}>Sign in</span>
+          </div>
+        </div>
+      </nav>
+
       {/* Header */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "64px 24px 48px" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 24px 48px" }}>
         <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: T.gold, marginBottom: 16 }}>
           Curated Properties
         </div>
