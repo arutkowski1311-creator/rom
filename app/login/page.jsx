@@ -3,7 +3,7 @@ import { useState } from "react";
 import { T, FONT_DISPLAY, FONT_BODY } from "@/app/lib/theme";
 import { getSupabase } from "@/app/lib/supabase-browser";
 
-function Field({ label, type="text", value, onChange, placeholder, error }) {
+function Field({ label, type="text", value, onChange, placeholder, error, onKeyDown }) {
   const [focused, setFocused] = useState(false);
   return (
     <div style={{marginBottom:20}}>
@@ -11,6 +11,7 @@ function Field({ label, type="text", value, onChange, placeholder, error }) {
       <input
         type={type} value={value} onChange={e=>onChange(e.target.value)}
         placeholder={placeholder} onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)}
+        onKeyDown={onKeyDown}
         style={{
           width:"100%", boxSizing:"border-box",
           background:focused?T.lifted:T.steel,
@@ -70,7 +71,7 @@ function LoginForm({ onSwitch }) {
       <div style={{fontFamily:FONT_BODY, fontSize:14, color:T.silver, marginBottom:32}}>Sign in to your RŌM account.</div>
       {error && <div style={{background:T.redGlow, border:`1px solid ${T.red}`, borderRadius:6, padding:"12px 14px", marginBottom:20}}><div style={{fontFamily:FONT_BODY, fontSize:13, color:"#cc9090"}}>{error}</div></div>}
       <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com"/>
-      <Field label="Password" type="password" value={password} onChange={setPassword} placeholder="Your password"/>
+      <Field label="Password" type="password" value={password} onChange={setPassword} placeholder="Your password" onKeyDown={e=>e.key==="Enter"&&submit()}/>
       <div style={{textAlign:"right", marginBottom:24, marginTop:-10}}>
         <span onClick={()=>onSwitch("forgot")} style={{fontFamily:FONT_BODY, fontSize:13, color:T.silver, cursor:"pointer"}}>Forgot password?</span>
       </div>
@@ -160,7 +161,7 @@ function SignupForm({ role, onSwitch }) {
       <Field label="Full Name" value={name} onChange={setName} placeholder="Your legal name" error={errors.name}/>
       <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com" error={errors.email}/>
       <Field label="Password" type="password" value={password} onChange={setPassword} placeholder="At least 8 characters" error={errors.password}/>
-      <Field label="Confirm Password" type="password" value={confirm} onChange={setConfirm} placeholder="Same password again" error={errors.confirm}/>
+      <Field label="Confirm Password" type="password" value={confirm} onChange={setConfirm} placeholder="Same password again" error={errors.confirm} onKeyDown={e=>e.key==="Enter"&&submit()}/>
 
       {role==="guide" && (
         <div style={{background:T.goldGlow, border:`1px solid ${T.gold}`, borderRadius:6, padding:"12px 14px", marginBottom:20}}>
@@ -216,7 +217,7 @@ function ForgotForm({ onSwitch }) {
       <div style={{fontFamily:FONT_DISPLAY, fontSize:36, color:T.white, fontWeight:400, marginBottom:6}}>Reset your password</div>
       <div style={{fontFamily:FONT_BODY, fontSize:14, color:T.silver, marginBottom:28}}>Enter your email and we'll send a reset link.</div>
       {error && <div style={{background:T.redGlow, border:`1px solid ${T.red}`, borderRadius:6, padding:"12px 14px", marginBottom:20}}><div style={{fontFamily:FONT_BODY, fontSize:13, color:"#cc9090"}}>{error}</div></div>}
-      <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com"/>
+      <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com" onKeyDown={e=>e.key==="Enter"&&submit()}/>
       <AuthButton onClick={submit} loading={loading}>Send Reset Link</AuthButton>
       <div style={{textAlign:"center", marginTop:24}}>
         <span onClick={()=>onSwitch("login")} style={{fontFamily:FONT_BODY, fontSize:14, color:T.silver, cursor:"pointer"}}>← Back to Sign In</span>

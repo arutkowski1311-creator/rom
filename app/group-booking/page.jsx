@@ -170,6 +170,7 @@ export default function GroupBookingPage() {
               <div key={label}>
                 <div style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.silver, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>{label}</div>
                 <input value={val} onChange={e => setter(e.target.value)} placeholder={ph}
+                  onKeyDown={e => e.key === "Enter" && submit()}
                   style={{ width: "100%", boxSizing: "border-box", background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "10px 14px", fontFamily: FONT_BODY, fontSize: 14, color: T.parchment, outline: "none" }} />
               </div>
             ))}
