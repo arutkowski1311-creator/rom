@@ -9,6 +9,8 @@
     { "path": "/api/cron/health-score", "schedule": "0 6 * * 0" },
     { "path": "/api/cron/weekly-content", "schedule": "0 6 * * 1" },
     { "path": "/api/cron/calendar-fill", "schedule": "0 6 * * 3" },
-    { "path": "/api/cron/waiver-reminders", "schedule": "0 8 * * *" }
+    { "path": "/api/cron/waiver-reminders", "schedule": "0 8 * * *" },
+    { "path": "/api/cron/pricing-intelligence", "schedule": "0 6 * * 2" },
+    { "path": "/api/cron/content-intelligence", "schedule": "0 7 * * 3" }
   ]
 }
