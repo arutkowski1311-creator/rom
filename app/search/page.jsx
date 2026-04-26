@@ -101,18 +101,23 @@ function GuideCard({ guide, active, onClick }) {
   );
 }
 
-// ─── MAP PANE (Mapbox GL) ────────────────────────────────────────────────────
+// ─── MAP PANE (Mapbox GL with clustering) ───────────────────────────────────
 function MapPane({ guides, activeGuide, setActiveGuide }) {
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
+  const popupRef = useRef(null);
+  const mapboxRef = useRef(null);
+  const [mapReady, setMapReady] = useState(false);
 
+  // Initialize map once
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
     const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
     if (!token) return;
 
     import("mapbox-gl").then(mapboxgl => {
+      mapboxRef.current = mapboxgl.default;
       mapboxgl.default.accessToken = token;
       import("mapbox-gl/dist/mapbox-gl.css");
 
@@ -125,106 +130,180 @@ function MapPane({ guides, activeGuide, setActiveGuide }) {
       });
 
       map.addControl(new mapboxgl.default.NavigationControl({ showCompass: false }), "bottom-right");
-      mapRef.current = map;
+
+      map.on("load", () => {
+        mapRef.current = map;
+        setMapReady(true);
+      });
     });
 
     return () => { if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
   }, []);
 
-  // Update markers when guides change
+  // Geocode unknown locations then update markers
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
+    if (!mapReady || !mapRef.current || !mapboxRef.current) return;
 
-    // Remove old markers
-    markersRef.current.forEach(m => m.remove());
-    markersRef.current = [];
+    const unknowns = guides.filter(g => !LOCATION_LNGLAT[g.location] && g.location);
+    if (unknowns.length > 0) {
+      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+      Promise.all(unknowns.map(g =>
+        fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(g.location)}.json?access_token=${token}&limit=1`)
+          .then(r => r.json())
+          .then(data => { if (data.features?.[0]?.center) LOCATION_LNGLAT[g.location] = data.features[0].center; })
+          .catch(() => {})
+      )).then(() => updateMarkers());
+    } else {
+      updateMarkers();
+    }
 
-    import("mapbox-gl").then(mapboxgl => {
-      guides.forEach(guide => {
-        const lnglat = LOCATION_LNGLAT[guide.location];
+    function updateMarkers() {
+      const map = mapRef.current;
+      const mapboxgl = mapboxRef.current;
+      if (!map || !mapboxgl) return;
+
+      // Clean up old markers and popup
+      markersRef.current.forEach(m => m.remove());
+      markersRef.current = [];
+      if (popupRef.current) { popupRef.current.remove(); popupRef.current = null; }
+
+      // Group guides by location for clustering
+      const locationGroups = {};
+      guides.forEach(g => {
+        const lnglat = LOCATION_LNGLAT[g.location];
         if (!lnglat) return;
-
-        const isActive = activeGuide === guide.id;
-
-        // Create marker element
-        const el = document.createElement("div");
-        el.style.cssText = `
-          background:${isActive ? T.gold : T.steel};
-          border:1.5px solid ${isActive ? T.goldLt : T.wire};
-          border-radius:6px; padding:4px 9px;
-          font-family:Barlow,sans-serif; font-size:12px; font-weight:700;
-          color:${isActive ? T.ink : T.gold};
-          cursor:pointer; white-space:nowrap;
-          box-shadow:${isActive ? `0 4px 20px ${T.gold}50` : "0 2px 10px rgba(0,0,0,0.6)"};
-          transform:${isActive ? "scale(1.15)" : "scale(1)"};
-          transition:all 0.18s;
-          z-index:${isActive ? 20 : 10};
-        `;
-        el.textContent = `$${guide.price}`;
-        el.onclick = () => setActiveGuide(isActive ? null : guide.id);
-
-        const marker = new mapboxgl.default.Marker({ element: el, anchor: "center" })
-          .setLngLat(lnglat)
-          .addTo(map);
-
-        // Popup on active
-        if (isActive) {
-          const popup = new mapboxgl.default.Popup({ offset: 12, closeButton: false, closeOnClick: false, className: "rom-popup" })
-            .setHTML(`
-              <div style="font-family:Cormorant Garamond,serif;font-size:16px;color:#f5f2ee;margin-bottom:3px">${guide.name}</div>
-              <div style="font-family:Barlow,sans-serif;font-size:11px;color:#8a96a0;margin-bottom:4px">${guide.location}</div>
-              <div style="font-family:Barlow,sans-serif;font-size:12px;color:#e8e2d8">${guide.rating}/5 · from $${guide.price}/person</div>
-            `)
-            .setLngLat(lnglat)
-            .addTo(map);
-          markersRef.current.push(popup);
-        }
-
-        markersRef.current.push(marker);
+        const key = lnglat.join(",");
+        if (!locationGroups[key]) locationGroups[key] = { lnglat, guides: [] };
+        locationGroups[key].guides.push(g);
       });
 
-      // Geocode any guides with unknown locations, then fit bounds
-      const unknowns = guides.filter(g => !LOCATION_LNGLAT[g.location] && g.location);
-      if (unknowns.length > 0) {
-        const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-        Promise.all(unknowns.map(g =>
-          fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(g.location)}.json?access_token=${token}&limit=1`)
-            .then(r => r.json())
-            .then(data => { if (data.features?.[0]?.center) LOCATION_LNGLAT[g.location] = data.features[0].center; })
-            .catch(() => {})
-        )).then(() => {
-          // Re-fit after geocoding
-          const c2 = guides.map(g => LOCATION_LNGLAT[g.location]).filter(Boolean);
-          if (c2.length > 1) {
-            const b2 = c2.reduce((b, c) => b.extend(c), new mapboxgl.default.LngLatBounds(c2[0], c2[0]));
-            map.fitBounds(b2, { padding: 60, maxZoom: 8, duration: 500 });
-          }
-        });
-      }
+      Object.values(locationGroups).forEach((group) => {
+        const { lnglat, guides: locGuides } = group;
 
-      // Fit bounds if guides have coordinates
-      const coords = guides.map(g => LOCATION_LNGLAT[g.location]).filter(Boolean);
-      if (coords.length > 1) {
-        const bounds = coords.reduce((b, c) => b.extend(c), new mapboxgl.default.LngLatBounds(coords[0], coords[0]));
+        if (locGuides.length === 1) {
+          // Single guide — show price pin
+          const guide = locGuides[0];
+          const isActive = activeGuide === guide.id;
+          const el = document.createElement("div");
+          el.style.cssText = `
+            background:${isActive ? T.gold : T.steel};
+            border:1.5px solid ${isActive ? T.goldLt : T.wire};
+            border-radius:6px; padding:4px 9px;
+            font-family:Barlow,sans-serif; font-size:12px; font-weight:700;
+            color:${isActive ? T.ink : T.gold};
+            cursor:pointer; white-space:nowrap;
+            box-shadow:${isActive ? `0 4px 20px ${T.gold}50` : "0 2px 10px rgba(0,0,0,0.6)"};
+            transform:${isActive ? "scale(1.15)" : "scale(1)"};
+            transition:all 0.18s;
+          `;
+          el.textContent = `$${guide.price}`;
+          el.onclick = () => setActiveGuide(isActive ? null : guide.id);
+
+          const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
+            .setLngLat(lnglat)
+            .addTo(map);
+          markersRef.current.push(marker);
+
+          if (isActive) {
+            const popup = new mapboxgl.Popup({ offset: 14, closeButton: false, closeOnClick: false })
+              .setHTML(`
+                <div style="font-family:Cormorant Garamond,serif;font-size:16px;color:#f5f2ee;margin-bottom:3px">${guide.name}</div>
+                <div style="font-family:Barlow,sans-serif;font-size:11px;color:#8a96a0;margin-bottom:4px">${guide.location}</div>
+                <div style="font-family:Barlow,sans-serif;font-size:12px;color:#e8e2d8">${guide.rating}/5 · from $${guide.price}/person</div>
+              `)
+              .setLngLat(lnglat)
+              .addTo(map);
+            popupRef.current = popup;
+            markersRef.current.push(popup);
+          }
+        } else {
+          // Multiple guides at same location — show cluster bubble
+          const hasActive = locGuides.some(g => g.id === activeGuide);
+          const minPrice = Math.min(...locGuides.map(g => g.price || 0));
+
+          const el = document.createElement("div");
+          el.style.cssText = `
+            background:${hasActive ? T.gold : T.steel};
+            border:2px solid ${hasActive ? T.goldLt : T.gold};
+            border-radius:50%; width:48px; height:48px;
+            display:flex; align-items:center; justify-content:center; flex-direction:column;
+            font-family:Barlow,sans-serif; cursor:pointer;
+            box-shadow:0 4px 16px rgba(0,0,0,0.6);
+            transition:all 0.18s;
+          `;
+          el.innerHTML = `
+            <span style="font-size:14px;font-weight:700;color:${hasActive ? T.ink : T.gold};line-height:1">${locGuides.length}</span>
+            <span style="font-size:9px;color:${hasActive ? T.ink : T.silver};line-height:1">guides</span>
+          `;
+
+          // On click, zoom in to spread them out, or show expanded list
+          el.onclick = () => {
+            const currentZoom = map.getZoom();
+            if (currentZoom < 10) {
+              map.flyTo({ center: lnglat, zoom: Math.min(currentZoom + 3, 12), duration: 600 });
+            } else {
+              // Already zoomed in — show expanded popup with all guides
+              if (popupRef.current) { popupRef.current.remove(); popupRef.current = null; }
+              const html = locGuides.map(g => `
+                <div data-guide-id="${g.id}" style="padding:8px 0;border-bottom:1px solid ${T.wire};cursor:pointer;display:flex;justify-content:space-between;align-items:center">
+                  <div>
+                    <div style="font-family:Cormorant Garamond,serif;font-size:15px;color:#f5f2ee">${g.name}</div>
+                    <div style="font-family:Barlow,sans-serif;font-size:11px;color:#8a96a0">${g.category} · ${g.rating}/5</div>
+                  </div>
+                  <div style="font-family:Barlow,sans-serif;font-size:13px;font-weight:700;color:#c9973a">$${g.price}</div>
+                </div>
+              `).join("");
+              const popup = new mapboxgl.Popup({ offset: 14, closeButton: true, maxWidth: "260px" })
+                .setHTML(`
+                  <div style="font-family:Barlow,sans-serif;font-size:10px;font-weight:700;color:#8a96a0;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">${locGuides.length} guides in ${locGuides[0].location}</div>
+                  ${html}
+                `)
+                .setLngLat(lnglat)
+                .addTo(map);
+              popupRef.current = popup;
+              markersRef.current.push(popup);
+
+              // Add click handlers to popup guide rows
+              setTimeout(() => {
+                popup.getElement()?.querySelectorAll("[data-guide-id]").forEach(row => {
+                  row.addEventListener("click", () => {
+                    const gid = row.getAttribute("data-guide-id");
+                    window.location.href = `/guides/${locGuides.find(g => g.id === gid)?.slug || gid}`;
+                  });
+                });
+              }, 50);
+            }
+          };
+
+          const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
+            .setLngLat(lnglat)
+            .addTo(map);
+          markersRef.current.push(marker);
+        }
+      });
+
+      // Fit bounds
+      const allCoords = Object.values(locationGroups).map(g => g.lnglat);
+      if (allCoords.length > 1) {
+        const bounds = allCoords.reduce((b, c) => b.extend(c), new mapboxgl.LngLatBounds(allCoords[0], allCoords[0]));
         map.fitBounds(bounds, { padding: 60, maxZoom: 8, duration: 500 });
-      } else if (coords.length === 1) {
-        map.flyTo({ center: coords[0], zoom: 7, duration: 500 });
+      } else if (allCoords.length === 1) {
+        map.flyTo({ center: allCoords[0], zoom: 7, duration: 500 });
       }
-    });
-  }, [guides, activeGuide]);
+    }
+  }, [guides, activeGuide, mapReady]);
 
   return (
     <div style={{ position: "sticky", top: 64, height: "calc(100vh - 64px)", borderLeft: `1px solid ${T.wire}`, overflow: "hidden", flexShrink: 0 }}>
       <style>{`
         .mapboxgl-popup-content { background:${T.steel}!important; border:1px solid ${T.gold}; border-radius:8px!important; padding:14px 16px!important; box-shadow:0 8px 32px rgba(0,0,0,0.7)!important; }
         .mapboxgl-popup-tip { border-top-color:${T.steel}!important; }
+        .mapboxgl-popup-close-button { color:${T.silver}!important; font-size:18px!important; padding:4px 8px!important; }
         .mapboxgl-ctrl-group { background:${T.steel}!important; border:1px solid ${T.wire}!important; }
         .mapboxgl-ctrl-group button { color:${T.silver}!important; }
         .mapboxgl-ctrl-group button+button { border-top:1px solid ${T.wire}!important; }
       `}</style>
       <div ref={mapContainer} style={{ width: "100%", height: "100%" }} />
-      {/* Guide count badge */}
       <div style={{ position: "absolute", top: 16, right: 16, background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "6px 12px", zIndex: 5 }}>
         <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver }}>{guides.length} guide{guides.length !== 1 ? "s" : ""} shown</span>
       </div>
