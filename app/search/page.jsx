@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { T, FONT_DISPLAY, FONT_BODY } from "@/app/lib/theme";
 import { getSupabase } from "@/app/lib/supabase-browser";
 import { Stars } from "@/app/components/ui";
@@ -14,6 +14,23 @@ const CATEGORY_TO_DB = {
   "Rafting":"rafting","Food Tour":"food","Cultural":"cultural","Offroad":"offroad",
 };
 
+// Real lat/lng for guide locations (Mapbox GL)
+const LOCATION_LNGLAT = {
+  "Asheville, NC":    [-82.55, 35.60],
+  "Telluride, CO":    [-107.81, 37.94],
+  "Whitefish, MT":    [-114.35, 48.41],
+  "Lake Placid, NY":  [-73.98, 44.28],
+  "Keene Valley, NY": [-73.79, 44.19],
+  "Bozeman, MT":      [-111.04, 45.68],
+  "Jackson, WY":      [-110.76, 43.48],
+  "Moab, UT":         [-109.55, 38.57],
+  "Encinitas, CA":    [-117.29, 33.04],
+  "Bar Harbor, ME":   [-68.20, 44.39],
+  "Kauai, HI":        [-159.37, 22.09],
+  "Kenai, AK":        [-151.26, 60.55],
+};
+
+// Fallback percentage coords for non-Mapbox rendering
 const LOCATION_COORDS = {
   "Asheville, NC":    { x: 63, y: 47 },
   "Telluride, CO":    { x: 28, y: 50 },
@@ -84,73 +101,132 @@ function GuideCard({ guide, active, onClick }) {
   );
 }
 
-// ─── MAP PANE ─────────────────────────────────────────────────────────────────
+// ─── MAP PANE (Mapbox GL) ────────────────────────────────────────────────────
 function MapPane({ guides, activeGuide, setActiveGuide }) {
-  return (
-    <div style={{
-      position:"sticky", top:64, height:"calc(100vh - 64px)",
-      background:T.carbon,
-      borderLeft:`1px solid ${T.wire}`,
-      overflow:"hidden", flexShrink:0,
-    }}>
-      {/* Grid texture */}
-      <div style={{position:"absolute", inset:0, backgroundImage:`linear-gradient(${T.wire}18 1px, transparent 1px), linear-gradient(90deg, ${T.wire}18 1px, transparent 1px)`, backgroundSize:"48px 48px"}}/>
-      {/* Atmospheric glow */}
-      <div style={{position:"absolute", inset:0, background:`radial-gradient(ellipse at 35% 55%, #0d2a1a60 0%, transparent 55%), radial-gradient(ellipse at 70% 25%, #0a1a2a50 0%, transparent 45%)`}}/>
+  const mapContainer = useRef(null);
+  const mapRef = useRef(null);
+  const markersRef = useRef([]);
 
-      {/* Guide pins */}
-      {guides.map(guide => {
+  useEffect(() => {
+    if (!mapContainer.current || mapRef.current) return;
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    if (!token) return;
+
+    import("mapbox-gl").then(mapboxgl => {
+      mapboxgl.default.accessToken = token;
+      import("mapbox-gl/dist/mapbox-gl.css");
+
+      const map = new mapboxgl.default.Map({
+        container: mapContainer.current,
+        style: "mapbox://styles/mapbox/dark-v11",
+        center: [-98, 39],
+        zoom: 3.2,
+        attributionControl: false,
+      });
+
+      map.addControl(new mapboxgl.default.NavigationControl({ showCompass: false }), "bottom-right");
+      mapRef.current = map;
+    });
+
+    return () => { if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
+  }, []);
+
+  // Update markers when guides change
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Remove old markers
+    markersRef.current.forEach(m => m.remove());
+    markersRef.current = [];
+
+    import("mapbox-gl").then(mapboxgl => {
+      guides.forEach(guide => {
+        const lnglat = LOCATION_LNGLAT[guide.location];
+        if (!lnglat) return;
+
         const isActive = activeGuide === guide.id;
-        return (
-          <div key={guide.id} onClick={()=>setActiveGuide(isActive ? null : guide.id)}
-            style={{position:"absolute", left:`${guide.mapX}%`, top:`${guide.mapY}%`, transform:"translate(-50%,-50%)", cursor:"pointer", zIndex:isActive?20:10}}>
 
-            {/* Price pin */}
-            <div style={{
-              background: isActive ? T.gold : T.steel,
-              border: `1.5px solid ${isActive ? T.goldLt : T.wire}`,
-              borderRadius:6, padding:"5px 10px",
-              fontFamily:FONT_BODY, fontSize:12, fontWeight:700,
-              color: isActive ? T.ink : T.gold,
-              whiteSpace:"nowrap", transition:"all 0.18s",
-              boxShadow: isActive ? `0 4px 20px ${T.gold}50` : `0 2px 10px rgba(0,0,0,0.6)`,
-              transform: isActive ? "scale(1.12)" : "scale(1)",
-            }}>
-              ${guide.price}
-            </div>
+        // Create marker element
+        const el = document.createElement("div");
+        el.style.cssText = `
+          background:${isActive ? T.gold : T.steel};
+          border:1.5px solid ${isActive ? T.goldLt : T.wire};
+          border-radius:6px; padding:4px 9px;
+          font-family:Barlow,sans-serif; font-size:12px; font-weight:700;
+          color:${isActive ? T.ink : T.gold};
+          cursor:pointer; white-space:nowrap;
+          box-shadow:${isActive ? `0 4px 20px ${T.gold}50` : "0 2px 10px rgba(0,0,0,0.6)"};
+          transform:${isActive ? "scale(1.15)" : "scale(1)"};
+          transition:all 0.18s;
+          z-index:${isActive ? 20 : 10};
+        `;
+        el.textContent = `$${guide.price}`;
+        el.onclick = () => setActiveGuide(isActive ? null : guide.id);
 
-            {/* Tooltip on active */}
-            {isActive && (
-              <div style={{
-                position:"absolute", bottom:"calc(100% + 10px)", left:"50%", transform:"translateX(-50%)",
-                background:T.steel, border:`1px solid ${T.gold}`, borderRadius:8,
-                padding:"14px 16px", minWidth:210,
-                boxShadow:`0 8px 32px rgba(0,0,0,0.7), 0 0 0 1px ${T.goldGlow}`,
-                pointerEvents:"none",
-              }}>
-                <div style={{fontFamily:FONT_DISPLAY, fontSize:16, color:T.white, marginBottom:3}}>{guide.name}</div>
-                <div style={{fontFamily:FONT_BODY, fontSize:11, color:T.silver, marginBottom:8}}>📍 {guide.location}</div>
-                <div style={{display:"flex", alignItems:"center", gap:6}}>
-                  <Stars rating={guide.rating} size={11}/>
-                  <span style={{fontFamily:FONT_BODY, fontSize:12, fontWeight:700, color:T.parchment}}>{guide.rating}</span>
-                  <span style={{fontFamily:FONT_BODY, fontSize:11, color:T.silver}}>· from ${guide.price}/person</span>
-                </div>
-                {/* Pointer triangle */}
-                <div style={{position:"absolute", bottom:-7, left:"50%", transform:"translateX(-50%)", width:12, height:7, overflow:"hidden"}}>
-                  <div style={{width:10, height:10, background:T.steel, border:`1px solid ${T.gold}`, transform:"rotate(45deg)", transformOrigin:"center", margin:"0 auto", marginTop:-5}}/>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })}
+        const marker = new mapboxgl.default.Marker({ element: el, anchor: "center" })
+          .setLngLat(lnglat)
+          .addTo(map);
 
-      {/* Map label */}
-      <div style={{position:"absolute", bottom:16, left:16, fontFamily:FONT_BODY, fontSize:10, color:T.muted, letterSpacing:"0.08em", textTransform:"uppercase"}}>Map · Mapbox integration pending</div>
+        // Popup on active
+        if (isActive) {
+          const popup = new mapboxgl.default.Popup({ offset: 12, closeButton: false, closeOnClick: false, className: "rom-popup" })
+            .setHTML(`
+              <div style="font-family:Cormorant Garamond,serif;font-size:16px;color:#f5f2ee;margin-bottom:3px">${guide.name}</div>
+              <div style="font-family:Barlow,sans-serif;font-size:11px;color:#8a96a0;margin-bottom:4px">${guide.location}</div>
+              <div style="font-family:Barlow,sans-serif;font-size:12px;color:#e8e2d8">${guide.rating}/5 · from $${guide.price}/person</div>
+            `)
+            .setLngLat(lnglat)
+            .addTo(map);
+          markersRef.current.push(popup);
+        }
 
+        markersRef.current.push(marker);
+      });
+
+      // Geocode any guides with unknown locations, then fit bounds
+      const unknowns = guides.filter(g => !LOCATION_LNGLAT[g.location] && g.location);
+      if (unknowns.length > 0) {
+        const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+        Promise.all(unknowns.map(g =>
+          fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(g.location)}.json?access_token=${token}&limit=1`)
+            .then(r => r.json())
+            .then(data => { if (data.features?.[0]?.center) LOCATION_LNGLAT[g.location] = data.features[0].center; })
+            .catch(() => {})
+        )).then(() => {
+          // Re-fit after geocoding
+          const c2 = guides.map(g => LOCATION_LNGLAT[g.location]).filter(Boolean);
+          if (c2.length > 1) {
+            const b2 = c2.reduce((b, c) => b.extend(c), new mapboxgl.default.LngLatBounds(c2[0], c2[0]));
+            map.fitBounds(b2, { padding: 60, maxZoom: 8, duration: 500 });
+          }
+        });
+      }
+
+      // Fit bounds if guides have coordinates
+      const coords = guides.map(g => LOCATION_LNGLAT[g.location]).filter(Boolean);
+      if (coords.length > 1) {
+        const bounds = coords.reduce((b, c) => b.extend(c), new mapboxgl.default.LngLatBounds(coords[0], coords[0]));
+        map.fitBounds(bounds, { padding: 60, maxZoom: 8, duration: 500 });
+      } else if (coords.length === 1) {
+        map.flyTo({ center: coords[0], zoom: 7, duration: 500 });
+      }
+    });
+  }, [guides, activeGuide]);
+
+  return (
+    <div style={{ position: "sticky", top: 64, height: "calc(100vh - 64px)", borderLeft: `1px solid ${T.wire}`, overflow: "hidden", flexShrink: 0 }}>
+      <style>{`
+        .mapboxgl-popup-content { background:${T.steel}!important; border:1px solid ${T.gold}; border-radius:8px!important; padding:14px 16px!important; box-shadow:0 8px 32px rgba(0,0,0,0.7)!important; }
+        .mapboxgl-popup-tip { border-top-color:${T.steel}!important; }
+        .mapboxgl-ctrl-group { background:${T.steel}!important; border:1px solid ${T.wire}!important; }
+        .mapboxgl-ctrl-group button { color:${T.silver}!important; }
+        .mapboxgl-ctrl-group button+button { border-top:1px solid ${T.wire}!important; }
+      `}</style>
+      <div ref={mapContainer} style={{ width: "100%", height: "100%" }} />
       {/* Guide count badge */}
-      <div style={{position:"absolute", top:16, right:16, background:T.steel, border:`1px solid ${T.wire}`, borderRadius:6, padding:"6px 12px"}}>
-        <span style={{fontFamily:FONT_BODY, fontSize:12, color:T.silver}}>{guides.length} guide{guides.length!==1?"s":""} shown</span>
+      <div style={{ position: "absolute", top: 16, right: 16, background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 6, padding: "6px 12px", zIndex: 5 }}>
+        <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver }}>{guides.length} guide{guides.length !== 1 ? "s" : ""} shown</span>
       </div>
     </div>
   );
