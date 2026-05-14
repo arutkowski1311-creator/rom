@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Supabase CLI link state (contains pooler URL, project ref)
+supabase/.temp/
+
+# Local Claude Code dev config (per-developer)
+.claude/

@@ -4,6 +4,10 @@ import { T, FONT_DISPLAY, FONT_BODY } from "@/app/lib/theme";
 import { GoldBtn, SectionCard, SectionHeader } from "@/app/components/ui";
 import { getSupabase } from "@/app/lib/supabase-browser";
 import Image from "next/image";
+import NewsletterEditor from "./NewsletterEditor";
+import { NewsletterRenderer } from "@/app/lib/newsletter-renderer";
+import VoiceTrainer from "./VoiceTrainer";
+import PackBuilder from "./PackBuilder";
 
 const CONTENT_TYPES = [
   { id: "instagram", label: "Instagram Post", icon: "IG", desc: "Image card + caption" },
@@ -271,8 +275,37 @@ function wrapText(ctx, text, maxWidth) {
   lines.push(cur); return lines;
 }
 
-// ─── EMAIL PREVIEW ───────────────────────────────────────────────────────────
-function EmailPreview({ option, guideName, guideLocation, guideActivity, guideSlug }) {
+// ─── EMAIL PREVIEW (CARD) ────────────────────────────────────────────────────
+// Compact preview shown in the results list. Click "Edit" to open the full
+// NewsletterEditor for that option. Uses the same renderer as the editor and
+// the public web page so what you see is what gets sent.
+function EmailPreviewCard({ option, onEdit }) {
+  return (
+    <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
+      <div style={{ flex: "1 1 360px", minWidth: 320, maxWidth: 520 }}>
+        <NewsletterRenderer content={option} mode="preview" maxWidth={520} />
+      </div>
+      <div style={{ flex: "0 0 220px", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.muted }}>
+          <div style={{ fontWeight: 700, color: T.silver, marginBottom: 4 }}>{option.subject}</div>
+          <div>{option.preheader}</div>
+          <div style={{ marginTop: 8, color: T.muted }}>{option.sections?.length || 0} blocks</div>
+        </div>
+        <button onClick={onEdit} style={{
+          background: T.gold, border: "none", borderRadius: 5,
+          padding: "10px 14px", fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700,
+          color: T.ink, cursor: "pointer",
+        }}>
+          Edit & Send →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Legacy email preview kept temporarily for backwards compat with old library
+// rows. Delete after a soak period if no rows still use the old shape.
+function _LegacyEmailPreview({ option, guideName, guideLocation, guideActivity, guideSlug }) {
   const [copied, setCopied] = useState(false);
   const sections = option.sections || [];
   const bookingUrl = `https://romlife.co/guides/${guideSlug || ""}`;
@@ -377,20 +410,122 @@ function generateEmailHtml(option, guideName, guideLocation, guideActivity, book
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:0;background:#e8e5df"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px"><table width="600" cellpadding="0" cellspacing="0" style="background:#faf9f6;border-radius:8px;overflow:hidden"><tr><td style="background:#0d1117;padding:16px 24px"><table width="100%"><tr><td style="font-family:Georgia,serif;font-size:18px;color:#c9973a;letter-spacing:0.14em">RŌM</td><td align="right" style="font-family:-apple-system,sans-serif;font-size:10px;color:#8a96a0">${guideActivity} · ${guideLocation}</td></tr></table></td></tr>${sections}<tr><td style="background:#0d1117;padding:16px 24px;text-align:center"><span style="font-family:Georgia,serif;font-size:14px;color:#c9973a;letter-spacing:0.12em">RŌM</span><p style="font-family:-apple-system,sans-serif;font-size:10px;color:#5a6470;margin:4px 0 0">The world's best adventure guides, in one place.</p></td></tr></table></td></tr></table></body></html>`;
 }
 
+// ─── BLOG RESULT ─────────────────────────────────────────────────────────────
+function BlogResultPanel({ option, guideData }) {
+  const [copied, setCopied] = useState(null);
+  const [rendering, setRendering] = useState(false);
+  const [outlineOpen, setOutlineOpen] = useState(false);
+  const wordCount = (option.content || "").split(/\s+/).filter(Boolean).length;
+
+  const copyMarkdown = () => {
+    navigator.clipboard.writeText(option.content || "");
+    setCopied("md");
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const downloadMarkdown = () => {
+    const filename = `${(option.title || "post").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 50)}.md`;
+    const front = `---\ntitle: ${option.title}\ndescription: ${option.meta_description || ""}\nauthor: ${guideData?.name || ""}\nlocation: ${guideData?.location || ""}\n---\n\n# ${option.title}\n\n${option.content || ""}`;
+    const blob = new Blob([front], { type: "text/markdown" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+
+  const downloadHero = async () => {
+    setRendering(true);
+    try {
+      const { renderSlideToBlob, downloadBlob } = await import("@/app/lib/slide-renderer");
+      const blob = await renderSlideToBlob(
+        { headline: option.headline || option.title, body: option.subline || option.meta_description, photoUrl: guideData?.coverPhotoUrl || guideData?.photos?.[0] },
+        { format: "square", brand: { guideName: guideData?.name || "", guideLocation: guideData?.location || "", guideActivity: guideData?.activity || "Adventure" } },
+      );
+      downloadBlob(blob, `blog-hero-${Date.now()}.png`);
+    } catch (err) {
+      console.error("Hero render failed:", err);
+    }
+    setRendering(false);
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+        <div>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: T.white, marginBottom: 4 }}>{option.title}</div>
+          {option.meta_description && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.muted, fontStyle: "italic" }}>{option.meta_description}</div>}
+        </div>
+        <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.silver, background: T.lifted, border: `1px solid ${T.wire}`, borderRadius: 4, padding: "2px 8px" }}>{wordCount} words</span>
+      </div>
+
+      {Array.isArray(option.outline) && option.outline.length > 0 && (
+        <div style={{ background: T.lifted, border: `1px solid ${T.wire}`, borderRadius: 6, padding: 10, marginBottom: 12 }}>
+          <button onClick={() => setOutlineOpen((v) => !v)} style={{ background: "none", border: "none", color: T.silver, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            Outline {outlineOpen ? "▾" : "▸"}
+          </button>
+          {outlineOpen && (
+            <ul style={{ margin: "8px 0 0", paddingLeft: 20, fontFamily: FONT_BODY, fontSize: 12, color: T.ash, lineHeight: 1.7 }}>
+              {option.outline.map((h, i) => <li key={i}>{h}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <div style={{ background: T.lifted, border: `1px solid ${T.wire}`, borderRadius: 6, padding: 14, maxHeight: 380, overflowY: "auto", marginBottom: 12 }}>
+        <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.parchment, lineHeight: 1.75, whiteSpace: "pre-wrap" }}>{option.content}</div>
+      </div>
+
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <button onClick={copyMarkdown} style={{
+          background: copied === "md" ? "#1a3a2a" : T.steel, border: `1px solid ${copied === "md" ? "#4ade80" : T.wire}`,
+          borderRadius: 5, padding: "6px 12px", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700,
+          color: copied === "md" ? "#4ade80" : T.ash, cursor: "pointer",
+        }}>{copied === "md" ? "Copied!" : "Copy Markdown"}</button>
+        <button onClick={downloadMarkdown} style={{
+          background: T.steel, border: `1px solid ${T.wire}`,
+          borderRadius: 5, padding: "6px 12px", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700,
+          color: T.ash, cursor: "pointer",
+        }}>Download .md</button>
+        <button onClick={downloadHero} disabled={rendering} style={{
+          background: T.gold, border: "none",
+          borderRadius: 5, padding: "6px 12px", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700,
+          color: T.ink, cursor: rendering ? "not-allowed" : "pointer", opacity: rendering ? 0.6 : 1,
+        }}>{rendering ? "Rendering…" : "Download Hero Image"}</button>
+      </div>
+    </div>
+  );
+}
+
 // ─── REEL STORYBOARD ─────────────────────────────────────────────────────────
 function ReelStoryboard({ option }) {
   const [copied, setCopied] = useState(false);
   const shots = option.shots || [];
 
-  const copyScript = () => {
-    let text = `REEL: ${option.title}\nDuration: ${option.duration || "30s"}\nMusic: ${option.musicVibe || "N/A"}\nHook: ${option.hook || ""}\n\n`;
-    shots.forEach((s, i) => {
-      text += `[${s.time}] ${s.visual}${s.textOverlay ? `\n  TEXT: "${s.textOverlay}"` : ""}${s.transition ? ` → ${s.transition}` : ""}\n`;
+  const buildScriptText = useCallback(() => {
+    let text = `REEL: ${option.title}\nDuration: ${option.duration || "30s"}\nMusic: ${option.musicVibe || "N/A"}\nHook: ${option.hook || ""}\n\n--- SHOT LIST ---\n\n`;
+    shots.forEach((s) => {
+      text += `[${s.time}] ${s.visual}${s.textOverlay ? `\n  TEXT: "${s.textOverlay}"` : ""}${s.transition ? `\n  → ${s.transition}` : ""}\n\n`;
     });
-    text += `\nCaption: ${option.caption || ""}\n${(option.hashtags || []).map(h => `#${h.replace(/^#+/, "")}`).join(" ")}`;
-    navigator.clipboard.writeText(text);
+    text += `--- CAPTION ---\n${option.caption || ""}\n\n`;
+    if (option.hashtags?.length) text += `${option.hashtags.map(h => `#${String(h).replace(/^#+/, "")}`).join(" ")}\n\n`;
+    if (option.tip) text += `--- FILMING TIP ---\n${option.tip}\n`;
+    return text;
+  }, [option, shots]);
+
+  const copyScript = () => {
+    navigator.clipboard.writeText(buildScriptText());
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const downloadScript = () => {
+    const blob = new Blob([buildScriptText()], { type: "text/plain" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `reel-${(option.title || "script").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40)}.txt`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
 
   return (
@@ -461,6 +596,13 @@ function ReelStoryboard({ option }) {
           color: copied ? "#4ade80" : T.ash, cursor: "pointer",
         }}>
           {copied ? "Copied!" : "Copy Script"}
+        </button>
+        <button onClick={downloadScript} style={{
+          background: T.gold, border: "none",
+          borderRadius: 5, padding: "6px 14px", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700,
+          color: T.ink, cursor: "pointer",
+        }}>
+          Download .txt
         </button>
       </div>
     </div>
@@ -772,6 +914,8 @@ export default function MarketingTab({ guide, contentQueue: initialQueue = [] })
   const [reviews, setReviews] = useState([]);
   const [reviewContentMode, setReviewContentMode] = useState(false);
   const [selectedReview, setSelectedReview] = useState(null);
+  // Active newsletter being edited (null = show options list, set = show editor)
+  const [editingNewsletter, setEditingNewsletter] = useState(null);
 
   const guideId = guide?.id;
 
@@ -860,6 +1004,31 @@ export default function MarketingTab({ guide, contentQueue: initialQueue = [] })
     setTimeout(() => setCopied(null), 2000);
   };
 
+  // Build the "Copy All" text for a given option, format-aware. The previous
+  // version only copied the caption — for carousels/reels/stories that left
+  // the actual slide/shot/frame content out.
+  const buildCopyText = useCallback((opt, type) => {
+    const hashtagLine = opt.hashtags?.length
+      ? "\n\n" + opt.hashtags.map(h => `#${String(h).replace(/^#+/, "")}`).join(" ")
+      : "";
+    if (type === "carousel" && Array.isArray(opt.slides)) {
+      const slides = opt.slides.map((s, i) => `Slide ${i + 1}: ${s.headline || ""}\n${s.body || ""}${s.visual_direction ? `\n[Visual: ${s.visual_direction}]` : ""}`).join("\n\n");
+      return `${opt.title || "Carousel"}\n\n${slides}\n\n— Caption —\n${opt.content || ""}${hashtagLine}`;
+    }
+    if (type === "reel" && Array.isArray(opt.shots)) {
+      const shots = opt.shots.map(s => `[${s.time}] ${s.visual}${s.textOverlay ? `\n  TEXT: "${s.textOverlay}"` : ""}${s.transition ? ` → ${s.transition}` : ""}`).join("\n");
+      return `REEL: ${opt.title}\nDuration: ${opt.duration || "30s"}\nMusic: ${opt.musicVibe || "N/A"}\nHook: ${opt.hook || ""}\n\n${shots}\n\n— Caption —\n${opt.caption || ""}${hashtagLine}`;
+    }
+    if (type === "story" && Array.isArray(opt.frames)) {
+      const frames = opt.frames.map((f, i) => `Frame ${i + 1} (${f.type}): ${f.content || ""}${f.sticker ? `\n  Sticker: ${f.sticker}` : ""}${f.visual_direction ? `\n  [Visual: ${f.visual_direction}]` : ""}`).join("\n\n");
+      return `${opt.title || "Story"}\n\n${frames}`;
+    }
+    if (type === "blog") {
+      return `${opt.title}\n\n${opt.meta_description ? opt.meta_description + "\n\n" : ""}${opt.content || ""}${hashtagLine}`;
+    }
+    return `${opt.headline ? opt.headline + "\n\n" : ""}${opt.content || ""}${hashtagLine}`;
+  }, []);
+
   const handleContentAction = async (contentId, action, edited) => {
     try {
       await fetch("/api/content/approve", {
@@ -903,7 +1072,15 @@ export default function MarketingTab({ guide, contentQueue: initialQueue = [] })
       {subTab === "Library" && <LibraryView guideId={guideId} />}
 
       {/* ── CREATE TAB ── */}
-      {subTab === "Create" && (
+      {subTab === "Create" && editingNewsletter && (
+        <NewsletterEditor
+          initialContent={editingNewsletter}
+          guideId={guideId}
+          onClose={() => setEditingNewsletter(null)}
+        />
+      )}
+
+      {subTab === "Create" && !editingNewsletter && (
         <>
           {/* Content Queue */}
           {queue.length > 0 && (
@@ -974,6 +1151,9 @@ export default function MarketingTab({ guide, contentQueue: initialQueue = [] })
             </SectionCard>
           )}
 
+          {/* Voice training — collapsed by default, expands when guide clicks */}
+          <VoiceTrainer />
+
           {/* Content Studio */}
           <SectionCard>
             <SectionHeader>Content Studio</SectionHeader>
@@ -1037,64 +1217,82 @@ export default function MarketingTab({ guide, contentQueue: initialQueue = [] })
                 <SectionCard key={i}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                     <span style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, color: T.gold, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                      {opt.title || `Option ${i + 1}`}
+                      {isEmail ? (opt.subject || `Newsletter ${i + 1}`) : (opt.title || `Option ${i + 1}`)}
                     </span>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button onClick={() => handleCopy(
-                        (opt.content || "") + (opt.hashtags?.length ? "\n\n" + opt.hashtags.map(h => `#${h.replace(/^#+/, "")}`).join(" ") : ""), i
-                      )}
-                        style={{ background: copied === i ? "#1a3a2a" : T.steel, border: `1px solid ${copied === i ? "#4ade80" : T.wire}`, borderRadius: 4, padding: "4px 12px", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: copied === i ? "#4ade80" : T.ash, cursor: "pointer" }}>
-                        {copied === i ? "Copied!" : "Copy"}
-                      </button>
-                    </div>
+                    {/* Top-level Copy: skip for email (editor handles it) */}
+                    {!isEmail && (
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button onClick={() => handleCopy(buildCopyText(opt, selectedType), i)}
+                          style={{ background: copied === i ? "#1a3a2a" : T.steel, border: `1px solid ${copied === i ? "#4ade80" : T.wire}`, borderRadius: 4, padding: "4px 12px", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: copied === i ? "#4ade80" : T.ash, cursor: "pointer" }}>
+                          {copied === i ? "Copied!" : "Copy All"}
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* REEL STORYBOARD */}
                   {isReel && <ReelStoryboard option={opt} />}
 
-                  {/* EMAIL NEWSLETTER */}
-                  {isEmail && guideData && (
-                    <EmailPreview option={opt} guideName={guideData.name} guideLocation={guideData.location} guideActivity={guideData.activity} guideSlug={guideData.slug} />
+                  {/* EMAIL NEWSLETTER — opens NewsletterEditor on click */}
+                  {isEmail && (
+                    <EmailPreviewCard option={opt} onEdit={() => setEditingNewsletter(opt)} />
                   )}
 
-                  {/* BLOG */}
+                  {/* BLOG — hero render + markdown export */}
                   {isBlog && (
-                    <div>
-                      {opt.meta_description && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.muted, fontStyle: "italic", marginBottom: 12 }}>{opt.meta_description}</div>}
-                      <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.parchment, lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{opt.content}</div>
-                    </div>
+                    <BlogResultPanel option={opt} guideData={guideData} />
                   )}
 
-                  {/* CAROUSEL */}
+                  {/* CAROUSEL — live preview + per-slide photo + Download Pack */}
                   {isCarousel && opt.slides && (
                     <div>
-                      <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 10, marginBottom: 12 }}>
-                        {opt.slides.map((slide, si) => (
-                          <div key={si} style={{ minWidth: 200, background: T.lifted, border: `1px solid ${T.wire}`, borderRadius: 8, padding: 14, flexShrink: 0 }}>
-                            <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: T.muted, marginBottom: 4 }}>Slide {si + 1}</div>
-                            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, color: T.white, marginBottom: 4 }}>{slide.headline}</div>
-                            <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.ash, lineHeight: 1.5 }}>{slide.body}</div>
-                            {slide.visual_direction && <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: T.muted, fontStyle: "italic", marginTop: 6 }}>{slide.visual_direction}</div>}
-                          </div>
-                        ))}
+                      <PackBuilder
+                        format="square"
+                        formatLabel="Slide"
+                        filenamePrefix={`carousel-${i + 1}`}
+                        guideData={guideData}
+                        caption={opt.content}
+                        hashtags={opt.hashtags}
+                        entries={opt.slides.map((s, si) => ({
+                          slideNumber: s.slide_number || si + 1,
+                          role: s.role,
+                          headline: s.headline,
+                          body: s.body,
+                          visualDirection: s.visual_direction,
+                        }))}
+                      />
+                      {/* Caption + hashtags below pack */}
+                      <div style={{ marginTop: 18, paddingTop: 14, borderTop: `1px solid ${T.rim}` }}>
+                        <div style={{ fontFamily: FONT_BODY, fontSize: 10, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Post Caption</div>
+                        <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.parchment, lineHeight: 1.65, marginBottom: 8, whiteSpace: "pre-wrap" }}>{opt.content}</div>
+                        {opt.hashtags?.length > 0 && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold }}>{opt.hashtags.map(h => `#${String(h).replace(/^#+/, "")}`).join(" ")}</div>}
                       </div>
-                      <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.parchment, lineHeight: 1.65, marginBottom: 8 }}>{opt.content}</div>
-                      {opt.hashtags?.length > 0 && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.gold }}>{opt.hashtags.map(h => `#${h.replace(/^#+/, "")}`).join(" ")}</div>}
                     </div>
                   )}
 
-                  {/* STORY */}
+                  {/* STORY — vertical frames + Download Pack */}
                   {isStory && opt.frames && (
                     <div>
-                      <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 10 }}>
-                        {opt.frames.map((frame, fi) => (
-                          <div key={fi} style={{ minWidth: 160, background: T.lifted, border: `1px solid ${T.wire}`, borderRadius: 8, padding: 12, flexShrink: 0 }}>
-                            <div style={{ fontFamily: FONT_BODY, fontSize: 9, color: T.gold, textTransform: "uppercase", marginBottom: 4 }}>{frame.type}</div>
-                            <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.parchment, lineHeight: 1.5 }}>{frame.content}</div>
-                            {frame.sticker && <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: T.muted, marginTop: 4 }}>{frame.sticker}</div>}
-                          </div>
-                        ))}
-                      </div>
+                      <PackBuilder
+                        format="portrait"
+                        formatLabel="Frame"
+                        filenamePrefix={`story-${i + 1}`}
+                        guideData={guideData}
+                        tip={opt.filming_notes}
+                        entries={opt.frames.map((f, fi) => ({
+                          slideNumber: f.frame_number || fi + 1,
+                          role: f.type,
+                          headline: f.content?.split(/[.!?]/)[0] || `Frame ${fi + 1}`,
+                          body: f.sticker || f.visual_direction || "",
+                          visualDirection: f.visual_direction,
+                        }))}
+                      />
+                      {opt.filming_notes && (
+                        <div style={{ marginTop: 14, padding: 12, background: T.greenGlow, borderLeft: `3px solid ${T.green}`, borderRadius: 4 }}>
+                          <span style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.green, marginRight: 6 }}>FILMING NOTES:</span>
+                          <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.ash }}>{opt.filming_notes}</span>
+                        </div>
+                      )}
                     </div>
                   )}
 
