@@ -16,7 +16,7 @@ if (!SUPABASE_URL || !SERVICE_KEY) {
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
-const DEMO_EMAIL = "rutnyllc@gmail.com";
+const DEMO_EMAIL = "samrutkowski@gmail.com";
 const DEMO_PASSWORD = "Samlikeswang";
 const DEMO_SLUG = "sams-outdoor-outfitters";
 
