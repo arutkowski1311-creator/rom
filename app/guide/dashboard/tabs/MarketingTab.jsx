@@ -39,7 +39,7 @@ const INTEL_CATEGORIES = {
   behind_scenes: { label: "Behind Scenes", color: "#5a5a7a" },
 };
 
-const SUB_TABS = ["Create", "Intelligence", "Calendar", "Library"];
+const SUB_TABS = ["Create", "Intelligence", "Calendar", "Library", "Campaigns"];
 
 const PLATFORM_ICONS = { instagram: "IG", facebook: "FB", email: "✉", tiktok: "TT", reel: "🎬" };
 
@@ -897,6 +897,122 @@ function LibraryView({ guideId }) {
   );
 }
 
+// ─── CAMPAIGNS VIEW ──────────────────────────────────────────────────────────
+function CampaignsView({ guideId }) {
+  const [campaigns, setCampaigns] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => { loadStats(); }, [guideId]);
+
+  const loadStats = async () => {
+    setLoading(true);
+    try {
+      const supabase = getSupabase();
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+      const res = await fetch("/api/content/newsletter/stats", { headers });
+      const data = await res.json();
+      setCampaigns(data.campaigns || []);
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  };
+
+  const totals = campaigns.reduce((acc, c) => ({
+    sent: acc.sent + c.recipients,
+    delivered: acc.delivered + c.delivered,
+    opens: acc.opens + c.uniqueOpeners,
+    clicks: acc.clicks + c.uniqueClickers,
+    bounced: acc.bounced + c.bounced,
+  }), { sent: 0, delivered: 0, opens: 0, clicks: 0, bounced: 0 });
+
+  const overallOpenRate = totals.delivered > 0 ? totals.opens / totals.delivered : 0;
+  const overallClickRate = totals.delivered > 0 ? totals.clicks / totals.delivered : 0;
+
+  const pct = (n) => `${(n * 100).toFixed(1)}%`;
+
+  return (
+    <div>
+      <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.silver, marginBottom: 20 }}>
+        Per-campaign delivery and engagement, updated live from Resend webhook events.
+      </div>
+
+      {loading ? (
+        <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.muted, padding: 40 }}>Loading campaigns…</div>
+      ) : campaigns.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "48px 0", background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 10 }}>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: T.silver, marginBottom: 8 }}>No campaigns sent yet</div>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.muted }}>Send a newsletter to your subscribers from the Create tab and stats will appear here.</div>
+        </div>
+      ) : (
+        <>
+          {/* Summary tiles */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10, marginBottom: 24 }}>
+            <SummaryTile label="Sent" value={totals.sent.toLocaleString()} />
+            <SummaryTile label="Delivered" value={totals.delivered.toLocaleString()} sub={totals.bounced > 0 ? `${totals.bounced} bounced` : null} />
+            <SummaryTile label="Open Rate" value={pct(overallOpenRate)} sub={`${totals.opens.toLocaleString()} opens`} accent />
+            <SummaryTile label="Click Rate" value={pct(overallClickRate)} sub={`${totals.clicks.toLocaleString()} clicks`} accent />
+            <SummaryTile label="Campaigns" value={campaigns.length.toLocaleString()} />
+          </div>
+
+          {/* Per-campaign rows */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {campaigns.map(c => (
+              <div key={c.newsletterId} style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 8, padding: "16px 20px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, marginBottom: 12 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, color: T.parchment, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {c.subject}
+                    </div>
+                    <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.muted }}>
+                      Sent {c.sentAt ? new Date(c.sentAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                      {c.slug && (
+                        <> · <a href={`/newsletter/${c.slug}`} target="_blank" rel="noreferrer" style={{ color: T.gold, textDecoration: "none" }}>View public page →</a></>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12 }}>
+                  <Metric label="Recipients" value={c.recipients} />
+                  <Metric label="Delivered" value={c.delivered} />
+                  <Metric label="Opens" value={c.uniqueOpeners} secondary={c.opens > c.uniqueOpeners ? `${c.opens} total` : null} />
+                  <Metric label="Clicks" value={c.uniqueClickers} secondary={c.clicks > c.uniqueClickers ? `${c.clicks} total` : null} />
+                  <Metric label="Open Rate" value={pct(c.openRate)} accent />
+                  <Metric label="Click Rate" value={pct(c.clickRate)} accent />
+                </div>
+                {c.bounced > 0 && (
+                  <div style={{ marginTop: 10, fontFamily: FONT_BODY, fontSize: 11, color: T.red }}>
+                    {c.bounced} bounce{c.bounced === 1 ? "" : "s"}{c.failed > 0 ? ` · ${c.failed} failed` : ""}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function SummaryTile({ label, value, sub, accent }) {
+  return (
+    <div style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 8, padding: "14px 16px" }}>
+      <div style={{ fontFamily: FONT_BODY, fontSize: 10, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{label}</div>
+      <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: accent ? T.gold : T.parchment, lineHeight: 1 }}>{value}</div>
+      {sub && <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.muted, marginTop: 4 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function Metric({ label, value, secondary, accent }) {
+  return (
+    <div>
+      <div style={{ fontFamily: FONT_BODY, fontSize: 10, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>{label}</div>
+      <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, color: accent ? T.gold : T.parchment, lineHeight: 1 }}>{value}</div>
+      {secondary && <div style={{ fontFamily: FONT_BODY, fontSize: 10, color: T.muted, marginTop: 2 }}>{secondary}</div>}
+    </div>
+  );
+}
+
 // ─── MAIN ────────────────────────────────────────────────────────────────────
 export default function MarketingTab({ guide, contentQueue: initialQueue = [] }) {
   const [subTab, setSubTab] = useState("Create");
@@ -1070,6 +1186,9 @@ export default function MarketingTab({ guide, contentQueue: initialQueue = [] })
 
       {/* ── LIBRARY TAB ── */}
       {subTab === "Library" && <LibraryView guideId={guideId} />}
+
+      {/* ── CAMPAIGNS TAB ── */}
+      {subTab === "Campaigns" && <CampaignsView guideId={guideId} />}
 
       {/* ── CREATE TAB ── */}
       {subTab === "Create" && editingNewsletter && (
