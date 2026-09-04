@@ -1,6 +1,8 @@
 // Subscriber list management.
-//   GET  /api/guide/subscribers              → list active subscribers + counts
-//   POST /api/guide/subscribers              → bulk add (JSON array OR CSV string)
+//   GET  /api/guide/subscribers              → list subscribers + counts
+//   POST /api/guide/subscribers              → bulk add (JSON array, CSV string,
+//                                              or pastGuests:true to pull from bookings)
+//   PATCH /api/guide/subscribers?id=:id      → resubscribe (clears unsubscribed_at)
 //   DELETE /api/guide/subscribers?id=:id     → mark unsubscribed (does not delete)
 
 import { NextRequest, NextResponse } from "next/server";
@@ -56,6 +58,31 @@ function parseCsv(input: string): ParsedRow[] {
   return out;
 }
 
+// Everyone who has actually booked this guide. Bookings carry the guest email
+// directly, so this needs no join — dedupe by email and keep the name from the
+// most recent booking.
+async function pastGuestRows(guideId: string): Promise<ParsedRow[]> {
+  const admin = getSupabaseAdmin();
+  const { data } = await admin
+    .from("bookings")
+    .select("guest_email, guest_name, trip_date")
+    .eq("guide_id", guideId)
+    .not("guest_email", "is", null)
+    .order("trip_date", { ascending: false })
+    .limit(5000);
+
+  const rows = (data || []) as Array<{ guest_email: string | null; guest_name: string | null }>;
+  const byEmail = new Map<string, ParsedRow>();
+  for (const r of rows) {
+    const email = (r.guest_email || "").trim().toLowerCase();
+    if (!email || !EMAIL_RE.test(email)) continue;
+    // First occurrence wins — the query is newest-first, so that's the most
+    // recent name on file.
+    if (!byEmail.has(email)) byEmail.set(email, { email, full_name: r.guest_name || undefined, tags: ["client"] });
+  }
+  return Array.from(byEmail.values());
+}
+
 export async function GET(req: NextRequest) {
   const guideId = await getUserGuideId(req);
   if (!guideId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -80,11 +107,20 @@ export async function POST(req: NextRequest) {
     if (!guideId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
-    const { csv, rows, source = "manual", consent_source = "imported" } = body as { csv?: string; rows?: ParsedRow[]; source?: string; consent_source?: string };
+    let { source = "manual", consent_source = "imported" } = body as { source?: string; consent_source?: string };
+    const { csv, rows, pastGuests } = body as { csv?: string; rows?: ParsedRow[]; pastGuests?: boolean };
 
     let parsed: ParsedRow[] = [];
-    if (typeof csv === "string" && csv.trim()) parsed = parseCsv(csv);
-    if (Array.isArray(rows)) {
+    if (pastGuests) {
+      parsed = await pastGuestRows(guideId);
+      if (parsed.length === 0) return NextResponse.json({ error: "No past guests with an email on file" }, { status: 400 });
+      source = "past_guest";
+      // Named for what it actually is: an existing customer relationship, not a
+      // marketing opt-in the guest ticked. Don't launder it as consent.
+      consent_source = "past_guest_import";
+    }
+    if (!pastGuests && typeof csv === "string" && csv.trim()) parsed = parseCsv(csv);
+    if (!pastGuests && Array.isArray(rows)) {
       const more = rows
         .filter((r) => r && typeof r.email === "string" && EMAIL_RE.test(r.email))
         .map((r) => ({ email: r.email.toLowerCase(), full_name: r.full_name, tags: Array.isArray(r.tags) ? r.tags : undefined }));
@@ -98,6 +134,22 @@ export async function POST(req: NextRequest) {
     const dedup = Array.from(byEmail.values());
 
     const admin = getSupabaseAdmin();
+
+    // Which of these already exist? ignoreDuplicates means the upsert is silent
+    // about collisions, so count first — otherwise "Added 40" is a lie when 38
+    // were already on the list.
+    // Chunked: a `.in()` with a few thousand emails would overflow the request
+    // URL, and a past-guest import can legitimately be that big.
+    const existing = new Set<string>();
+    const emails = dedup.map((r) => r.email);
+    for (let i = 0; i < emails.length; i += 200) {
+      const { data: existingRows } = await admin.from("email_subscribers")
+        .select("email")
+        .eq("guide_id", guideId)
+        .in("email", emails.slice(i, i + 200));
+      for (const r of (existingRows || []) as Array<{ email: string }>) existing.add(r.email);
+    }
+
     const records = dedup.map((r) => ({
       guide_id: guideId,
       email: r.email,
@@ -119,10 +171,32 @@ export async function POST(req: NextRequest) {
       .eq("guide_id", guideId)
       .is("unsubscribed_at", null);
 
-    return NextResponse.json({ added: dedup.length, activeCount: count || 0 });
+    const added = dedup.filter((r) => !existing.has(r.email)).length;
+    return NextResponse.json({
+      added,
+      skipped: dedup.length - added,
+      activeCount: count || 0,
+    });
   } catch (err: unknown) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Import failed" }, { status: 500 });
   }
+}
+
+export async function PATCH(req: NextRequest) {
+  const guideId = await getUserGuideId(req);
+  if (!guideId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const id = new URL(req.url).searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
+  const admin = getSupabaseAdmin();
+  // Only ever used to undo an accidental removal from the dashboard. A person
+  // who unsubscribed themselves stays off the list unless the guide explicitly
+  // puts them back.
+  const { error } = await admin.from("email_subscribers")
+    .update({ unsubscribed_at: null } as never)
+    .eq("id", id)
+    .eq("guide_id", guideId);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(req: NextRequest) {

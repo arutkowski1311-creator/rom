@@ -39,7 +39,16 @@ const INTEL_CATEGORIES = {
   behind_scenes: { label: "Behind Scenes", color: "#5a5a7a" },
 };
 
-const SUB_TABS = ["Create", "Intelligence", "Calendar", "Library", "Campaigns"];
+const SUB_TABS = ["Create", "Intelligence", "Calendar", "Library", "Audience", "Campaigns"];
+
+// How a subscriber got on the list, in the guide's words rather than the
+// database's.
+const SOURCE_LABELS = {
+  past_guest: "Past guest",
+  csv_import: "Imported",
+  web_signup: "Signed up",
+  manual: "Added by hand",
+};
 
 const PLATFORM_ICONS = { instagram: "IG", facebook: "FB", email: "✉", tiktok: "TT", reel: "🎬" };
 
@@ -993,6 +1002,289 @@ function CampaignsView({ guideId }) {
   );
 }
 
+// ─── AUDIENCE VIEW ───────────────────────────────────────────────────────────
+// The guide's own email list: who is on it, where they came from, and how to
+// get people onto it. Campaign sends read this list, so it is the front end of
+// the newsletter loop.
+function AudienceView({ guideId }) {
+  const [subscribers, setSubscribers] = useState([]);
+  const [counts, setCounts] = useState({ total: 0, active: 0, unsubscribed: 0 });
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState("active"); // active | unsubscribed | all
+  const [showCsv, setShowCsv] = useState(false);
+  const [csvText, setCsvText] = useState("");
+  const [busy, setBusy] = useState(null); // 'import' | 'guests' | subscriber id
+  const [msg, setMsg] = useState(null);
+
+  const authHeader = useCallback(async () => {
+    const supabase = getSupabase();
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token
+      ? { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" }
+      : { "Content-Type": "application/json" };
+  }, []);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const headers = await authHeader();
+      const res = await fetch("/api/guide/subscribers", { headers });
+      const data = await res.json();
+      if (data.error) setMsg({ kind: "error", text: data.error });
+      else {
+        setSubscribers(data.subscribers || []);
+        setCounts(data.counts || { total: 0, active: 0, unsubscribed: 0 });
+      }
+    } catch (err) {
+      setMsg({ kind: "error", text: String(err?.message || err) });
+    }
+    setLoading(false);
+  }, [authHeader]);
+
+  useEffect(() => { load(); }, [load, guideId]);
+
+  const importCsv = useCallback(async () => {
+    setBusy("import"); setMsg(null);
+    try {
+      const headers = await authHeader();
+      const res = await fetch("/api/guide/subscribers", {
+        method: "POST", headers,
+        body: JSON.stringify({ csv: csvText, source: "csv_import" }),
+      });
+      const data = await res.json();
+      if (data.error) setMsg({ kind: "error", text: data.error });
+      else {
+        setMsg({ kind: "ok", text: `Added ${data.added}${data.skipped ? ` · ${data.skipped} already on the list` : ""}.` });
+        setCsvText(""); setShowCsv(false);
+        await load();
+      }
+    } catch (err) {
+      setMsg({ kind: "error", text: String(err?.message || err) });
+    }
+    setBusy(null);
+  }, [authHeader, csvText, load]);
+
+  const importPastGuests = useCallback(async () => {
+    setBusy("guests"); setMsg(null);
+    try {
+      const headers = await authHeader();
+      const res = await fetch("/api/guide/subscribers", {
+        method: "POST", headers,
+        body: JSON.stringify({ pastGuests: true }),
+      });
+      const data = await res.json();
+      if (data.error) setMsg({ kind: "error", text: data.error });
+      else {
+        setMsg({ kind: "ok", text: `Added ${data.added} past guest${data.added === 1 ? "" : "s"}${data.skipped ? ` · ${data.skipped} already on the list` : ""}.` });
+        await load();
+      }
+    } catch (err) {
+      setMsg({ kind: "error", text: String(err?.message || err) });
+    }
+    setBusy(null);
+  }, [authHeader, load]);
+
+  const setSubscribed = useCallback(async (sub, subscribed) => {
+    setBusy(sub.id); setMsg(null);
+    try {
+      const headers = await authHeader();
+      const res = await fetch(`/api/guide/subscribers?id=${encodeURIComponent(sub.id)}`, {
+        method: subscribed ? "PATCH" : "DELETE", headers,
+      });
+      const data = await res.json();
+      if (data.error) setMsg({ kind: "error", text: data.error });
+      else await load();
+    } catch (err) {
+      setMsg({ kind: "error", text: String(err?.message || err) });
+    }
+    setBusy(null);
+  }, [authHeader, load]);
+
+  const exportCsv = useCallback(() => {
+    const header = "email,name,source,tags,joined,status";
+    const lines = subscribers.map((s) => [
+      s.email,
+      (s.full_name || "").replace(/,/g, " "),
+      s.source || "",
+      (s.tags || []).join(";"),
+      s.created_at ? new Date(s.created_at).toISOString().slice(0, 10) : "",
+      s.unsubscribed_at ? "unsubscribed" : "active",
+    ].join(","));
+    const blob = new Blob([[header, ...lines].join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `subscribers-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [subscribers]);
+
+  const visible = subscribers.filter((s) => {
+    if (status === "active" && s.unsubscribed_at) return false;
+    if (status === "unsubscribed" && !s.unsubscribed_at) return false;
+    if (!query.trim()) return true;
+    const q = query.trim().toLowerCase();
+    return (s.email || "").toLowerCase().includes(q) || (s.full_name || "").toLowerCase().includes(q);
+  });
+
+  const inputStyle = {
+    background: T.void, border: `1px solid ${T.wire}`, borderRadius: 5,
+    padding: "8px 10px", fontFamily: FONT_BODY, fontSize: 13, color: T.parchment, outline: "none",
+  };
+  const btnStyle = (active) => ({
+    background: active ? T.steel : "none", border: `1px solid ${T.wire}`, borderRadius: 5,
+    padding: "8px 12px", fontFamily: FONT_BODY, fontSize: 12,
+    color: active ? T.gold : T.ash, cursor: "pointer",
+  });
+
+  return (
+    <div>
+      <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.silver, marginBottom: 20 }}>
+        Your email list. Campaign sends go to everyone marked active — bounces and spam complaints remove people automatically.
+      </div>
+
+      {/* Summary */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 20 }}>
+        <SummaryTile label="Active" value={counts.active.toLocaleString()} accent />
+        <SummaryTile label="Unsubscribed" value={counts.unsubscribed.toLocaleString()} />
+        <SummaryTile label="Total Ever" value={counts.total.toLocaleString()} />
+      </div>
+
+      {/* Toolbar */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search name or email…"
+          style={{ ...inputStyle, flex: "1 1 220px", minWidth: 180 }}
+        />
+        <div style={{ display: "flex", gap: 4 }}>
+          {["active", "unsubscribed", "all"].map((s) => (
+            <button key={s} onClick={() => setStatus(s)} style={btnStyle(status === s)}>
+              {s === "all" ? "All" : s === "active" ? "Active" : "Unsubscribed"}
+            </button>
+          ))}
+        </div>
+        <button onClick={importPastGuests} disabled={busy === "guests"} style={btnStyle(false)}>
+          {busy === "guests" ? "Adding…" : "Add Past Guests"}
+        </button>
+        <button onClick={() => setShowCsv((v) => !v)} style={btnStyle(showCsv)}>
+          {showCsv ? "Hide Import" : "Import CSV"}
+        </button>
+        <button onClick={exportCsv} disabled={subscribers.length === 0} style={btnStyle(false)}>Export CSV</button>
+      </div>
+
+      {msg && (
+        <div style={{
+          fontFamily: FONT_BODY, fontSize: 12, marginBottom: 14, padding: "8px 12px", borderRadius: 5,
+          background: T.steel, border: `1px solid ${msg.kind === "error" ? T.red : T.wire}`,
+          color: msg.kind === "error" ? T.red : T.parchment,
+        }}>{msg.text}</div>
+      )}
+
+      {showCsv && (
+        <div style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 8, padding: 16, marginBottom: 16 }}>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.silver, marginBottom: 8 }}>
+            One per line: <code style={{ color: T.gold }}>email,name,tags</code> — name and tags optional, tags separated by semicolons. A header row is fine.
+          </div>
+          <textarea
+            value={csvText}
+            onChange={(e) => setCsvText(e.target.value)}
+            rows={6}
+            placeholder={"email,name,tags\nsam@example.com,Sam Rutkowski,client;repeat"}
+            style={{ ...inputStyle, width: "100%", resize: "vertical", fontFamily: "ui-monospace, monospace", fontSize: 12 }}
+          />
+          <div style={{ marginTop: 10 }}>
+            <GoldBtn onClick={importCsv} disabled={busy === "import" || !csvText.trim()}>
+              {busy === "import" ? "Importing…" : "Import"}
+            </GoldBtn>
+          </div>
+        </div>
+      )}
+
+      {/* List */}
+      {loading ? (
+        <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.muted, padding: 40 }}>Loading subscribers…</div>
+      ) : subscribers.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "48px 24px", background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 10 }}>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: T.silver, marginBottom: 8 }}>No subscribers yet</div>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.muted, marginBottom: 16 }}>
+            Add the guests who have already booked with you, or paste in a list you keep elsewhere.
+          </div>
+          <GoldBtn onClick={importPastGuests} disabled={busy === "guests"}>
+            {busy === "guests" ? "Adding…" : "Add Past Guests"}
+          </GoldBtn>
+        </div>
+      ) : visible.length === 0 ? (
+        <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.muted, padding: 32, textAlign: "center" }}>
+          No one matches that filter.
+        </div>
+      ) : (
+        <div style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 8, overflow: "hidden" }}>
+          <div style={{ display: "flex", gap: 12, padding: "10px 16px", borderBottom: `1px solid ${T.wire}`, background: T.void }}>
+            {[["Subscriber", 3], ["Source", 1], ["Joined", 1], ["", 1]].map(([label, flex], i) => (
+              <div key={i} style={{
+                flex, minWidth: 0, fontFamily: FONT_BODY, fontSize: 10, fontWeight: 700,
+                color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em",
+                textAlign: i === 3 ? "right" : "left",
+              }}>{label}</div>
+            ))}
+          </div>
+          {visible.map((s) => {
+            const off = !!s.unsubscribed_at;
+            return (
+              <div key={s.id} style={{
+                display: "flex", gap: 12, padding: "12px 16px", alignItems: "center",
+                borderBottom: `1px solid ${T.wire}`, opacity: off ? 0.55 : 1,
+              }}>
+                <div style={{ flex: 3, minWidth: 0 }}>
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.parchment, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {s.full_name || s.email}
+                  </div>
+                  {s.full_name && (
+                    <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {s.email}
+                    </div>
+                  )}
+                  {(s.tags || []).length > 0 && (
+                    <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
+                      {s.tags.map((tag) => (
+                        <span key={tag} style={{
+                          fontFamily: FONT_BODY, fontSize: 10, color: T.ash,
+                          border: `1px solid ${T.wire}`, borderRadius: 3, padding: "1px 5px",
+                        }}>{tag}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div style={{ flex: 1, minWidth: 0, fontFamily: FONT_BODY, fontSize: 11, color: T.muted }}>
+                  {SOURCE_LABELS[s.source] || s.source || "—"}
+                </div>
+                <div style={{ flex: 1, minWidth: 0, fontFamily: FONT_BODY, fontSize: 11, color: T.muted }}>
+                  {s.created_at ? new Date(s.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                </div>
+                <div style={{ flex: 1, textAlign: "right" }}>
+                  <button
+                    onClick={() => setSubscribed(s, off)}
+                    disabled={busy === s.id}
+                    style={{
+                      background: "none", border: `1px solid ${T.wire}`, borderRadius: 4,
+                      padding: "5px 10px", fontFamily: FONT_BODY, fontSize: 11,
+                      color: off ? T.gold : T.muted, cursor: "pointer", whiteSpace: "nowrap",
+                    }}>
+                    {busy === s.id ? "…" : off ? "Restore" : "Remove"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SummaryTile({ label, value, sub, accent }) {
   return (
     <div style={{ background: T.steel, border: `1px solid ${T.wire}`, borderRadius: 8, padding: "14px 16px" }}>
@@ -1186,6 +1478,9 @@ export default function MarketingTab({ guide, contentQueue: initialQueue = [] })
 
       {/* ── LIBRARY TAB ── */}
       {subTab === "Library" && <LibraryView guideId={guideId} />}
+
+      {/* ── AUDIENCE TAB ── */}
+      {subTab === "Audience" && <AudienceView guideId={guideId} />}
 
       {/* ── CAMPAIGNS TAB ── */}
       {subTab === "Campaigns" && <CampaignsView guideId={guideId} />}
