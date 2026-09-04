@@ -2,8 +2,8 @@
 //   email.sent / email.delivered → status = 'sent'
 //   email.opened                 → opens += 1
 //   email.clicked                → clicks += 1
-//   email.bounced                → status = 'bounced'
-//   email.complained             → noted (status preserved)
+//   email.bounced                → status = 'bounced' (+ suppress on hard bounce)
+//   email.complained             → noted + subscriber suppressed
 //
 // Verifies Svix-style signature so only real Resend events get through.
 // Configure in Resend dashboard:
@@ -61,8 +61,29 @@ interface ResendEvent {
     email_id?: string;
     id?: string;
     to?: string | string[];
+    bounce?: { type?: string; subType?: string; message?: string };
     [key: string]: unknown;
   };
+}
+
+// Stop mailing an address for good. A hard bounce means the mailbox does not
+// exist; a complaint means the person hit "spam". Either way, sending again
+// burns the sending domain's reputation, so the subscriber is unsubscribed the
+// same way the unsubscribe page does it.
+async function suppressSubscriber(
+  guideId: string | null,
+  email: string | null,
+  reason: string,
+): Promise<void> {
+  if (!guideId || !email) return;
+  const admin = getSupabaseAdmin();
+  const { error } = await admin
+    .from("email_subscribers")
+    .update({ unsubscribed_at: new Date().toISOString() } as never)
+    .eq("guide_id", guideId)
+    .eq("email", email)
+    .is("unsubscribed_at", null);
+  if (error) console.error(`Failed to suppress ${email} after ${reason}:`, error);
 }
 
 export async function POST(req: NextRequest) {
@@ -95,7 +116,7 @@ export async function POST(req: NextRequest) {
   const admin = getSupabaseAdmin();
   const { data: send } = await admin
     .from("newsletter_sends")
-    .select("id, opens, clicks, status")
+    .select("id, opens, clicks, status, error, guide_id, recipient_email")
     .eq("resend_message_id", messageId)
     .maybeSingle();
 
@@ -106,6 +127,7 @@ export async function POST(req: NextRequest) {
   // Build the patch. Counters use read-modify-write — fine for our volume,
   // a small race window could miss an increment but never corrupts data.
   const update: Record<string, unknown> = {};
+  let suppressed: string | null = null;
   switch (event.type) {
     case "email.sent":
     case "email.delivered":
@@ -117,12 +139,22 @@ export async function POST(req: NextRequest) {
     case "email.clicked":
       update.clicks = (send.clicks || 0) + 1;
       break;
-    case "email.bounced":
+    case "email.bounced": {
       update.status = "bounced";
+      // Resend reports Transient (mailbox full, greylisted) separately from
+      // Permanent. Only permanent bounces suppress — a transient one can
+      // deliver on the next campaign.
+      const bounceType = (event.data.bounce?.type || "").toLowerCase();
+      const permanent = bounceType !== "transient";
+      update.error = `bounced: ${event.data.bounce?.type || "unknown"}${event.data.bounce?.subType ? `/${event.data.bounce.subType}` : ""}`;
+      if (permanent) suppressed = "hard bounce";
       break;
+    }
     case "email.complained":
       // Surface complaints in the error column so they're visible in queries.
       // Doesn't overwrite a real send error if one is already stored.
+      if (!send.error) update.error = "spam complaint";
+      suppressed = "spam complaint";
       break;
     case "email.delivery_delayed":
       break;
@@ -141,7 +173,11 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, type: event.type, messageId });
+  if (suppressed) {
+    await suppressSubscriber(send.guide_id, send.recipient_email, suppressed);
+  }
+
+  return NextResponse.json({ ok: true, type: event.type, messageId, suppressed: suppressed ?? undefined });
 }
 
 // GET handler for the Resend dashboard's "Test webhook" button which sends a
