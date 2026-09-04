@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/app/lib/supabase-server";
 import { validateNewsletterContent } from "@/app/lib/newsletter-schema";
 import { NewsletterRenderer } from "@/app/lib/newsletter-renderer";
+import SubscribeForm from "@/app/components/SubscribeForm";
 import type { Metadata } from "next";
 
 interface Params {
@@ -22,7 +23,7 @@ async function loadNewsletter(idOrSlug: string) {
   const isUuid = UUID_RE.test(idOrSlug);
   const query = admin
     .from("content_pieces")
-    .select("id, content_json, status, public_slug, subject, preheader")
+    .select("id, guide_id, content_json, status, public_slug, subject, preheader")
     .eq("type", "newsletter")
     .in("status", ["approved", "published"]);
   const { data } = isUuid
@@ -63,5 +64,22 @@ export default async function NewsletterPage({ params }: Params) {
     notFound();
   }
 
-  return <NewsletterRenderer content={content} mode="page" maxWidth={640} />;
+  // Someone reading a forwarded newsletter is the warmest possible lead, so
+  // the opt-in sits directly under it rather than on some other page.
+  return (
+    <div style={{ background: "#e8e5df", minHeight: "100vh", padding: "32px 12px" }}>
+      <div style={{ maxWidth: 640, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
+        <NewsletterRenderer content={content} maxWidth={640} />
+        {row.guide_id && (
+          <SubscribeForm
+            guideId={row.guide_id}
+            guideName={content.guide?.name}
+            variant="paper"
+            heading={content.guide?.name ? `More from ${content.guide.name.split(" ")[0]}` : "Get the next one"}
+            blurb="Get the next one straight to your inbox."
+          />
+        )}
+      </div>
+    </div>
+  );
 }

@@ -8,6 +8,7 @@ import { Stars, GoldBtn } from "@/app/components/ui";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useCart } from "@/app/lib/cart-context";
+import SubscribeForm from "@/app/components/SubscribeForm";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
@@ -1268,9 +1269,12 @@ function GuideProfile({ guide=GUIDE }) {
                     <h2 style={{fontFamily:FONT_DISPLAY,fontSize:38,color:T.white,fontWeight:400,marginBottom:8}}>Field Notes</h2>
                     <p style={{fontFamily:FONT_BODY,fontSize:15,color:T.silver,marginBottom:32}}>Stories, observations, and honest writing from the water.</p>
                     {(!guide.fieldNotes || guide.fieldNotes.length === 0) ? (
-                      <div style={{textAlign:"center",padding:"48px 20px",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10}}>
-                        <div style={{fontFamily:FONT_DISPLAY,fontSize:24,color:T.silver,marginBottom:8}}>Coming soon</div>
-                        <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.muted}}>{guide.name.split(" ")[0]} hasn't published any field notes yet.</div>
+                      <div style={{display:"flex",flexDirection:"column",gap:16}}>
+                        <div style={{textAlign:"center",padding:"48px 20px",background:T.steel,border:`1px solid ${T.wire}`,borderRadius:10}}>
+                          <div style={{fontFamily:FONT_DISPLAY,fontSize:24,color:T.silver,marginBottom:8}}>Coming soon</div>
+                          <div style={{fontFamily:FONT_BODY,fontSize:14,color:T.muted}}>{guide.name.split(" ")[0]} hasn&apos;t published any field notes yet.</div>
+                        </div>
+                        <SubscribeForm guideId={guide.id} guideName={guide.name} blurb="Be first to read them — plus conditions worth knowing about and the occasional open date." />
                       </div>
                     ) : (
                       <div style={{display:"flex",flexDirection:"column",gap:14}}>
@@ -1282,6 +1286,7 @@ function GuideProfile({ guide=GUIDE }) {
                             <div style={{fontFamily:FONT_BODY,fontSize:13,fontWeight:700,color:T.gold}}>Read more →</div>
                           </div>
                         ))}
+                        <SubscribeForm guideId={guide.id} guideName={guide.name} />
                       </div>
                     )}
                   </div>
